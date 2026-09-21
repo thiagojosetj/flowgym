@@ -1,0 +1,85 @@
+# =====================================================================
+# Monorepo .gitignore — Android (Gradle/Java), Spring Boot backend, IDEs
+# Secrets must never be committed. See docs/DECISIONS.md (ADR-0010).
+# =====================================================================
+
+# ---------- Secrets & local configuration ----------
+local.properties
+.env
+.env.*
+!.env.example
+*.keystore
+*.jks
+!**/debug.keystore.example
+keystore.properties
+signing.properties
+secrets.properties
+google-services.json
+GoogleService-Info.plist
+*.pem
+*.p12
+*.key
+application-local.yml
+application-local.yaml
+application-local.properties
+
+# ---------- Gradle ----------
+.gradle/
+**/build/
+!**/src/**/build/
+gradle-app.setting
+.kotlin/
+
+# Keep the wrapper jar (required to build) but nothing else under gradle caches
+!gradle/wrapper/gradle-wrapper.jar
+
+# ---------- Maven (backend) ----------
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# ---------- Android ----------
+*.apk
+*.aab
+*.ap_
+*.dex
+captures/
+.externalNativeBuild/
+.cxx/
+output-metadata.json
+lint-results*.html
+lint-results*.xml
+# Android Studio generated
+*.iml
+.idea/
+.navigation/
+# Profiling / traces
+*.hprof
+*.trace
+
+# ---------- Java ----------
+*.class
+*.log
+hs_err_pid*
+replay_pid*
+
+# ---------- IDEs & editors ----------
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+.factorypath
+out/
+bin/
+!**/src/**/bin/
+
+# ---------- OS ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------- Local tooling ----------
+.claude/settings.local.json
+tmp/

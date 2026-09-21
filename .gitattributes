@@ -1,0 +1,25 @@
+# Normalize line endings in the repository (LF), regardless of OS.
+* text=auto eol=lf
+
+# Windows scripts must keep CRLF to run correctly in cmd.exe.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Unix scripts must keep LF.
+gradlew text eol=lf
+mvnw text eol=lf
+*.sh text eol=lf
+
+# Binary files: never touch line endings or diff as text.
+*.jar binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.mp4 binary
+*.ttf binary
+*.otf binary
+*.zip binary
+*.keystore binary
+*.jks binary
