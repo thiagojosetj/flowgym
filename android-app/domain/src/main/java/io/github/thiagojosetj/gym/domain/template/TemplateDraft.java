@@ -28,7 +28,7 @@ public final class TemplateDraft {
     }
 
     private final String id;
-    private final boolean isNew;
+    private boolean isNew;
     private final IdGenerator ids;
     private String name;
     private String description;
@@ -99,7 +99,9 @@ public final class TemplateDraft {
         return modified;
     }
 
+    /** Called after a successful save: the draft now exists in storage and has no pending changes. */
     public void markSaved() {
+        isNew = false;
         modified = false;
     }
 
