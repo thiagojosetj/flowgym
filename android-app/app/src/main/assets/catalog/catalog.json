@@ -1,0 +1,1966 @@
+{
+  "version": 1,
+  "_comment": "System exercise catalog. IDs are permanent: never change or reuse them. Texts are original content. See docs/DATABASE.md and ADR-0016.",
+  "muscles": [
+    {
+      "id": "6195f06d-98aa-401b-8010-c1fb83b5a091",
+      "code": "chest",
+      "name": "Peito",
+      "subgroups": [
+        {
+          "id": "74b376cf-3490-4fcb-8dbb-79baf8b0a408",
+          "code": "chest.upper",
+          "name": "Peitoral superior (porção clavicular)"
+        },
+        {
+          "id": "6dfc99ac-3e9a-431b-8e11-f056d82c9caf",
+          "code": "chest.middle",
+          "name": "Peitoral médio (porção esternal)"
+        },
+        {
+          "id": "c635ecba-0ff3-49e4-9abb-e9acbc409440",
+          "code": "chest.lower",
+          "name": "Peitoral inferior (porção abdominal)"
+        }
+      ]
+    },
+    {
+      "id": "28ae944f-0ae5-4f04-abb1-f5137c2cfc32",
+      "code": "back",
+      "name": "Costas",
+      "subgroups": [
+        {
+          "id": "0e07ca0c-b7d4-4854-9ef6-0e7e7b387598",
+          "code": "back.lats",
+          "name": "Latíssimo do dorso"
+        },
+        {
+          "id": "c1433a6b-bf43-4b6f-aff8-2be43aadf1c5",
+          "code": "back.upper_traps",
+          "name": "Trapézio superior"
+        },
+        {
+          "id": "c860b4f2-4867-4b49-9569-8304a7af9afe",
+          "code": "back.mid_lower_traps",
+          "name": "Trapézio médio e inferior"
+        },
+        {
+          "id": "6c7707da-77b8-46e2-9e91-bd5e2cd3e352",
+          "code": "back.rhomboids",
+          "name": "Romboides"
+        },
+        {
+          "id": "f93429d7-9495-4c8f-b859-a8763b726d49",
+          "code": "back.teres_major",
+          "name": "Redondo maior"
+        }
+      ]
+    },
+    {
+      "id": "f641bc83-5a6a-4a7f-897d-15d78bc3fd1f",
+      "code": "shoulders",
+      "name": "Ombros",
+      "subgroups": [
+        {
+          "id": "f2b9b10d-1018-41b4-ba40-55e7e6d725f2",
+          "code": "shoulders.front_delt",
+          "name": "Deltoide anterior"
+        },
+        {
+          "id": "7c5bac0e-1c53-47f4-a47d-06d3350bee1e",
+          "code": "shoulders.side_delt",
+          "name": "Deltoide lateral"
+        },
+        {
+          "id": "809a18ba-d5c0-483d-801f-5886d522c900",
+          "code": "shoulders.rear_delt",
+          "name": "Deltoide posterior"
+        },
+        {
+          "id": "7beb9851-5c29-4f22-a171-5d17d46c52e2",
+          "code": "shoulders.rotator_cuff",
+          "name": "Manguito rotador"
+        }
+      ]
+    },
+    {
+      "id": "19c3b2a0-892f-4667-b20b-794cc6880c63",
+      "code": "biceps",
+      "name": "Bíceps",
+      "subgroups": [
+        {
+          "id": "624a8d58-b14b-4112-a612-8b51ddfd31c3",
+          "code": "biceps.long_head",
+          "name": "Bíceps — cabeça longa"
+        },
+        {
+          "id": "8c339161-d5fe-4383-9fd7-86382ef1e392",
+          "code": "biceps.short_head",
+          "name": "Bíceps — cabeça curta"
+        },
+        {
+          "id": "a1a82ded-d3b9-4922-be89-5ca47ba8d00d",
+          "code": "biceps.brachialis",
+          "name": "Braquial"
+        }
+      ]
+    },
+    {
+      "id": "f1da2345-7442-41a1-a17b-110fdb69dc07",
+      "code": "triceps",
+      "name": "Tríceps",
+      "subgroups": [
+        {
+          "id": "19bafea4-5238-4592-a89b-cb935a604e6d",
+          "code": "triceps.long_head",
+          "name": "Tríceps — cabeça longa"
+        },
+        {
+          "id": "230cf5e2-c7c7-4ae6-87ed-1499f058cfe9",
+          "code": "triceps.lateral_head",
+          "name": "Tríceps — cabeça lateral"
+        },
+        {
+          "id": "38b86dd4-d474-424f-80ca-023e204a1042",
+          "code": "triceps.medial_head",
+          "name": "Tríceps — cabeça medial"
+        }
+      ]
+    },
+    {
+      "id": "2380ec64-12e2-4a80-9954-22fc93e636b7",
+      "code": "forearms",
+      "name": "Antebraço",
+      "subgroups": [
+        {
+          "id": "b5bbdb15-3e7e-45f8-b02d-fe3560662e0b",
+          "code": "forearms.flexors",
+          "name": "Flexores do punho"
+        },
+        {
+          "id": "41dd5a25-a43b-42bb-89ab-422d00e10a72",
+          "code": "forearms.extensors",
+          "name": "Extensores do punho"
+        },
+        {
+          "id": "6ed202ef-24f3-4356-aaf3-c22e5f48bd32",
+          "code": "forearms.brachioradialis",
+          "name": "Braquiorradial"
+        }
+      ]
+    },
+    {
+      "id": "2660ed9b-a160-48b3-a5e9-a6b21e390c0a",
+      "code": "quads",
+      "name": "Quadríceps",
+      "subgroups": [
+        {
+          "id": "13295df6-70d6-482f-a578-9767fac804c4",
+          "code": "quads.rectus_femoris",
+          "name": "Reto femoral"
+        },
+        {
+          "id": "1079a46c-407b-4e71-86b3-daffb5b54e3c",
+          "code": "quads.vastus_lateralis",
+          "name": "Vasto lateral"
+        },
+        {
+          "id": "c0e6fad6-a702-409c-9e87-6e03abdd63c0",
+          "code": "quads.vastus_medialis",
+          "name": "Vasto medial"
+        },
+        {
+          "id": "3163455f-4a08-462e-a5db-91b9fd07c674",
+          "code": "quads.vastus_intermedius",
+          "name": "Vasto intermédio"
+        }
+      ]
+    },
+    {
+      "id": "e05c93cd-0fc4-4921-be12-b945a5633281",
+      "code": "hamstrings",
+      "name": "Posteriores de coxa",
+      "subgroups": [
+        {
+          "id": "e61225d2-41e6-4826-a5e8-cbbaa67b3c91",
+          "code": "hamstrings.biceps_femoris",
+          "name": "Bíceps femoral"
+        },
+        {
+          "id": "8e898fdd-451d-4f1a-ab1e-67cf6eb72594",
+          "code": "hamstrings.semis",
+          "name": "Semitendinoso e semimembranoso"
+        }
+      ]
+    },
+    {
+      "id": "eed347d1-8678-4e1b-a423-a46c12c1a4d9",
+      "code": "glutes",
+      "name": "Glúteos",
+      "subgroups": [
+        {
+          "id": "24a30a2f-2b0d-4878-b1ea-6c68e7596118",
+          "code": "glutes.maximus",
+          "name": "Glúteo máximo"
+        },
+        {
+          "id": "4b05998c-6d09-490c-9729-66881268d7c8",
+          "code": "glutes.medius",
+          "name": "Glúteo médio"
+        },
+        {
+          "id": "d210b21f-e38c-427c-9b3d-da921ce72614",
+          "code": "glutes.minimus",
+          "name": "Glúteo mínimo"
+        }
+      ]
+    },
+    {
+      "id": "b5593d32-5f51-48e7-b1cc-04e7ce049d40",
+      "code": "adductors",
+      "name": "Adutores",
+      "subgroups": [
+        {
+          "id": "c75011fa-6dc5-4203-8ec2-8540542e0cb5",
+          "code": "adductors.magnus",
+          "name": "Adutor magno"
+        },
+        {
+          "id": "7aab2756-6e16-497c-a4b5-12b83ffef743",
+          "code": "adductors.longus_brevis",
+          "name": "Adutores longo e curto"
+        }
+      ]
+    },
+    {
+      "id": "4fca65ea-6bb7-437e-aedf-d653d951ebc5",
+      "code": "calves",
+      "name": "Panturrilhas",
+      "subgroups": [
+        {
+          "id": "994177a5-0b67-40e6-8809-631d366ac35f",
+          "code": "calves.gastrocnemius",
+          "name": "Gastrocnêmio"
+        },
+        {
+          "id": "54acd493-6dce-40b6-b5bd-9257fe299c93",
+          "code": "calves.soleus",
+          "name": "Sóleo"
+        }
+      ]
+    },
+    {
+      "id": "bc9bb164-2729-4378-8016-72cf182ad1e9",
+      "code": "abs",
+      "name": "Abdômen",
+      "subgroups": [
+        {
+          "id": "1ba8afc4-1aa8-4549-b0dd-f7bb36607e1d",
+          "code": "abs.rectus",
+          "name": "Reto abdominal"
+        },
+        {
+          "id": "6789f492-108e-4b46-825e-7cfb28c437b3",
+          "code": "abs.obliques",
+          "name": "Oblíquos"
+        },
+        {
+          "id": "8ab4a6a4-f901-4bad-aaf2-ffcad46c55ce",
+          "code": "abs.transverse",
+          "name": "Transverso do abdômen"
+        }
+      ]
+    },
+    {
+      "id": "5ae3746d-5311-4f0e-adfe-0318a614ce1f",
+      "code": "lower_back",
+      "name": "Lombar",
+      "subgroups": [
+        {
+          "id": "1b0b6a7c-d9bc-4137-8673-3cb26ee69834",
+          "code": "lower_back.erectors",
+          "name": "Eretores da espinha"
+        }
+      ]
+    }
+  ],
+  "equipment": [
+    {
+      "id": "9bcaf711-bb43-4918-af6a-812d10b3313b",
+      "code": "barbell",
+      "name": "Barra"
+    },
+    {
+      "id": "d10a0eda-d262-4e10-940c-2b566a14da59",
+      "code": "dumbbell",
+      "name": "Halteres"
+    },
+    {
+      "id": "7ed55694-f599-4a39-99a8-dd81cc659b2c",
+      "code": "ez_bar",
+      "name": "Barra W"
+    },
+    {
+      "id": "bf836963-8e3b-4f34-bdce-c5f766f23696",
+      "code": "kettlebell",
+      "name": "Kettlebell"
+    },
+    {
+      "id": "098cc522-7fca-4819-b8e4-6cbc6f6d7b1d",
+      "code": "cable",
+      "name": "Polia (cabo)"
+    },
+    {
+      "id": "3a4a273f-2806-431f-b3a6-ec082960e624",
+      "code": "machine",
+      "name": "Máquina"
+    },
+    {
+      "id": "47b15bd4-c56a-4722-b6b8-f655b733118b",
+      "code": "plate_loaded",
+      "name": "Máquina com anilhas"
+    },
+    {
+      "id": "ae33d04a-577b-4e55-b642-675ca837c897",
+      "code": "smith",
+      "name": "Smith"
+    },
+    {
+      "id": "f905a68d-d312-4be4-aed9-194f4cf09cfd",
+      "code": "bench",
+      "name": "Banco"
+    },
+    {
+      "id": "f5bfe822-10a0-4063-a422-e19719ac9012",
+      "code": "pull_up_bar",
+      "name": "Barra fixa"
+    },
+    {
+      "id": "8751b101-a0d8-4200-a7a6-27ecc9410b32",
+      "code": "dip_station",
+      "name": "Paralelas"
+    },
+    {
+      "id": "71be458d-8761-42b7-a825-9751736a2919",
+      "code": "bodyweight",
+      "name": "Peso corporal"
+    },
+    {
+      "id": "fb8e3a76-be2d-462a-8dea-96aecda938e2",
+      "code": "band",
+      "name": "Elástico"
+    },
+    {
+      "id": "e9d21df5-982b-4747-a00a-5d59daa3d570",
+      "code": "plate",
+      "name": "Anilha"
+    }
+  ],
+  "exercises": [
+    {
+      "id": "6f81066c-093d-4a60-b555-30c716f99431",
+      "code": "barbell_bench_press",
+      "name": "Supino reto com barra",
+      "aliases": [
+        "supino",
+        "supino reto",
+        "bench press"
+      ],
+      "primary": [
+        "chest.middle"
+      ],
+      "secondary": [
+        "shoulders.front_delt",
+        "triceps"
+      ],
+      "equipment": [
+        "barbell",
+        "bench"
+      ],
+      "description": "Empurrar clássico para o peitoral, deitado em banco plano.",
+      "instructions": [
+        "Deite no banco com os olhos alinhados à barra e os pés firmes no chão.",
+        "Segure a barra um pouco mais aberta que a largura dos ombros e aproxime as escápulas.",
+        "Desça a barra controlando até tocar levemente a parte média do peito.",
+        "Empurre de volta até estender os cotovelos, sem perder a posição das escápulas."
+      ],
+      "tips": "Mantenha os cotovelos entre 45° e 70° em relação ao tronco durante a descida.",
+      "commonMistakes": "Quicar a barra no peito ou tirar o quadril do banco para completar a repetição."
+    },
+    {
+      "id": "bd05c2ea-e5d6-42b5-a5ea-09e086612967",
+      "code": "incline_barbell_bench_press",
+      "name": "Supino inclinado com barra",
+      "aliases": [
+        "supino inclinado",
+        "incline bench"
+      ],
+      "primary": [
+        "chest.upper"
+      ],
+      "secondary": [
+        "shoulders.front_delt",
+        "triceps"
+      ],
+      "equipment": [
+        "barbell",
+        "bench"
+      ],
+      "description": "Variação do supino com banco inclinado, com mais ênfase na porção superior do peitoral.",
+      "instructions": [
+        "Ajuste o banco entre 30° e 45° de inclinação.",
+        "Retire a barra com as escápulas aproximadas e o peito elevado.",
+        "Desça a barra até a parte alta do peito, abaixo das clavículas.",
+        "Empurre para cima e levemente para trás, até estender os cotovelos."
+      ],
+      "tips": "Inclinações muito altas transferem o trabalho para os ombros.",
+      "commonMistakes": "Descer a barra em direção ao pescoço ou ao abdômen."
+    },
+    {
+      "id": "6db5f493-ed43-443b-b698-5b877eaddfe6",
+      "code": "decline_barbell_bench_press",
+      "name": "Supino declinado com barra",
+      "aliases": [
+        "supino declinado"
+      ],
+      "primary": [
+        "chest.lower"
+      ],
+      "secondary": [
+        "triceps",
+        "shoulders.front_delt"
+      ],
+      "equipment": [
+        "barbell",
+        "bench"
+      ],
+      "description": "Supino em banco declinado, que favorece a porção inferior do peitoral.",
+      "instructions": [
+        "Prenda as pernas no apoio do banco declinado.",
+        "Segure a barra com pegada média e estabilize os ombros.",
+        "Desça até a parte inferior do peito de forma controlada.",
+        "Empurre até a extensão completa dos cotovelos."
+      ],
+      "tips": "Peça ajuda para retirar e devolver a barra ao suporte.",
+      "commonMistakes": "Usar amplitude curta por excesso de carga."
+    },
+    {
+      "id": "5d6d61be-dfa9-45da-956c-7b2cd51ae898",
+      "code": "dumbbell_bench_press",
+      "name": "Supino reto com halteres",
+      "aliases": [
+        "supino halteres",
+        "dumbbell press"
+      ],
+      "loadBasis": "PER_IMPLEMENT",
+      "implements": 2,
+      "primary": [
+        "chest.middle"
+      ],
+      "secondary": [
+        "shoulders.front_delt",
+        "triceps"
+      ],
+      "equipment": [
+        "dumbbell",
+        "bench"
+      ],
+      "description": "Supino com um halter em cada mão, permitindo maior amplitude e trabalho independente de cada lado.",
+      "instructions": [
+        "Sente com os halteres sobre as coxas e deite levando-os junto ao peito.",
+        "Posicione os halteres na linha do peito com os antebraços na vertical.",
+        "Desça até sentir um bom alongamento do peitoral.",
+        "Empurre os halteres para cima, aproximando-os sem bater um no outro."
+      ],
+      "tips": "Registre o peso de cada halter: 2 halteres de 20 kg = 20 kg por halter.",
+      "commonMistakes": "Deixar os halteres caírem para fora no fim da série."
+    },
+    {
+      "id": "240b72a4-13c6-4baa-bba2-fa17bfc91262",
+      "code": "incline_dumbbell_press",
+      "name": "Supino inclinado com halteres",
+      "aliases": [
+        "supino inclinado halteres"
+      ],
+      "loadBasis": "PER_IMPLEMENT",
+      "implements": 2,
+      "primary": [
+        "chest.upper"
+      ],
+      "secondary": [
+        "shoulders.front_delt",
+        "triceps"
+      ],
+      "equipment": [
+        "dumbbell",
+        "bench"
+      ],
+      "description": "Supino inclinado com halteres, com ênfase na porção superior do peitoral.",
+      "instructions": [
+        "Ajuste o banco entre 30° e 45°.",
+        "Leve os halteres à altura da parte alta do peito.",
+        "Desça com controle mantendo os punhos alinhados aos cotovelos.",
+        "Empurre para cima até quase encostar os halteres."
+      ],
+      "tips": "Mantenha as escápulas apoiadas e aproximadas no banco.",
+      "commonMistakes": "Arquear demais a lombar, transformando o exercício em supino reto."
+    },
+    {
+      "id": "e34beb1e-17a8-4fe1-8f64-e41a09931b45",
+      "code": "dumbbell_fly",
+      "name": "Crucifixo com halteres",
+      "aliases": [
+        "crucifixo",
+        "crucifixo reto",
+        "fly"
+      ],
+      "loadBasis": "PER_IMPLEMENT",
+      "implements": 2,
+      "primary": [
+        "chest.middle"
+      ],
+      "secondary": [
+        "shoulders.front_delt"
+      ],
+      "equipment": [
+        "dumbbell",
+        "bench"
+      ],
+      "description": "Isolador de peitoral em que os braços descrevem um arco com os cotovelos levemente flexionados.",
+      "instructions": [
+        "Deite no banco com os halteres acima do peito e as palmas voltadas uma para a outra.",
+        "Flexione levemente os cotovelos e mantenha esse ângulo fixo.",
+        "Abra os braços em arco até sentir o alongamento do peitoral.",
+        "Feche os braços pelo mesmo arco, contraindo o peito."
+      ],
+      "tips": "Pense em abraçar um tronco de árvore.",
+      "commonMistakes": "Dobrar e estender os cotovelos, transformando o movimento em um supino."
+    },
+    {
+      "id": "d3f31dc4-261e-40ae-b7f1-59d665e3dd42",
+      "code": "cable_crossover",
+      "name": "Crossover na polia alta",
+      "aliases": [
+        "crossover",
+        "cross over",
+        "cruzamento de cabos"
+      ],
+      "loadBasis": "PER_IMPLEMENT",
+      "implements": 2,
+      "primary": [
+        "chest.lower"
+      ],
+      "secondary": [
+        "chest.middle",
+        "shoulders.front_delt"
+      ],
+      "equipment": [
+        "cable"
+      ],
+      "description": "Cruzamento de cabos de cima para baixo, com tensão constante no peitoral.",
+      "instructions": [
+        "Ajuste as duas polias na posição alta e segure uma alça em cada mão.",
+        "Dê um passo à frente, incline levemente o tronco e flexione um pouco os cotovelos.",
+        "Traga as mãos para baixo e para a frente até se encontrarem na altura do quadril.",
+        "Volte devagar até sentir o alongamento do peitoral."
+      ],
+      "tips": "Registre a carga de cada polia.",
+      "commonMistakes": "Usar o peso do corpo para puxar os cabos."
+    },
+    {
+      "id": "2252a560-2b2e-41a0-ba5a-d4e0841e4c9e",
+      "code": "machine_chest_press",
+      "name": "Supino na máquina",
+      "aliases": [
+        "chest press",
+        "supino maquina"
+      ],
+      "primary": [
+        "chest.middle"
+      ],
+      "secondary": [
+        "shoulders.front_delt",
+        "triceps"
+      ],
+      "equipment": [
+        "machine"
+      ],
+      "description": "Empurrar guiado para o peitoral, útil para iniciantes e para séries até a falha com segurança.",
+      "instructions": [
+        "Ajuste o banco para que as pegadas fiquem na altura do meio do peito.",
+        "Apoie bem as costas e aproxime as escápulas.",
+        "Empurre até estender os cotovelos sem bloqueá-los com força.",
+        "Retorne de forma controlada até sentir o alongamento."
+      ],
+      "tips": "A carga de máquinas só é comparável com a mesma máquina.",
+      "commonMistakes": "Tirar as costas do encosto no final da série."
+    },
+    {
+      "id": "95dc4a85-cb64-4eb5-a4b8-7f653a34d432",
+      "code": "pec_deck",
+      "name": "Voador (peck deck)",
+      "aliases": [
+        "voador",
+        "peck deck",
+        "crucifixo maquina"
+      ],
+      "primary": [
+        "chest.middle"
+      ],
+      "secondary": [
+        "shoulders.front_delt"
+      ],
+      "equipment": [
+        "machine"
+      ],
+      "description": "Crucifixo guiado em máquina, com trajetória fixa.",
+      "instructions": [
+        "Ajuste o banco para que os braços fiquem na altura dos ombros.",
+        "Apoie as costas e segure as pegadas com os cotovelos levemente flexionados.",
+        "Feche os braços à frente do peito, contraindo o peitoral.",
+        "Volte devagar até o ponto de alongamento confortável."
+      ],
+      "tips": "Faça uma pausa curta com os braços fechados.",
+      "commonMistakes": "Deixar o peso bater no fim de cada repetição."
+    },
+    {
+      "id": "ee99bde9-f83d-49fb-a008-8a7f958f41d1",
+      "code": "push_up",
+      "name": "Flexão de braços",
+      "aliases": [
+        "flexao",
+        "push up",
+        "apoio"
+      ],
+      "tracking": "BODYWEIGHT_REPS",
+      "primary": [
+        "chest.middle"
+      ],
+      "secondary": [
+        "triceps",
+        "shoulders.front_delt",
+        "abs.rectus"
+      ],
+      "equipment": [
+        "bodyweight"
+      ],
+      "description": "Empurrar com o peso do corpo, com o tronco firme como uma prancha.",
+      "instructions": [
+        "Apoie as mãos no chão um pouco mais abertas que os ombros.",
+        "Mantenha o corpo alinhado da cabeça aos calcanhares.",
+        "Desça o peito até perto do chão com os cotovelos a cerca de 45° do tronco.",
+        "Empurre o chão até estender os braços."
+      ],
+      "tips": "Para aumentar a dificuldade, registre a carga adicional (ex.: anilha nas costas).",
+      "commonMistakes": "Deixar o quadril cair ou subir durante o movimento."
+    },
+    {
+      "id": "3633b4d4-77a8-4334-ab37-58eee2a8adde",
+      "code": "chest_dip",
+      "name": "Mergulho nas paralelas",
+      "aliases": [
+        "mergulho",
+        "paralelas",
+        "dip"
+      ],
+      "tracking": "BODYWEIGHT_REPS",
+      "primary": [
+        "chest.lower"
+      ],
+      "secondary": [
+        "triceps",
+        "shoulders.front_delt"
+      ],
+      "equipment": [
+        "dip_station"
+      ],
+      "description": "Empurrar com o peso do corpo nas paralelas; inclinar o tronco à frente aumenta o trabalho do peitoral.",
+      "instructions": [
+        "Suba nas paralelas com os braços estendidos.",
+        "Incline levemente o tronco à frente.",
+        "Desça até os ombros ficarem um pouco abaixo dos cotovelos, se confortável.",
+        "Empurre até estender os braços."
+      ],
+      "tips": "Use cinto com carga (+) ou máquina de assistência (−) para ajustar a dificuldade.",
+      "commonMistakes": "Descer além do limite confortável para os ombros."
+    },
+    {
+      "id": "f4d7ddac-e9fb-4934-a582-8f808709da74",
+      "code": "pull_up",
+      "name": "Barra fixa (pegada pronada)",
+      "aliases": [
+        "barra",
+        "pull up",
+        "barra fixa"
+      ],
+      "tracking": "BODYWEIGHT_REPS",
+      "primary": [
+        "back.lats"
+      ],
+      "secondary": [
+        "biceps",
+        "back.teres_major",
+        "back.mid_lower_traps"
+      ],
+      "equipment": [
+        "pull_up_bar"
+      ],
+      "description": "Puxada vertical com o peso do corpo, palmas voltadas para a frente.",
+      "instructions": [
+        "Segure a barra um pouco mais aberta que os ombros, palmas para a frente.",
+        "Parta com os braços estendidos e os ombros ativos (sem relaxar totalmente).",
+        "Puxe levando o peito em direção à barra, conduzindo pelos cotovelos.",
+        "Desça com controle até estender os braços."
+      ],
+      "tips": "Registre carga adicional (+) com cinto ou assistência (−) em máquina/elástico.",
+      "commonMistakes": "Balançar o corpo para ganhar impulso."
+    },
+    {
+      "id": "6f8c5f15-3ece-44cc-ba4e-5a94e0a2bda6",
+      "code": "chin_up",
+      "name": "Barra fixa supinada",
+      "aliases": [
+        "chin up",
+        "barra supinada"
+      ],
+      "tracking": "BODYWEIGHT_REPS",
+      "primary": [
+        "back.lats"
+      ],
+      "secondary": [
+        "biceps"
+      ],
+      "equipment": [
+        "pull_up_bar"
+      ],
+      "description": "Puxada vertical com as palmas voltadas para você, com mais participação dos bíceps.",
+      "instructions": [
+        "Segure a barra na largura dos ombros com as palmas para trás.",
+        "Parta com os braços estendidos.",
+        "Puxe até o queixo passar a barra.",
+        "Desça devagar até a extensão completa."
+      ],
+      "tips": "Mantenha o abdômen contraído para evitar balanço.",
+      "commonMistakes": "Encurtar a descida para fazer mais repetições."
+    },
+    {
+      "id": "cf309efa-cb11-4075-989f-4f81c7beb43f",
+      "code": "lat_pulldown",
+      "name": "Puxada frontal na polia",
+      "aliases": [
+        "puxada frente",
+        "puxador",
+        "pulldown",
+        "puxada alta",
+        "pulley costas"
+      ],
+      "primary": [
+        "back.lats"
+      ],
+      "secondary": [
+        "biceps",
+        "back.teres_major",
+        "back.rhomboids"
+      ],
+      "equipment": [
+        "cable"
+      ],
+      "description": "Puxada vertical na polia alta, alternativa ou progressão para a barra fixa.",
+      "instructions": [
+        "Ajuste o apoio das coxas e segure a barra com pegada aberta.",
+        "Incline levemente o tronco para trás e eleve o peito.",
+        "Puxe a barra até a parte alta do peito, levando os cotovelos para baixo.",
+        "Suba a barra com controle até estender os braços."
+      ],
+      "tips": "Pense em levar os cotovelos em direção aos bolsos.",
+      "commonMistakes": "Puxar a barra atrás da nuca ou jogar o tronco para trás."
+    },
+    {
+      "id": "9f6944e6-296e-4f8b-abc1-5279e0186e43",
+      "code": "seated_cable_row",
+      "name": "Remada baixa na polia",
+      "aliases": [
+        "remada baixa",
+        "remada sentada",
+        "remada triangulo"
+      ],
+      "primary": [
+        "back.lats",
+        "back.rhomboids"
+      ],
+      "secondary": [
+        "back.mid_lower_traps",
+        "shoulders.rear_delt",
+        "biceps"
+      ],
+      "equipment": [
+        "cable"
+      ],
+      "description": "Puxada horizontal sentada na polia baixa.",
+      "instructions": [
+        "Sente com os pés apoiados e os joelhos levemente flexionados.",
+        "Segure a pegada com o tronco ereto e os braços estendidos.",
+        "Puxe a pegada em direção ao abdômen, aproximando as escápulas.",
+        "Volte estendendo os braços sem arredondar a lombar."
+      ],
+      "tips": "Segure um segundo com as escápulas aproximadas.",
+      "commonMistakes": "Balançar o tronco para frente e para trás a cada repetição."
+    },
+    {
+      "id": "afea2c23-f86d-42b4-911e-d68b4e937e2b",
+      "code": "barbell_row",
+      "name": "Remada curvada com barra",
+      "aliases": [
+        "remada curvada",
+        "bent over row"
+      ],
+      "primary": [
+        "back.lats",
+        "back.rhomboids"
+      ],
+      "secondary": [
+        "back.mid_lower_traps",
+        "shoulders.rear_delt",
+        "biceps",
+        "lower_back.erectors"
+      ],
+      "equipment": [
+        "barbell"
+      ],
+      "description": "Puxada horizontal com o tronco inclinado à frente.",
+      "instructions": [
+        "Segure a barra na largura dos ombros e flexione os quadris, mantendo a coluna neutra.",
+        "Incline o tronco até ficar entre 30° e 45° acima do chão.",
+        "Puxe a barra em direção ao umbigo, levando os cotovelos para trás.",
+        "Desça a barra com controle."
+      ],
+      "tips": "Mantenha o pescoço alinhado com a coluna.",
+      "commonMistakes": "Arredondar a lombar ou levantar o tronco a cada repetição."
+    },
+    {
+      "id": "ce72453c-bdb2-471f-8d0c-2c698d6bc223",
+      "code": "one_arm_dumbbell_row",
+      "name": "Remada unilateral com halter (serrote)",
+      "aliases": [
+        "serrote",
+        "remada serrote",
+        "remada unilateral"
+      ],
+      "loadBasis": "PER_IMPLEMENT",
+      "implements": 1,
+      "laterality": "UNILATERAL",
+      "primary": [
+        "back.lats"
+      ],
+      "secondary": [
+        "back.rhomboids",
+        "shoulders.rear_delt",
+        "biceps"
+      ],
+      "equipment": [
+        "dumbbell",
+        "bench"
+      ],
+      "description": "Remada com um braço de cada vez, apoiando joelho e mão no banco.",
+      "instructions": [
+        "Apoie um joelho e a mão do mesmo lado no banco, com as costas paralelas ao chão.",
+        "Segure o halter com o outro braço estendido.",
+        "Puxe o halter em direção ao quadril, com o cotovelo junto ao corpo.",
+        "Desça até estender o braço e troque de lado ao final da série."
+      ],
+      "tips": "Registre as repetições por lado; se forem diferentes, use o registro por lado.",
+      "commonMistakes": "Girar o tronco para levantar o halter."
+    },
+    {
+      "id": "f082dc21-9a5a-45e8-a35d-3fd0017a4899",
+      "code": "t_bar_row",
+      "name": "Remada cavalinho",
+      "aliases": [
+        "cavalinho",
+        "remada t",
+        "t bar row"
+      ],
+      "primary": [
+        "back.rhomboids",
+        "back.lats"
+      ],
+      "secondary": [
+        "back.mid_lower_traps",
+        "shoulders.rear_delt",
+        "biceps"
+      ],
+      "equipment": [
+        "plate_loaded"
+      ],
+      "description": "Remada com o tronco inclinado usando barra T ou máquina com anilhas.",
+      "instructions": [
+        "Posicione-se sobre a barra com os pés firmes e os joelhos flexionados.",
+        "Segure as pegadas com o tronco inclinado e a coluna neutra.",
+        "Puxe a carga em direção ao peito, aproximando as escápulas.",
+        "Desça com controle até estender os braços."
+      ],
+      "tips": "Registre o total de anilhas carregadas.",
+      "commonMistakes": "Perder a posição da coluna ao aumentar a carga."
+    },
+    {
+      "id": "7e5394ea-44b4-4044-846d-76d044ea7992",
+      "code": "straight_arm_pulldown",
+      "name": "Pulldown com braços estendidos",
+      "aliases": [
+        "pullover polia",
+        "pulldown bracos estendidos"
+      ],
+      "primary": [
+        "back.lats"
+      ],
+      "secondary": [
+        "back.teres_major",
+        "triceps.long_head"
+      ],
+      "equipment": [
+        "cable"
+      ],
+      "description": "Isolador de dorsais na polia alta, com os braços quase estendidos.",
+      "instructions": [
+        "Fique de pé de frente para a polia alta e segure a barra com os braços estendidos.",
+        "Incline levemente o tronco à frente.",
+        "Leve a barra em arco até a altura das coxas.",
+        "Volte devagar até a altura dos olhos."
+      ],
+      "tips": "Mantenha os cotovelos com leve flexão fixa.",
+      "commonMistakes": "Dobrar os cotovelos e transformar o movimento em um tríceps."
+    },
+    {
+      "id": "c5cb13bd-4455-4549-bb44-78427f2b3039",
+      "code": "barbell_shrug",
+      "name": "Encolhimento com barra",
+      "aliases": [
+        "encolhimento",
+        "shrug"
+      ],
+      "primary": [
+        "back.upper_traps"
+      ],
+      "equipment": [
+        "barbell"
+      ],
+      "description": "Elevação dos ombros para o trapézio superior.",
+      "instructions": [
+        "Segure a barra à frente das coxas com os braços estendidos.",
+        "Eleve os ombros em direção às orelhas.",
+        "Segure um instante no topo.",
+        "Desça devagar."
+      ],
+      "tips": "Pense em subir os ombros em linha reta, sem rolar.",
+      "commonMistakes": "Girar os ombros ou dobrar os cotovelos."
+    },
+    {
+      "id": "4cc98094-69c7-4036-b38a-543ea6c83ef6",
+      "code": "face_pull",
+      "name": "Face pull na polia",
+      "aliases": [
+        "face pull"
+      ],
+      "primary": [
+        "shoulders.rear_delt"
+      ],
+      "secondary": [
+        "back.mid_lower_traps",
+        "back.rhomboids",
+        "shoulders.rotator_cuff"
+      ],
+      "equipment": [
+        "cable"
+      ],
+      "description": "Puxada em direção ao rosto com corda, para deltoide posterior e parte superior das costas.",
+      "instructions": [
+        "Ajuste a polia na altura do rosto e segure a corda com as palmas para baixo.",
+        "Dê um passo para trás, com os braços estendidos.",
+        "Puxe a corda em direção ao rosto, abrindo as mãos e levando os cotovelos para fora e para cima.",
+        "Volte com controle."
+      ],
+      "tips": "Use carga moderada e priorize a qualidade do movimento.",
+      "commonMistakes": "Usar carga alta e puxar com o tronco."
+    },
+    {
+      "id": "99dc8d03-3886-42b6-bf48-ede101594335",
+      "code": "overhead_press",
+      "name": "Desenvolvimento em pé com barra",
+      "aliases": [
+        "desenvolvimento militar",
+        "press militar",
+        "overhead press"
+      ],
+      "primary": [
+        "shoulders.front_delt"
+      ],
+      "secondary": [
+        "shoulders.side_delt",
+        "triceps",
+        "back.upper_traps"
+      ],
+      "equipment": [
+        "barbell"
+      ],
+      "description": "Empurrar vertical em pé, com a barra partindo da altura dos ombros.",
+      "instructions": [
+        "Segure a barra um pouco mais aberta que os ombros, apoiada na parte alta do peito.",
+        "Contraia glúteos e abdômen.",
+        "Empurre a barra para cima, afastando a cabeça do caminho.",
+        "Estenda os cotovelos com a barra alinhada ao meio do pé e desça com controle."
+      ],
+      "tips": "Depois que a barra passar da testa, traga a cabeça de volta para baixo da barra.",
+      "commonMistakes": "Inclinar o tronco para trás, transformando o exercício em supino inclinado."
+    },
+    {
+      "id": "419be2db-d95a-4801-8e08-c0ffa9ad22c6",
+      "code": "dumbbell_shoulder_press",
+      "name": "Desenvolvimento com halteres",
+      "aliases": [
+        "desenvolvimento halteres",
+        "shoulder press"
+      ],
+      "loadBasis": "PER_IMPLEMENT",
+      "implements": 2,
+      "primary": [
+        "shoulders.front_delt"
+      ],
+      "secondary": [
+        "shoulders.side_delt",
+        "triceps"
+      ],
+      "equipment": [
+        "dumbbell",
+        "bench"
+      ],
+      "description": "Empurrar vertical sentado, com um halter em cada mão.",
+      "instructions": [
+        "Sente em banco com encosto vertical e os halteres na altura dos ombros.",
+        "Mantenha os punhos sobre os cotovelos.",
+        "Empurre os halteres para cima até quase se tocarem.",
+        "Desça com controle até a altura das orelhas."
+      ],
+      "tips": "Registre o peso de cada halter.",
+      "commonMistakes": "Afastar as costas do encosto e arquear a lombar."
+    },
+    {
+      "id": "902ffb51-4f4b-4b71-8c30-2b54b9107fb2",
+      "code": "lateral_raise",
+      "name": "Elevação lateral com halteres",
+      "aliases": [
+        "elevacao lateral",
+        "lateral raise"
+      ],
+      "loadBasis": "PER_IMPLEMENT",
+      "implements": 2,
+      "primary": [
+        "shoulders.side_delt"
+      ],
+      "secondary": [
+        "back.upper_traps"
+      ],
+      "equipment": [
+        "dumbbell"
+      ],
+      "description": "Isolador do deltoide lateral.",
+      "instructions": [
+        "Fique de pé com um halter em cada mão ao lado do corpo.",
+        "Flexione levemente os cotovelos.",
+        "Eleve os braços lateralmente até a altura dos ombros.",
+        "Desça devagar."
+      ],
+      "tips": "Conduza o movimento pelos cotovelos, não pelas mãos.",
+      "commonMistakes": "Balançar o tronco ou subir os ombros em direção às orelhas."
+    },
+    {
+      "id": "f158e726-b164-4888-a5f6-00eb03bf4553",
+      "code": "cable_lateral_raise",
+      "name": "Elevação lateral unilateral na polia",
+      "aliases": [
+        "elevacao lateral polia"
+      ],
+      "laterality": "UNILATERAL",
+      "primary": [
+        "shoulders.side_delt"
+      ],
+      "equipment": [
+        "cable"
+      ],
+      "description": "Elevação lateral com um braço, com tensão constante do cabo.",
+      "instructions": [
+        "Ajuste a polia na posição baixa e fique de lado para ela.",
+        "Segure a alça com a mão mais distante da polia.",
+        "Eleve o braço lateralmente até a altura do ombro.",
+        "Desça com controle e troque de lado ao final da série."
+      ],
+      "tips": "Apoie a mão livre na máquina para estabilizar o corpo.",
+      "commonMistakes": "Girar o tronco para ajudar na subida."
+    },
+    {
+      "id": "142ea2d8-7c07-4357-a88d-d54bcba090de",
+      "code": "rear_delt_machine_fly",
+      "name": "Crucifixo inverso na máquina",
+      "aliases": [
+        "voador inverso",
+        "peck deck invertido",
+        "crucifixo inverso"
+      ],
+      "primary": [
+        "shoulders.rear_delt"
+      ],
+      "secondary": [
+        "back.rhomboids",
+        "back.mid_lower_traps"
+      ],
+      "equipment": [
+        "machine"
+      ],
+      "description": "Abertura horizontal dos braços para o deltoide posterior.",
+      "instructions": [
+        "Sente de frente para o encosto do voador.",
+        "Segure as pegadas com os braços à frente, na altura dos ombros.",
+        "Abra os braços para trás em arco.",
+        "Volte devagar sem deixar o peso bater."
+      ],
+      "tips": "Mantenha o peito apoiado no encosto.",
+      "commonMistakes": "Aproximar demais as escápulas e transformar o exercício em remada."
+    },
+    {
+      "id": "fcc410ba-631b-4bc1-9172-ceeb410cda08",
+      "code": "front_raise",
+      "name": "Elevação frontal com halteres",
+      "aliases": [
+        "elevacao frontal",
+        "front raise"
+      ],
+      "loadBasis": "PER_IMPLEMENT",
+      "implements": 2,
+      "primary": [
+        "shoulders.front_delt"
+      ],
+      "secondary": [
+        "chest.upper"
+      ],
+      "equipment": [
+        "dumbbell"
+      ],
+      "description": "Isolador do deltoide anterior.",
+      "instructions": [
+        "Fique de pé com os halteres à frente das coxas.",
+        "Eleve os braços à frente até a altura dos ombros.",
+        "Faça uma pausa curta.",
+        "Desça devagar."
+      ],
+      "tips": "Pode ser feito alternando os braços.",
+      "commonMistakes": "Usar impulso do quadril."
+    },
+    {
+      "id": "2dad0caf-2067-46aa-9def-06d4574e9934",
+      "code": "barbell_curl",
+      "name": "Rosca direta com barra",
+      "aliases": [
+        "rosca direta",
+        "barbell curl"
+      ],
+      "primary": [
+        "biceps.short_head",
+        "biceps.long_head"
+      ],
+      "secondary": [
+        "biceps.brachialis",
+        "forearms.brachioradialis"
+      ],
+      "equipment": [
+        "barbell"
+      ],
+      "description": "Flexão de cotovelos com barra, exercício básico para bíceps.",
+      "instructions": [
+        "Fique de pé com a barra em pegada supinada na largura dos ombros.",
+        "Mantenha os cotovelos junto ao corpo.",
+        "Flexione os cotovelos levando a barra até a altura do peito.",
+        "Desça até estender os braços."
+      ],
+      "tips": "Controle a descida; ela também gera estímulo.",
+      "commonMistakes": "Jogar o tronco para trás para subir a barra."
+    },
+    {
+      "id": "4ca6a2b9-0bcb-4601-8617-c31d5abcfef8",
+      "code": "dumbbell_curl",
+      "name": "Rosca alternada com halteres",
+      "aliases": [
+        "rosca alternada",
+        "dumbbell curl"
+      ],
+      "loadBasis": "PER_IMPLEMENT",
+      "implements": 2,
+      "primary": [
+        "biceps.long_head",
+        "biceps.short_head"
+      ],
+      "secondary": [
+        "biceps.brachialis"
+      ],
+      "equipment": [
+        "dumbbell"
+      ],
+      "description": "Flexão de cotovelo alternando os braços, com supinação do punho.",
+      "instructions": [
+        "Fique de pé com um halter em cada mão e as palmas voltadas para o corpo.",
+        "Flexione um cotovelo girando a palma para cima durante a subida.",
+        "Desça com controle.",
+        "Repita com o outro braço."
+      ],
+      "tips": "Registre as repetições por braço e o peso de cada halter.",
+      "commonMistakes": "Afastar o cotovelo do corpo durante a subida."
+    },
+    {
+      "id": "822eeabb-a980-4dc2-8dac-5dd7dde26a14",
+      "code": "hammer_curl",
+      "name": "Rosca martelo",
+      "aliases": [
+        "martelo",
+        "hammer curl"
+      ],
+      "loadBasis": "PER_IMPLEMENT",
+      "implements": 2,
+      "primary": [
+        "biceps.brachialis",
+        "forearms.brachioradialis"
+      ],
+      "secondary": [
+        "biceps.long_head"
+      ],
+      "equipment": [
+        "dumbbell"
+      ],
+      "description": "Rosca com pegada neutra, que enfatiza o braquial e o braquiorradial.",
+      "instructions": [
+        "Segure os halteres com as palmas voltadas uma para a outra.",
+        "Mantenha os cotovelos junto ao corpo.",
+        "Flexione os cotovelos sem girar os punhos.",
+        "Desça devagar."
+      ],
+      "tips": "Pode ser feita simultânea ou alternada.",
+      "commonMistakes": "Balançar os halteres."
+    },
+    {
+      "id": "838af7e3-6251-49a2-a46b-2847913326ba",
+      "code": "preacher_curl",
+      "name": "Rosca Scott",
+      "aliases": [
+        "rosca scott",
+        "banco scott",
+        "preacher curl"
+      ],
+      "primary": [
+        "biceps.short_head"
+      ],
+      "secondary": [
+        "biceps.brachialis"
+      ],
+      "equipment": [
+        "ez_bar",
+        "bench"
+      ],
+      "description": "Rosca com os braços apoiados no banco Scott, reduzindo o uso de impulso.",
+      "instructions": [
+        "Ajuste o banco para que as axilas fiquem próximas à borda do apoio.",
+        "Segure a barra W com pegada supinada.",
+        "Flexione os cotovelos até contrair o bíceps.",
+        "Desça até quase estender os cotovelos."
+      ],
+      "tips": "Evite estender completamente com carga alta.",
+      "commonMistakes": "Tirar os braços do apoio."
+    },
+    {
+      "id": "f3583a00-c52c-4466-9bb4-9247081d6206",
+      "code": "triceps_pushdown",
+      "name": "Tríceps na polia",
+      "aliases": [
+        "triceps pulley",
+        "triceps polia",
+        "pushdown",
+        "triceps corda"
+      ],
+      "primary": [
+        "triceps.lateral_head"
+      ],
+      "secondary": [
+        "triceps.medial_head",
+        "triceps.long_head"
+      ],
+      "equipment": [
+        "cable"
+      ],
+      "description": "Extensão de cotovelos na polia alta, com barra ou corda.",
+      "instructions": [
+        "Segure a pegada na polia alta com os cotovelos junto ao corpo.",
+        "Mantenha o tronco levemente inclinado.",
+        "Estenda os cotovelos até os braços ficarem retos.",
+        "Volte até cerca de 90° de flexão."
+      ],
+      "tips": "Os cotovelos ficam parados; só os antebraços se movem.",
+      "commonMistakes": "Abrir os cotovelos ou usar o peso do corpo."
+    },
+    {
+      "id": "6576c684-2efd-4eb9-861e-98c8080124f8",
+      "code": "overhead_triceps_extension",
+      "name": "Tríceps francês com halter",
+      "aliases": [
+        "triceps frances",
+        "extensao acima da cabeca"
+      ],
+      "loadBasis": "PER_IMPLEMENT",
+      "implements": 1,
+      "primary": [
+        "triceps.long_head"
+      ],
+      "secondary": [
+        "triceps.lateral_head",
+        "triceps.medial_head"
+      ],
+      "equipment": [
+        "dumbbell"
+      ],
+      "description": "Extensão de cotovelos acima da cabeça, que alonga a cabeça longa do tríceps.",
+      "instructions": [
+        "Sente com as costas apoiadas e segure um halter com as duas mãos acima da cabeça.",
+        "Desça o halter atrás da cabeça flexionando os cotovelos.",
+        "Mantenha os cotovelos apontando para cima.",
+        "Estenda os cotovelos até voltar à posição inicial."
+      ],
+      "tips": "Registre o peso do halter (um halter segurado com as duas mãos).",
+      "commonMistakes": "Abrir demais os cotovelos para os lados."
+    },
+    {
+      "id": "ca686c17-f577-4ee6-b0b9-2b80c46bb8b2",
+      "code": "skull_crusher",
+      "name": "Tríceps testa com barra W",
+      "aliases": [
+        "triceps testa",
+        "skull crusher"
+      ],
+      "primary": [
+        "triceps.long_head"
+      ],
+      "secondary": [
+        "triceps.lateral_head",
+        "triceps.medial_head"
+      ],
+      "equipment": [
+        "ez_bar",
+        "bench"
+      ],
+      "description": "Extensão de cotovelos deitado, levando a barra em direção à testa.",
+      "instructions": [
+        "Deite no banco com a barra W acima do peito, braços estendidos.",
+        "Incline levemente os braços em direção à cabeça.",
+        "Flexione os cotovelos descendo a barra até perto da testa.",
+        "Estenda os cotovelos de volta."
+      ],
+      "tips": "Movimento controlado; peça ajuda com cargas altas.",
+      "commonMistakes": "Mover os ombros junto com os cotovelos."
+    },
+    {
+      "id": "21d6b42e-fef6-4082-8857-02fd8f65e848",
+      "code": "bench_dip",
+      "name": "Mergulho no banco",
+      "aliases": [
+        "mergulho banco",
+        "triceps banco",
+        "bench dip"
+      ],
+      "tracking": "BODYWEIGHT_REPS",
+      "primary": [
+        "triceps"
+      ],
+      "secondary": [
+        "chest.lower",
+        "shoulders.front_delt"
+      ],
+      "equipment": [
+        "bench"
+      ],
+      "description": "Extensão de cotovelos com as mãos apoiadas em um banco atrás do corpo.",
+      "instructions": [
+        "Apoie as mãos na borda do banco com os dedos para a frente.",
+        "Estenda as pernas à frente, apoiando os calcanhares.",
+        "Desça flexionando os cotovelos até cerca de 90°.",
+        "Empurre até estender os braços."
+      ],
+      "tips": "Flexionar os joelhos facilita; anilha no colo dificulta (+).",
+      "commonMistakes": "Descer demais, forçando os ombros."
+    },
+    {
+      "id": "8c994083-6b2e-498c-afd4-238e8994916a",
+      "code": "wrist_curl",
+      "name": "Rosca de punho com barra",
+      "aliases": [
+        "rosca punho",
+        "flexao de punho",
+        "wrist curl"
+      ],
+      "primary": [
+        "forearms.flexors"
+      ],
+      "equipment": [
+        "barbell",
+        "bench"
+      ],
+      "description": "Flexão dos punhos para os flexores do antebraço.",
+      "instructions": [
+        "Sente e apoie os antebraços nas coxas ou no banco, palmas para cima.",
+        "Deixe a barra descer estendendo os punhos.",
+        "Flexione os punhos levantando a barra.",
+        "Desça devagar."
+      ],
+      "tips": "Amplitude completa com carga leve funciona melhor que carga alta.",
+      "commonMistakes": "Levantar os antebraços do apoio."
+    },
+    {
+      "id": "43692941-710e-4169-bc12-cf138f34fd10",
+      "code": "back_squat",
+      "name": "Agachamento livre com barra",
+      "aliases": [
+        "agachamento",
+        "squat",
+        "agachamento livre"
+      ],
+      "primary": [
+        "quads",
+        "glutes.maximus"
+      ],
+      "secondary": [
+        "adductors.magnus",
+        "hamstrings",
+        "lower_back.erectors"
+      ],
+      "equipment": [
+        "barbell"
+      ],
+      "description": "Agachamento com a barra apoiada nas costas, base de treinos de pernas.",
+      "instructions": [
+        "Apoie a barra sobre o trapézio e afaste os pés na largura dos ombros.",
+        "Inspire, contraia o abdômen e mantenha a coluna neutra.",
+        "Desça flexionando joelhos e quadris ao mesmo tempo, joelhos na direção dos pés.",
+        "Suba empurrando o chão até estender quadris e joelhos."
+      ],
+      "tips": "Desça até onde conseguir manter a coluna neutra.",
+      "commonMistakes": "Deixar os joelhos caírem para dentro na subida."
+    },
+    {
+      "id": "5a7bcc02-7bb5-4914-a3b3-3399be8891c6",
+      "code": "leg_press",
+      "name": "Leg press 45°",
+      "aliases": [
+        "leg press",
+        "leg 45"
+      ],
+      "primary": [
+        "quads"
+      ],
+      "secondary": [
+        "glutes.maximus",
+        "adductors.magnus"
+      ],
+      "equipment": [
+        "plate_loaded"
+      ],
+      "description": "Empurrar com as pernas em máquina inclinada.",
+      "instructions": [
+        "Sente com as costas e o quadril bem apoiados.",
+        "Posicione os pés na plataforma na largura dos ombros.",
+        "Destrave e desça a plataforma flexionando os joelhos.",
+        "Empurre até quase estender os joelhos, sem travá-los."
+      ],
+      "tips": "Registre o total de anilhas carregadas (cada máquina tem um peso próprio de plataforma).",
+      "commonMistakes": "Tirar o quadril do banco no fim da descida."
+    },
+    {
+      "id": "5947bb72-9f64-4a97-abf1-447274ea2b11",
+      "code": "leg_extension",
+      "name": "Cadeira extensora",
+      "aliases": [
+        "extensora",
+        "leg extension"
+      ],
+      "primary": [
+        "quads.rectus_femoris",
+        "quads.vastus_lateralis",
+        "quads.vastus_medialis"
+      ],
+      "equipment": [
+        "machine"
+      ],
+      "description": "Isolador de quadríceps com extensão de joelhos.",
+      "instructions": [
+        "Ajuste o encosto para o joelho ficar alinhado ao eixo da máquina.",
+        "Posicione o rolo na frente dos tornozelos.",
+        "Estenda os joelhos até as pernas ficarem retas.",
+        "Desça com controle."
+      ],
+      "tips": "Segure um instante na extensão completa.",
+      "commonMistakes": "Deixar o peso cair na descida."
+    },
+    {
+      "id": "70f475f1-6d7b-4f7a-b0e5-874bcebfa785",
+      "code": "lying_leg_curl",
+      "name": "Mesa flexora",
+      "aliases": [
+        "flexora deitada",
+        "mesa flexora",
+        "leg curl"
+      ],
+      "primary": [
+        "hamstrings.biceps_femoris",
+        "hamstrings.semis"
+      ],
+      "secondary": [
+        "calves.gastrocnemius"
+      ],
+      "equipment": [
+        "machine"
+      ],
+      "description": "Flexão de joelhos deitado, isolador de posteriores de coxa.",
+      "instructions": [
+        "Deite de bruços com os joelhos logo após a borda do banco.",
+        "Posicione o rolo acima dos calcanhares.",
+        "Flexione os joelhos trazendo o rolo em direção aos glúteos.",
+        "Desça devagar até quase estender."
+      ],
+      "tips": "Mantenha o quadril apoiado no banco.",
+      "commonMistakes": "Levantar o quadril para completar o movimento."
+    },
+    {
+      "id": "a56489d7-9374-4764-a475-5ecc855e60b5",
+      "code": "seated_leg_curl",
+      "name": "Cadeira flexora",
+      "aliases": [
+        "flexora sentada",
+        "cadeira flexora"
+      ],
+      "primary": [
+        "hamstrings.semis",
+        "hamstrings.biceps_femoris"
+      ],
+      "secondary": [
+        "calves.gastrocnemius"
+      ],
+      "equipment": [
+        "machine"
+      ],
+      "description": "Flexão de joelhos sentado, com os posteriores de coxa em posição alongada.",
+      "instructions": [
+        "Ajuste o encosto para o joelho ficar alinhado ao eixo da máquina.",
+        "Trave as coxas com o apoio superior.",
+        "Flexione os joelhos levando o rolo para baixo e para trás.",
+        "Volte com controle."
+      ],
+      "tips": "Incline levemente o tronco à frente para aumentar o alongamento.",
+      "commonMistakes": "Escorregar no banco durante a série."
+    },
+    {
+      "id": "da2312c3-2509-4401-975a-6f4d4c69db16",
+      "code": "romanian_deadlift",
+      "name": "Levantamento terra romeno (stiff)",
+      "aliases": [
+        "stiff",
+        "rdl",
+        "terra romeno"
+      ],
+      "primary": [
+        "hamstrings",
+        "glutes.maximus"
+      ],
+      "secondary": [
+        "lower_back.erectors",
+        "forearms.flexors"
+      ],
+      "equipment": [
+        "barbell"
+      ],
+      "description": "Flexão de quadril com joelhos quase estendidos, focada em posteriores e glúteos.",
+      "instructions": [
+        "Segure a barra à frente das coxas com os joelhos levemente flexionados.",
+        "Empurre o quadril para trás, deslizando a barra junto às pernas.",
+        "Desça até sentir o alongamento dos posteriores, mantendo a coluna neutra.",
+        "Volte estendendo o quadril."
+      ],
+      "tips": "Pense em fechar uma gaveta com o quadril.",
+      "commonMistakes": "Arredondar as costas para descer mais."
+    },
+    {
+      "id": "e4955896-8950-42cf-afa3-65190e3bb873",
+      "code": "deadlift",
+      "name": "Levantamento terra",
+      "aliases": [
+        "terra",
+        "deadlift",
+        "levantamento terra convencional"
+      ],
+      "primary": [
+        "glutes.maximus",
+        "hamstrings",
+        "lower_back.erectors"
+      ],
+      "secondary": [
+        "quads",
+        "back.upper_traps",
+        "forearms.flexors"
+      ],
+      "equipment": [
+        "barbell"
+      ],
+      "description": "Levantar a barra do chão até a posição em pé.",
+      "instructions": [
+        "Fique com o meio do pé sob a barra e segure-a logo por fora das pernas.",
+        "Abaixe o quadril até as canelas encostarem na barra, com a coluna neutra.",
+        "Empurre o chão e estenda joelhos e quadris juntos, com a barra rente ao corpo.",
+        "Desça a barra pelo mesmo caminho."
+      ],
+      "tips": "Inspire e contraia o abdômen antes de cada repetição.",
+      "commonMistakes": "Afastar a barra do corpo ou arredondar a lombar."
+    },
+    {
+      "id": "d182daff-7624-43d3-8096-30ddbad0b8a7",
+      "code": "hip_thrust",
+      "name": "Elevação pélvica com barra",
+      "aliases": [
+        "hip thrust",
+        "elevacao pelvica"
+      ],
+      "primary": [
+        "glutes.maximus"
+      ],
+      "secondary": [
+        "hamstrings",
+        "glutes.medius"
+      ],
+      "equipment": [
+        "barbell",
+        "bench"
+      ],
+      "description": "Extensão de quadril com as costas apoiadas no banco, focada nos glúteos.",
+      "instructions": [
+        "Apoie a parte alta das costas no banco e a barra sobre o quadril (use proteção).",
+        "Posicione os pés no chão na largura do quadril.",
+        "Eleve o quadril até o tronco ficar paralelo ao chão.",
+        "Desça com controle."
+      ],
+      "tips": "Contraia os glúteos no topo e mantenha o queixo levemente recolhido.",
+      "commonMistakes": "Arquear a lombar em vez de estender o quadril."
+    },
+    {
+      "id": "11e69060-941c-48ba-9a68-bd860c59a1f9",
+      "code": "bulgarian_split_squat",
+      "name": "Agachamento búlgaro com halteres",
+      "aliases": [
+        "bulgaro",
+        "agachamento bulgaro",
+        "split squat"
+      ],
+      "loadBasis": "PER_IMPLEMENT",
+      "implements": 2,
+      "laterality": "UNILATERAL",
+      "primary": [
+        "quads",
+        "glutes.maximus"
+      ],
+      "secondary": [
+        "adductors.magnus",
+        "glutes.medius"
+      ],
+      "equipment": [
+        "dumbbell",
+        "bench"
+      ],
+      "description": "Agachamento unilateral com o pé de trás apoiado em um banco.",
+      "instructions": [
+        "Apoie o peito do pé de trás em um banco e dê um passo à frente.",
+        "Segure um halter em cada mão.",
+        "Desça até a coxa da frente ficar próxima da horizontal.",
+        "Suba empurrando com a perna da frente e troque de lado ao final da série."
+      ],
+      "tips": "Registre o peso de cada halter e as repetições por perna.",
+      "commonMistakes": "Colocar o pé da frente perto demais do banco."
+    },
+    {
+      "id": "ffe59f89-db1e-48ae-83c7-163f78f589b3",
+      "code": "walking_lunge",
+      "name": "Avanço com halteres",
+      "aliases": [
+        "afundo",
+        "passada",
+        "avanco",
+        "lunge"
+      ],
+      "loadBasis": "PER_IMPLEMENT",
+      "implements": 2,
+      "laterality": "UNILATERAL",
+      "primary": [
+        "quads",
+        "glutes.maximus"
+      ],
+      "secondary": [
+        "adductors.magnus",
+        "hamstrings"
+      ],
+      "equipment": [
+        "dumbbell"
+      ],
+      "description": "Passadas alternadas para a frente, com um halter em cada mão.",
+      "instructions": [
+        "Fique de pé com um halter em cada mão.",
+        "Dê um passo largo à frente e desça até o joelho de trás quase tocar o chão.",
+        "Empurre com a perna da frente para subir.",
+        "Alterne as pernas a cada passada."
+      ],
+      "tips": "Registre as repetições por perna.",
+      "commonMistakes": "Deixar o joelho da frente cair para dentro."
+    },
+    {
+      "id": "ea755b2c-a147-4156-a520-dc9fae6faf63",
+      "code": "hip_adduction_machine",
+      "name": "Cadeira adutora",
+      "aliases": [
+        "adutora",
+        "adutor maquina"
+      ],
+      "primary": [
+        "adductors"
+      ],
+      "equipment": [
+        "machine"
+      ],
+      "description": "Aproximação das pernas contra resistência, para os adutores.",
+      "instructions": [
+        "Sente com as costas apoiadas e os joelhos nos apoios.",
+        "Ajuste a abertura inicial até um alongamento confortável.",
+        "Aproxime as pernas.",
+        "Volte devagar."
+      ],
+      "tips": "Controle a volta; é nela que o alongamento acontece.",
+      "commonMistakes": "Deixar as placas baterem."
+    },
+    {
+      "id": "198805a4-d9cd-4105-898e-ad6f8f756c72",
+      "code": "hip_abduction_machine",
+      "name": "Cadeira abdutora",
+      "aliases": [
+        "abdutora",
+        "abdutor maquina"
+      ],
+      "primary": [
+        "glutes.medius",
+        "glutes.minimus"
+      ],
+      "equipment": [
+        "machine"
+      ],
+      "description": "Afastamento das pernas contra resistência, para glúteo médio e mínimo.",
+      "instructions": [
+        "Sente com as costas apoiadas e as pernas por dentro dos apoios.",
+        "Afaste as pernas até o limite confortável.",
+        "Segure um instante.",
+        "Volte com controle."
+      ],
+      "tips": "Inclinar levemente o tronco à frente muda a ênfase entre as porções do glúteo.",
+      "commonMistakes": "Usar impulso."
+    },
+    {
+      "id": "19c9fc03-e8f2-40b1-91ba-4d870d35e24f",
+      "code": "standing_calf_raise",
+      "name": "Panturrilha em pé na máquina",
+      "aliases": [
+        "panturrilha em pe",
+        "gemeos",
+        "calf raise"
+      ],
+      "primary": [
+        "calves.gastrocnemius"
+      ],
+      "secondary": [
+        "calves.soleus"
+      ],
+      "equipment": [
+        "machine"
+      ],
+      "description": "Elevação dos calcanhares em pé, com joelhos estendidos.",
+      "instructions": [
+        "Apoie os ombros nas almofadas e a parte da frente dos pés na plataforma.",
+        "Deixe os calcanhares descerem até alongar a panturrilha.",
+        "Suba na ponta dos pés o máximo possível.",
+        "Desça devagar."
+      ],
+      "tips": "Faça uma pausa curta embaixo para evitar o efeito mola.",
+      "commonMistakes": "Amplitude curta e rápida."
+    },
+    {
+      "id": "bea188ea-31cf-4464-8b6f-b297c06df2d5",
+      "code": "seated_calf_raise",
+      "name": "Panturrilha sentado",
+      "aliases": [
+        "panturrilha sentado",
+        "soleo"
+      ],
+      "primary": [
+        "calves.soleus"
+      ],
+      "secondary": [
+        "calves.gastrocnemius"
+      ],
+      "equipment": [
+        "machine"
+      ],
+      "description": "Elevação dos calcanhares sentado, com joelhos flexionados (ênfase no sóleo).",
+      "instructions": [
+        "Sente com as almofadas sobre as coxas, perto dos joelhos.",
+        "Apoie a parte da frente dos pés na plataforma.",
+        "Suba os calcanhares o máximo possível.",
+        "Desça até alongar."
+      ],
+      "tips": "Movimento lento e completo.",
+      "commonMistakes": "Usar as mãos para empurrar a carga."
+    },
+    {
+      "id": "35ef025e-22c4-4dc0-8eab-3609704e1af0",
+      "code": "plank",
+      "name": "Prancha abdominal",
+      "aliases": [
+        "prancha",
+        "plank"
+      ],
+      "tracking": "DURATION",
+      "primary": [
+        "abs.transverse",
+        "abs.rectus"
+      ],
+      "secondary": [
+        "abs.obliques"
+      ],
+      "equipment": [
+        "bodyweight"
+      ],
+      "description": "Isometria em apoio nos antebraços, com o corpo alinhado.",
+      "instructions": [
+        "Apoie os antebraços no chão com os cotovelos abaixo dos ombros.",
+        "Estenda as pernas apoiando as pontas dos pés.",
+        "Contraia abdômen e glúteos mantendo o corpo reto.",
+        "Sustente pelo tempo planejado."
+      ],
+      "tips": "Respire normalmente durante a sustentação.",
+      "commonMistakes": "Deixar o quadril cair ou subir demais."
+    },
+    {
+      "id": "c98be90c-5928-4994-b4b2-9ca70026a8a7",
+      "code": "crunch",
+      "name": "Abdominal supra",
+      "aliases": [
+        "abdominal",
+        "supra",
+        "crunch"
+      ],
+      "tracking": "BODYWEIGHT_REPS",
+      "primary": [
+        "abs.rectus"
+      ],
+      "equipment": [
+        "bodyweight"
+      ],
+      "description": "Flexão curta do tronco deitado.",
+      "instructions": [
+        "Deite com os joelhos flexionados e os pés apoiados.",
+        "Posicione as mãos ao lado da cabeça, sem puxar o pescoço.",
+        "Enrole o tronco tirando as escápulas do chão.",
+        "Volte devagar."
+      ],
+      "tips": "Expire ao subir.",
+      "commonMistakes": "Puxar a cabeça com as mãos."
+    },
+    {
+      "id": "7b57807a-5beb-4c46-9632-42bb5fe3440a",
+      "code": "hanging_leg_raise",
+      "name": "Elevação de pernas na barra",
+      "aliases": [
+        "elevacao de pernas",
+        "leg raise"
+      ],
+      "tracking": "BODYWEIGHT_REPS",
+      "primary": [
+        "abs.rectus"
+      ],
+      "secondary": [
+        "abs.obliques"
+      ],
+      "equipment": [
+        "pull_up_bar"
+      ],
+      "description": "Elevação das pernas pendurado na barra fixa.",
+      "instructions": [
+        "Pendure-se na barra com os braços estendidos.",
+        "Eleve as pernas até a altura do quadril ou acima, sem balançar.",
+        "Enrole a pelve no topo.",
+        "Desça com controle."
+      ],
+      "tips": "Joelhos flexionados deixam o exercício mais fácil.",
+      "commonMistakes": "Balançar o corpo para subir as pernas."
+    },
+    {
+      "id": "fee360c6-2040-4864-88e1-2cfffd6b7ca7",
+      "code": "cable_crunch",
+      "name": "Abdominal na polia",
+      "aliases": [
+        "abdominal polia",
+        "cable crunch"
+      ],
+      "primary": [
+        "abs.rectus"
+      ],
+      "secondary": [
+        "abs.obliques"
+      ],
+      "equipment": [
+        "cable"
+      ],
+      "description": "Flexão do tronco ajoelhado, puxando a corda da polia alta.",
+      "instructions": [
+        "Ajoelhe de frente para a polia alta segurando a corda junto à cabeça.",
+        "Mantenha o quadril parado.",
+        "Enrole o tronco levando os cotovelos em direção às coxas.",
+        "Volte devagar."
+      ],
+      "tips": "O movimento vem da coluna, não do quadril.",
+      "commonMistakes": "Sentar sobre os calcanhares para puxar."
+    },
+    {
+      "id": "b8d7c381-9644-4d1c-9dd4-03acb37a6a64",
+      "code": "back_extension",
+      "name": "Extensão lombar no banco romano",
+      "aliases": [
+        "hiperextensao",
+        "lombar banco",
+        "back extension"
+      ],
+      "tracking": "BODYWEIGHT_REPS",
+      "primary": [
+        "lower_back.erectors"
+      ],
+      "secondary": [
+        "glutes.maximus",
+        "hamstrings"
+      ],
+      "equipment": [
+        "bench"
+      ],
+      "description": "Extensão do tronco no banco romano (45° ou 90°).",
+      "instructions": [
+        "Ajuste o apoio logo abaixo da linha do quadril.",
+        "Cruze os braços no peito (ou segure uma anilha para carga adicional).",
+        "Desça o tronco com a coluna neutra.",
+        "Suba até alinhar o tronco com as pernas."
+      ],
+      "tips": "Não ultrapasse o alinhamento no topo.",
+      "commonMistakes": "Hiperestender a lombar no final do movimento."
+    }
+  ]
+}

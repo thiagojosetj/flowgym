@@ -118,6 +118,14 @@ preferido.
 **Motivo:** o runner do Robolectric e o `AndroidJUnit4` são baseados em JUnit 4; usar a mesma versão
 nos dois módulos Android evita misturar APIs de assert/anotações. O backend usará JUnit 5 (padrão do
 Spring Boot).
+**Achados da implementação (21/09/2026):**
+- Robolectric 4.17 no JDK 21 exige `--add-exports java.base/jdk.internal.access=ALL-UNNAMED`
+  (configurado só na JVM de testes, em `app/build.gradle.kts`).
+- **Dívida técnica:** o `MigrationTestHelper` do Room 2.8.5 falha sob Robolectric **no Windows** (o
+  driver compara caminhos usando `/`). Por isso, na JVM, o `SchemaTest` compara o schema exportado
+  com o gerado pelas entidades (pega "mudou a entidade e esqueceu a versão"), e os testes de
+  migration de verdade (a partir da versão 2) ficarão em `androidTest`, rodando em aparelho/emulador
+  ou em CI. Reavaliar a cada atualização do Room.
 
 ### ADR-0013 — Hierarquia muscular
 **Decisão:** tabela `muscle` autorreferente (`parent_id`); dois níveis usados hoje.

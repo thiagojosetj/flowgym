@@ -55,8 +55,7 @@ android {
     }
 
     sourceSets {
-        // Room schema JSON files are needed as assets by MigrationTestHelper.
-        getByName("test").assets.directories.add("$projectDir/schemas")
+        // Room schema JSON files are read as assets by MigrationTestHelper (device tests).
         getByName("androidTest").assets.directories.add("$projectDir/schemas")
     }
 
@@ -76,6 +75,15 @@ android {
 tasks.withType<JavaCompile>().configureEach {
     options.encoding = "UTF-8"
     options.compilerArgs.addAll(listOf("-Xlint:deprecation", "-Xlint:unchecked"))
+}
+
+tasks.withType<Test>().configureEach {
+    // Robolectric (SDK 36+) touches FileDescriptor internals, which JDK 17+ hides by default.
+    // Test JVM only: this never affects the app.
+    jvmArgs(
+        "--add-exports", "java.base/jdk.internal.access=ALL-UNNAMED",
+        "--add-opens", "java.base/java.io=ALL-UNNAMED",
+    )
 }
 
 dependencies {

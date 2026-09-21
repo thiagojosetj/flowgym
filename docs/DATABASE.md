@@ -39,11 +39,13 @@ erDiagram
 ### `app_metadata`
 | Coluna | Tipo | Notas |
 |---|---|---|
-| `key` | TEXT PK | `catalog_version`, `current_user_id` |
-| `value` | TEXT NOT NULL | |
+| `meta_key` | TEXT PK | `catalog_version`, `current_user_id` |
+| `meta_value` | TEXT NOT NULL | |
 
 Fica dentro do banco (e não em SharedPreferences) para que catálogo e banco nunca fiquem
-dessincronizados após backup/restauração.
+dessincronizados após backup/restauração. As consultas de dados do usuário filtram por
+`owner_user_id = (SELECT meta_value FROM app_metadata WHERE meta_key = 'current_user_id')`: assim
+as listas observadas reagem sozinhas a uma futura troca de conta, sem guardar o id em estado Java.
 
 ### `user_profile`
 | Coluna | Tipo | Notas |
