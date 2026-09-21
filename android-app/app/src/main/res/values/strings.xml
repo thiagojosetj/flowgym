@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Provisional product name (ADR-0026). This is the ONLY place the brand appears in the app. -->
+    <string name="app_name" translatable="false">FlowGym</string>
+</resources>

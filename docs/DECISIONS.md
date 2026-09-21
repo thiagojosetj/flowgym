@@ -30,7 +30,7 @@ são respondidos aqui quando mudam ou confirmam uma decisão.
 | 0022 | Treino ativo: timestamps + foreground service `health` | Aceita (implementação na Fase 3) |
 | 0023 | Biblioteca de gráficos | **Pendente** (Fase 5) |
 | 0024 | Android Auto Backup habilitado com regras explícitas | Aceita |
-| 0025 | Kotlin embutido do AGP 9 desligado | Aceita |
+| 0025 | Kotlin embutido do AGP 9 mantido no padrão | Aceita (revisada) |
 | 0026 | Pacote Java neutro; nome do app provisório | Aceita |
 
 ---
@@ -187,12 +187,14 @@ cache).
 celular. O backup em nuvem do Android é criptografado com a credencial de bloqueio da tela.
 **Revisar** na Fase 9 (dados restaurados + sync).
 
-### ADR-0025 — Kotlin embutido do AGP 9 desligado
-**Contexto:** o AGP 9 liga o suporte embutido a Kotlin por padrão, mesmo em projetos só-Java.
-**Decisão:** `android.builtInKotlin=false`. Não há código Kotlin, então não há por que aplicar o
-compilador Kotlin aos módulos.
-**Consequências:** builds mais simples. (O `kotlin-stdlib` ainda chega como dependência transitiva de
-bibliotecas AndroidX escritas em Kotlin — isso é normal.)
+### ADR-0025 — Kotlin embutido do AGP 9 mantido no padrão
+**Contexto:** o AGP 9 liga o suporte embutido a Kotlin por padrão, mesmo em projetos só-Java. A
+primeira versão desta ADR desligava-o com `android.builtInKotlin=false`, mas o próprio AGP 9.4
+avisou (21/09/2026) que essa opção está **obsoleta e será removida no AGP 10**.
+**Decisão:** manter o padrão. Sem fontes Kotlin, as tarefas de compilação Kotlin não fazem nada.
+**Consequências:** nenhuma migração forçada no AGP 10. O código do app continua 100% Java; o
+`kotlin-stdlib` já chegava de qualquer forma como dependência transitiva das bibliotecas AndroidX
+escritas em Kotlin (Room, Lifecycle, Navigation).
 
 ### ADR-0026 — Nome e pacote
 **Decisão:** pacote/namespace `io.github.thiagojosetj.gym` (neutro em relação à marca, baseado na conta
