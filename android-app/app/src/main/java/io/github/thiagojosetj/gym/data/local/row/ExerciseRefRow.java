@@ -29,4 +29,7 @@ public class ExerciseRefRow {
 
     @Nullable
     public String primaryMuscleName;
+
+    @Nullable
+    public String primaryEquipmentCode;
 }

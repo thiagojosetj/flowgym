@@ -47,7 +47,8 @@ public abstract class TemplateDao {
     @Query("SELECT te.id, te.position, te.rest_seconds AS restSeconds, te.notes, te.side_mode AS sideMode,"
             + " e.id AS ex_id, e.name AS ex_name, e.tracking_type AS ex_trackingType,"
             + " e.load_basis AS ex_loadBasis, e.implement_count AS ex_implementCount, e.laterality AS ex_laterality,"
-            + " " + ExerciseDao.PRIMARY_MUSCLE_NAME_SQL + " AS ex_primaryMuscleName"
+            + " " + ExerciseDao.PRIMARY_MUSCLE_NAME_SQL + " AS ex_primaryMuscleName,"
+            + " " + ExerciseDao.PRIMARY_EQUIPMENT_CODE_SQL + " AS ex_primaryEquipmentCode"
             + " FROM template_exercise te JOIN exercise e ON e.id = te.exercise_id"
             + " WHERE te.template_id = :templateId ORDER BY te.position")
     public abstract List<TemplateExerciseRow> findExercises(String templateId);

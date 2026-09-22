@@ -28,7 +28,7 @@ final class TemplateMapper {
 
     static ExerciseRef toRef(ExerciseRefRow row) {
         return new ExerciseRef(row.id, row.name, row.trackingType, row.loadBasis, row.implementCount,
-                row.laterality, row.primaryMuscleName);
+                row.laterality, row.primaryMuscleName, row.primaryEquipmentCode);
     }
 
     static TemplateSummary toSummary(TemplateSummaryRow row) {

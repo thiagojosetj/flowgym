@@ -29,6 +29,10 @@ public interface ExerciseDao {
                     + " WHERE em.exercise_id = e.id AND em.role = 'PRIMARY'"
                     + " ORDER BY em.sort_order LIMIT 1)";
 
+    String PRIMARY_EQUIPMENT_CODE_SQL =
+            "(SELECT q.code FROM exercise_equipment ee JOIN equipment q ON q.id = ee.equipment_id"
+                    + " WHERE ee.exercise_id = e.id ORDER BY ee.is_primary DESC, q.sort_order LIMIT 1)";
+
     String PRIMARY_EQUIPMENT_NAME_SQL =
             "(SELECT q.name FROM exercise_equipment ee JOIN equipment q ON q.id = ee.equipment_id"
                     + " WHERE ee.exercise_id = e.id ORDER BY ee.is_primary DESC, q.sort_order LIMIT 1)";
@@ -85,7 +89,8 @@ public interface ExerciseDao {
 
     @Query("SELECT e.id, e.name, e.tracking_type AS trackingType, e.load_basis AS loadBasis,"
             + " e.implement_count AS implementCount, e.laterality, "
-            + PRIMARY_MUSCLE_NAME_SQL + " AS primaryMuscleName"
+            + PRIMARY_MUSCLE_NAME_SQL + " AS primaryMuscleName, "
+            + PRIMARY_EQUIPMENT_CODE_SQL + " AS primaryEquipmentCode"
             + " FROM exercise e WHERE e.id IN (:ids) AND " + VISIBLE_SQL)
     List<ExerciseRefRow> findRefs(List<String> ids);
 }

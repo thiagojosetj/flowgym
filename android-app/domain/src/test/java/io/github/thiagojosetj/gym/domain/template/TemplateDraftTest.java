@@ -29,13 +29,13 @@ import io.github.thiagojosetj.gym.domain.util.IdGenerator;
 public class TemplateDraftTest {
 
     private static final ExerciseRef BENCH = new ExerciseRef("ex-bench", "Supino reto com barra",
-            TrackingType.WEIGHT_REPS, LoadBasis.TOTAL, 1, Laterality.BILATERAL, "Peitoral");
+            TrackingType.WEIGHT_REPS, LoadBasis.TOTAL, 1, Laterality.BILATERAL, "Peitoral", "barbell");
     private static final ExerciseRef ROW = new ExerciseRef("ex-row", "Remada unilateral com halter",
-            TrackingType.WEIGHT_REPS, LoadBasis.PER_IMPLEMENT, 1, Laterality.UNILATERAL, "Latíssimo do dorso");
+            TrackingType.WEIGHT_REPS, LoadBasis.PER_IMPLEMENT, 1, Laterality.UNILATERAL, "Latíssimo do dorso", "dumbbell");
     private static final ExerciseRef PLANK = new ExerciseRef("ex-plank", "Prancha",
-            TrackingType.DURATION, LoadBasis.TOTAL, 1, Laterality.BILATERAL, "Reto abdominal");
+            TrackingType.DURATION, LoadBasis.TOTAL, 1, Laterality.BILATERAL, "Reto abdominal", "bodyweight");
     private static final ExerciseRef PULL_UP = new ExerciseRef("ex-pullup", "Barra fixa",
-            TrackingType.BODYWEIGHT_REPS, LoadBasis.TOTAL, 1, Laterality.BILATERAL, "Latíssimo do dorso");
+            TrackingType.BODYWEIGHT_REPS, LoadBasis.TOTAL, 1, Laterality.BILATERAL, "Latíssimo do dorso", "pull_up_bar");
 
     private IdGenerator ids;
 

@@ -108,6 +108,22 @@ public final class TemplateExerciseDraft {
         return first;
     }
 
+    /** True when every set has the same reps, load and duration (the "simple mode" plan). */
+    public boolean hasUniformPlan() {
+        if (sets.isEmpty()) {
+            return true;
+        }
+        SetPlan first = sets.get(0);
+        for (SetPlan set : sets) {
+            if (!Objects.equals(first.reps(), set.reps())
+                    || !Objects.equals(first.weight(), set.weight())
+                    || !Objects.equals(first.durationSeconds(), set.durationSeconds())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /**
      * Applies the same plan to all sets. Existing set ids are reused in order so references stay
      * stable; extra sets get new ids; surplus sets are dropped.
