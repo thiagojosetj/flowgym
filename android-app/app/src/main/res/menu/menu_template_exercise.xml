@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Move up/down give a non-drag way to reorder (TalkBack users cannot drag). -->
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/action_edit_plan"
+        android:title="@string/editor_edit_plan" />
+    <item
+        android:id="@+id/action_move_up"
+        android:title="@string/editor_move_up" />
+    <item
+        android:id="@+id/action_move_down"
+        android:title="@string/editor_move_down" />
+    <item
+        android:id="@+id/action_remove"
+        android:title="@string/editor_remove" />
+</menu>

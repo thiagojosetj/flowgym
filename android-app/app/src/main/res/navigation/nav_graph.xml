@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Single-activity navigation (ARCHITECTURE §5.4). Arguments are read through static helpers on
+    each fragment (ADR-0018: no Safe Args plugin).
+-->
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/homeFragment">
+
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="io.github.thiagojosetj.gym.ui.home.HomeFragment"
+        android:label="@string/nav_home">
+        <action
+            android:id="@+id/action_home_to_editor"
+            app:destination="@id/templateEditorFragment" />
+        <action
+            android:id="@+id/action_home_to_settings"
+            app:destination="@id/settingsFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/templateListFragment"
+        android:name="io.github.thiagojosetj.gym.ui.templates.TemplateListFragment"
+        android:label="@string/nav_templates">
+        <action
+            android:id="@+id/action_templates_to_editor"
+            app:destination="@id/templateEditorFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/exerciseLibraryFragment"
+        android:name="io.github.thiagojosetj.gym.ui.library.ExerciseLibraryFragment"
+        android:label="@string/nav_library">
+        <argument
+            android:name="selectMode"
+            android:defaultValue="false"
+            app:argType="boolean" />
+        <action
+            android:id="@+id/action_library_to_detail"
+            app:destination="@id/exerciseDetailFragment" />
+    </fragment>
+
+    <!-- Same screen as the library tab, opened from the template editor to pick exercises. -->
+    <fragment
+        android:id="@+id/exercisePickerFragment"
+        android:name="io.github.thiagojosetj.gym.ui.library.ExerciseLibraryFragment"
+        android:label="@string/title_select_exercises">
+        <argument
+            android:name="selectMode"
+            android:defaultValue="true"
+            app:argType="boolean" />
+        <action
+            android:id="@+id/action_picker_to_detail"
+            app:destination="@id/exerciseDetailFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/exerciseDetailFragment"
+        android:name="io.github.thiagojosetj.gym.ui.library.ExerciseDetailFragment"
+        android:label="@string/title_exercise_detail">
+        <argument
+            android:name="exerciseId"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/templateEditorFragment"
+        android:name="io.github.thiagojosetj.gym.ui.templates.editor.TemplateEditorFragment"
+        android:label="@string/title_template_edit">
+        <argument
+            android:name="templateId"
+            android:defaultValue="@null"
+            app:argType="string"
+            app:nullable="true" />
+        <action
+            android:id="@+id/action_editor_to_picker"
+            app:destination="@id/exercisePickerFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/settingsFragment"
+        android:name="io.github.thiagojosetj.gym.ui.settings.SettingsFragment"
+        android:label="@string/title_settings" />
+</navigation>

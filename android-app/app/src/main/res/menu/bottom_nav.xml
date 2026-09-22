@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Item ids match destination ids so NavigationUI can wire the tabs. -->
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/homeFragment"
+        android:icon="@drawable/ic_home"
+        android:title="@string/nav_home" />
+    <item
+        android:id="@+id/templateListFragment"
+        android:icon="@drawable/ic_fitness"
+        android:title="@string/nav_templates" />
+    <item
+        android:id="@+id/exerciseLibraryFragment"
+        android:icon="@drawable/ic_list"
+        android:title="@string/nav_library" />
+</menu>
