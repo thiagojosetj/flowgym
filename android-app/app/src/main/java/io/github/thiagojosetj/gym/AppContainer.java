@@ -7,6 +7,7 @@ import java.time.Clock;
 
 import io.github.thiagojosetj.gym.core.AppExecutors;
 import io.github.thiagojosetj.gym.data.local.AppDatabase;
+import io.github.thiagojosetj.gym.data.prefs.UiPreferences;
 import io.github.thiagojosetj.gym.data.repository.ExerciseRepository;
 import io.github.thiagojosetj.gym.data.repository.TemplateRepository;
 import io.github.thiagojosetj.gym.data.repository.UserRepository;
@@ -27,6 +28,8 @@ public final class AppContainer {
 
     public final AppExecutors executors;
     public final AppDatabase database;
+    public final IdGenerator ids;
+    public final UiPreferences uiPreferences;
     public final UserRepository users;
     public final ExerciseRepository exercises;
     public final TemplateRepository templates;
@@ -41,14 +44,17 @@ public final class AppContainer {
                 AppExecutors.create(),
                 Clock.systemUTC(),
                 IdGenerator.UUID_V7,
-                () -> app.getAssets().open(CatalogSeeder.ASSET_PATH));
+                () -> app.getAssets().open(CatalogSeeder.ASSET_PATH),
+                new UiPreferences(app.getSharedPreferences(UiPreferences.FILE_NAME, Context.MODE_PRIVATE)));
     }
 
     /** Explicit wiring, also used by tests (in-memory database, direct executors, fixed clock). */
     public AppContainer(AppDatabase database, AppExecutors executors, Clock clock, IdGenerator ids,
-                        CatalogSeeder.Source catalogSource) {
+                        CatalogSeeder.Source catalogSource, UiPreferences uiPreferences) {
         this.database = database;
         this.executors = executors;
+        this.ids = ids;
+        this.uiPreferences = uiPreferences;
         this.users = new UserRepository(database, clock, ids);
         this.exercises = new ExerciseRepository(database.exerciseDao(), database.catalogDao(), executors);
         this.templates = new TemplateRepository(database, users, executors, clock, ids);
@@ -66,7 +72,7 @@ public final class AppContainer {
             try {
                 catalogSeeder.seedIfNeeded();
             } catch (Exception e) {
-                // Never log catalog or user content; the exception message is enough.
+                // Never log catalog or user content; the exception is enough to diagnose.
                 Log.e(TAG, "Catalog seeding failed", e);
             }
         });

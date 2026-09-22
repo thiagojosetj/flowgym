@@ -1,5 +1,211 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Default language: pt-BR (ADR-0020). Other languages go in values-xx. -->
 <resources>
     <!-- Provisional product name (ADR-0026). This is the ONLY place the brand appears in the app. -->
     <string name="app_name" translatable="false">FlowGym</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Início</string>
+    <string name="nav_templates">Treinos</string>
+    <string name="nav_library">Exercícios</string>
+    <string name="title_exercise_detail">Exercício</string>
+    <string name="title_template_new">Novo treino</string>
+    <string name="title_template_edit">Editar treino</string>
+    <string name="title_select_exercises">Adicionar exercícios</string>
+    <string name="title_settings">Configurações</string>
+
+    <!-- Common actions -->
+    <string name="action_save">Salvar</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="action_apply">Aplicar</string>
+    <string name="action_delete">Excluir</string>
+    <string name="action_settings">Configurações</string>
+    <string name="action_clear_search">Limpar busca</string>
+    <string name="separator_dot" translatable="false">" · "</string>
+
+    <!-- Home -->
+    <string name="home_greeting">Pronto para treinar?</string>
+    <string name="home_next_workout_title">Próximo treino</string>
+    <string name="home_next_workout_empty">Rotinas semanais e cíclicas chegam em breve. Por enquanto, monte seus treinos e escolha qual fazer.</string>
+    <string name="home_templates_title">Meus treinos</string>
+    <plurals name="home_templates_count">
+        <item quantity="one">%d treino criado</item>
+        <item quantity="other">%d treinos criados</item>
+    </plurals>
+    <string name="home_templates_empty">Você ainda não criou nenhum treino.</string>
+    <string name="home_action_templates">Ver meus treinos</string>
+    <string name="home_action_create">Criar treino</string>
+    <string name="home_library_title">Biblioteca de exercícios</string>
+    <string name="home_library_body">Explore exercícios por grupo muscular, subgrupo e equipamento.</string>
+    <string name="home_action_library">Explorar exercícios</string>
+
+    <!-- Templates list -->
+    <string name="templates_new">Novo treino</string>
+    <string name="templates_empty_title">Nenhum treino ainda</string>
+    <string name="templates_empty_body">Crie treinos como \"Push A\" ou \"Pernas\" e reutilize sempre que for treinar.</string>
+    <plurals name="template_exercise_count">
+        <item quantity="one">%d exercício</item>
+        <item quantity="other">%d exercícios</item>
+    </plurals>
+    <plurals name="template_set_count">
+        <item quantity="one">%d série</item>
+        <item quantity="other">%d séries</item>
+    </plurals>
+    <string name="template_summary_line">%1$s · %2$s</string>
+    <string name="template_action_edit">Editar</string>
+    <string name="template_action_duplicate">Duplicar</string>
+    <string name="template_action_delete">Excluir</string>
+    <string name="template_more_options">Mais opções para %s</string>
+    <string name="template_copy_name">%s (cópia)</string>
+    <string name="template_duplicated">Treino duplicado</string>
+    <string name="template_deleted">Treino excluído</string>
+    <string name="template_delete_title">Excluir treino?</string>
+    <string name="template_delete_message">\"%s\" sairá da sua lista. Treinos já realizados continuam no histórico.</string>
+    <string name="template_operation_failed">Não foi possível concluir a ação. Tente novamente.</string>
+
+    <!-- Library -->
+    <string name="library_search_hint">Buscar exercício</string>
+    <string name="library_filter_equipment">Equipamento</string>
+    <string name="library_filter_equipment_selected">Equipamento (%d)</string>
+    <string name="library_filter_all_groups">Todos</string>
+    <string name="library_filter_whole_group">Todo o grupo</string>
+    <string name="library_role_title">Considerar o músculo como</string>
+    <string name="library_role_primary">Principal</string>
+    <string name="library_role_secondary">Secundário</string>
+    <string name="library_role_any">Principal ou secundário</string>
+    <string name="library_clear_filters">Limpar filtros</string>
+    <plurals name="library_result_count">
+        <item quantity="one">%d exercício</item>
+        <item quantity="other">%d exercícios</item>
+    </plurals>
+    <string name="library_empty">Nenhum exercício encontrado com esses filtros.</string>
+    <string name="library_equipment_dialog_title">Filtrar por equipamento</string>
+    <string name="library_select_hint">Toque para selecionar. A ordem de seleção será a ordem no treino.</string>
+    <plurals name="library_add_selected">
+        <item quantity="one">Adicionar %d exercício</item>
+        <item quantity="other">Adicionar %d exercícios</item>
+    </plurals>
+    <string name="library_open_details">Ver detalhes de %s</string>
+    <string name="library_selected_state">Selecionado</string>
+    <string name="library_not_selected_state">Não selecionado</string>
+
+    <!-- Exercise detail -->
+    <string name="detail_primary_muscle">Músculo principal</string>
+    <string name="detail_secondary_muscles">Músculos secundários</string>
+    <string name="detail_equipment">Equipamento</string>
+    <string name="detail_how_to">Como executar</string>
+    <string name="detail_tips">Dicas</string>
+    <string name="detail_common_mistakes">Erros comuns</string>
+    <string name="detail_notes">Observações</string>
+    <string name="detail_logging">Como registrar</string>
+    <string name="detail_logging_total">Registre a carga total: barra com anilhas, ou o valor indicado na máquina.</string>
+    <string name="detail_logging_per_implement">Registre o peso de cada implemento. Ex.: dois halteres de 12 kg = 12 kg por halter.</string>
+    <string name="detail_logging_bodyweight">Peso corporal: registre a carga adicional (+) ou a assistência (−). Sem valor = só o peso do corpo.</string>
+    <string name="detail_logging_unilateral">Exercício unilateral: as repetições são contadas por lado, e você pode registrar cada lado separadamente.</string>
+    <string name="detail_logging_duration">Registrado por tempo em cada série.</string>
+    <string name="detail_logging_reps_only">Registrado só por repetições.</string>
+    <string name="detail_not_found">Exercício não encontrado.</string>
+    <string name="detail_custom_badge">Personalizado</string>
+    <string name="detail_step">%1$d. %2$s</string>
+
+    <!-- Template editor -->
+    <string name="editor_name_hint">Nome do treino</string>
+    <string name="editor_description_hint">Descrição (opcional)</string>
+    <string name="editor_notes_hint">Observações do treino (opcional)</string>
+    <string name="editor_notes_helper">Ficam salvas no treino e aparecem sempre que você o usar.</string>
+    <string name="editor_section_exercises">Exercícios</string>
+    <string name="editor_add_exercises">Adicionar exercícios</string>
+    <string name="editor_empty_exercises">Adicione exercícios da biblioteca. Cada um começa com 3 séries × 12 repetições, e você pode ajustar tudo.</string>
+    <string name="editor_discard_title">Descartar alterações?</string>
+    <string name="editor_discard_message">As alterações que não foram salvas serão perdidas.</string>
+    <string name="editor_discard">Descartar</string>
+    <string name="editor_keep_editing">Continuar editando</string>
+    <string name="editor_error_name_blank">Dê um nome ao treino</string>
+    <plurals name="editor_error_name_too_long">
+        <item quantity="one">Use no máximo %d caractere</item>
+        <item quantity="other">Use no máximo %d caracteres</item>
+    </plurals>
+    <string name="editor_error_text_too_long">Texto longo demais</string>
+    <string name="editor_error_no_exercises">Adicione pelo menos um exercício</string>
+    <plurals name="editor_error_too_many">
+        <item quantity="one">Máximo de %d exercício por treino</item>
+        <item quantity="other">Máximo de %d exercícios por treino</item>
+    </plurals>
+    <string name="editor_error_save">Não foi possível salvar. Tente novamente.</string>
+    <string name="editor_error_load">Não foi possível abrir este treino.</string>
+    <string name="editor_drag_handle">Arrastar para reordenar %s</string>
+    <string name="editor_exercise_options">Opções de %s</string>
+    <string name="editor_edit_plan">Editar séries</string>
+    <string name="editor_move_up">Mover para cima</string>
+    <string name="editor_move_down">Mover para baixo</string>
+    <string name="editor_remove">Remover do treino</string>
+
+    <!-- Plan summary (template exercise card) -->
+    <plurals name="plan_sets">
+        <item quantity="one">%d série</item>
+        <item quantity="other">%d séries</item>
+    </plurals>
+    <string name="plan_sets_reps">%1$s × %2$s reps</string>
+    <string name="plan_sets_duration">%1$s × %2$s</string>
+    <string name="plan_mixed">%s (valores variados)</string>
+    <string name="plan_rest">descanso %s</string>
+    <string name="plan_no_rest">sem descanso automático</string>
+    <string name="plan_bodyweight">peso corporal</string>
+    <string name="plan_bodyweight_plus">peso corporal + %s</string>
+    <string name="plan_bodyweight_assisted">peso corporal − %s (assistência)</string>
+    <string name="plan_per_side">cada lado registrado separadamente</string>
+
+    <!-- Loads -->
+    <string name="weight_value">%1$s %2$s</string>
+    <string name="load_per_dumbbell">%s por halter</string>
+    <string name="load_per_kettlebell">%s por kettlebell</string>
+    <string name="load_per_cable">%s por polia</string>
+    <string name="load_per_implement">%s cada</string>
+    <string name="duration_seconds">%d s</string>
+    <string name="duration_minutes_seconds">%1$d:%2$02d min</string>
+
+    <!-- Plan editing sheet -->
+    <string name="plan_sheet_sets">Séries</string>
+    <string name="plan_sheet_decrease_sets">Diminuir séries</string>
+    <string name="plan_sheet_increase_sets">Aumentar séries</string>
+    <string name="plan_sheet_reps">Repetições</string>
+    <string name="plan_sheet_reps_max">Até (opcional)</string>
+    <string name="plan_sheet_reps_helper">Para uma faixa, preencha os dois: 8 até 10.</string>
+    <string name="plan_sheet_weight">Carga planejada (opcional)</string>
+    <string name="plan_sheet_weight_per_implement">Carga de cada implemento (opcional)</string>
+    <string name="plan_sheet_weight_bodyweight">Carga extra ou assistência (opcional)</string>
+    <string name="plan_sheet_bodyweight_helper">Deixe vazio para usar só o peso do corpo.</string>
+    <string name="plan_sheet_bodyweight_added">Carga adicional (+)</string>
+    <string name="plan_sheet_bodyweight_assisted">Assistência (−)</string>
+    <string name="plan_sheet_duration">Duração de cada série (s)</string>
+    <string name="plan_sheet_rest">Descanso após cada série (s)</string>
+    <string name="plan_sheet_rest_helper">0 = sem cronômetro de descanso automático.</string>
+    <string name="plan_sheet_side_mode">Registro dos lados</string>
+    <string name="plan_sheet_side_combined">Mesmo valor por lado</string>
+    <string name="plan_sheet_side_per_side">Cada lado separado</string>
+    <string name="plan_sheet_notes">Observação deste exercício</string>
+    <string name="plan_sheet_notes_helper">Permanente neste treino. Ex.: Banco no terceiro encaixe.</string>
+    <string name="plan_error_number">Número inválido</string>
+    <plurals name="plan_error_sets_range">
+        <item quantity="one">Entre 1 e %d série</item>
+        <item quantity="other">Entre 1 e %d séries</item>
+    </plurals>
+    <string name="plan_error_reps_range">Entre 1 e %d</string>
+    <string name="plan_error_reps_order">Deve ser maior ou igual às repetições</string>
+    <string name="plan_error_reps_max_without_min">Preencha as repetições</string>
+    <string name="plan_error_rest_range">Entre 0 e %d s</string>
+    <string name="plan_error_weight">Carga inválida</string>
+    <string name="plan_error_duration_range">Entre 1 e %d s</string>
+    <string name="plan_error_notes_long">Texto longo demais</string>
+
+    <!-- Settings -->
+    <string name="settings_theme">Tema</string>
+    <string name="settings_theme_system">Seguir o sistema</string>
+    <string name="settings_theme_light">Claro</string>
+    <string name="settings_theme_dark">Escuro</string>
+    <string name="settings_units">Unidade de carga</string>
+    <string name="settings_units_value">Quilogramas (kg). O suporte a libras (lb) já está previsto no modelo de dados e entra em uma próxima versão.</string>
+    <string name="settings_about">Sobre</string>
+    <string name="settings_version">Versão %s</string>
+    <string name="settings_credits">Ícones: Material Design (Google), licença Apache 2.0. Textos dos exercícios: conteúdo próprio.</string>
 </resources>

@@ -12,6 +12,7 @@ import java.time.ZoneOffset;
 import io.github.thiagojosetj.gym.AppContainer;
 import io.github.thiagojosetj.gym.core.AppExecutors;
 import io.github.thiagojosetj.gym.data.local.AppDatabase;
+import io.github.thiagojosetj.gym.data.prefs.UiPreferences;
 import io.github.thiagojosetj.gym.data.seed.CatalogSeeder;
 import io.github.thiagojosetj.gym.domain.util.IdGenerator;
 
@@ -24,7 +25,11 @@ public final class TestContainers {
     }
 
     public static AppDatabase inMemoryDatabase() {
-        Context context = ApplicationProvider.getApplicationContext();
+        return inMemoryDatabase(ApplicationProvider.getApplicationContext());
+    }
+
+    /** Everything runs on the calling thread: deterministic tests, no idling resources needed. */
+    public static AppDatabase inMemoryDatabase(Context context) {
         return Room.inMemoryDatabaseBuilder(context, AppDatabase.class)
                 .allowMainThreadQueries() // tests only
                 .setQueryExecutor(Runnable::run)
@@ -38,8 +43,12 @@ public final class TestContainers {
 
     /** Container with the real bundled catalog; call {@link AppContainer#start()} to seed it. */
     public static AppContainer create(AppDatabase database) {
-        Context context = ApplicationProvider.getApplicationContext();
+        return create(ApplicationProvider.getApplicationContext(), database);
+    }
+
+    public static AppContainer create(Context context, AppDatabase database) {
         return new AppContainer(database, directExecutors(), FIXED_CLOCK, IdGenerator.UUID_V7,
-                () -> context.getAssets().open(CatalogSeeder.ASSET_PATH));
+                () -> context.getAssets().open(CatalogSeeder.ASSET_PATH),
+                new UiPreferences(context.getSharedPreferences("test_ui_prefs", Context.MODE_PRIVATE)));
     }
 }

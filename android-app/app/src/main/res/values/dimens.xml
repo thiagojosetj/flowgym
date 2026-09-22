@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Spacing and sizing tokens. Screens use these instead of raw numbers so a future
+    "compact / default / large" density preference can swap them via theme overlays.
+-->
+<resources>
+    <dimen name="space_xs">4dp</dimen>
+    <dimen name="space_s">8dp</dimen>
+    <dimen name="space_m">12dp</dimen>
+    <dimen name="space_l">16dp</dimen>
+    <dimen name="space_xl">24dp</dimen>
+    <dimen name="space_xxl">32dp</dimen>
+
+    <!-- Screen side margin -->
+    <dimen name="screen_margin">16dp</dimen>
+    <!-- Accessibility: minimum touch target, even in the future compact mode. -->
+    <dimen name="touch_target_min">48dp</dimen>
+    <!-- Room below the last list item so the FAB never hides it. -->
+    <dimen name="fab_clearance">88dp</dimen>
+    <!-- Max readable width for forms and text on large screens (Android 17 always resizable). -->
+    <dimen name="content_max_width">640dp</dimen>
+</resources>

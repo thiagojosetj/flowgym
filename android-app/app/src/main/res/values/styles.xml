@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Section heading inside detail screens. -->
+    <style name="Widget.Gym.SectionTitle" parent="">
+        <item name="android:textAppearance">?attr/textAppearanceTitleSmall</item>
+        <item name="android:layout_marginTop">@dimen/space_xl</item>
+        <item name="android:layout_marginBottom">@dimen/space_xs</item>
+        <item name="android:accessibilityHeading">true</item>
+    </style>
+</resources>

@@ -52,6 +52,7 @@ android {
 
     buildFeatures {
         viewBinding = true
+        buildConfig = true // version name shown in Settings
     }
 
     sourceSets {
