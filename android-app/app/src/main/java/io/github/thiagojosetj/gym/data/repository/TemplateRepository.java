@@ -78,11 +78,18 @@ public final class TemplateRepository {
         saveInternal(draft, TemplateOrigin.CREATED, null, onSaved, onError);
     }
 
-    /** Creates an independent copy named {@code copyName}. Delivers the new template id. */
-    public void duplicate(String templateId, String copyName, Consumer<String> onCreated,
+    /**
+     * Creates an independent copy. Its name is the original's plus {@code copySuffix} (e.g.
+     * " (cópia)"), shortened by the domain to respect the name limit. Delivers the new template id.
+     */
+    public void duplicate(String templateId, String copySuffix, Consumer<String> onCreated,
                           Consumer<Throwable> onError) {
         executors.runOnDisk(() -> {
-            TemplateDraft copy = loadDraftNow(templateId).duplicate(copyName);
+            TemplateDraft copy = loadDraftNow(templateId).duplicate(copySuffix);
+            // Same guard as save(): never persist an aggregate that breaks its own rules.
+            if (!copy.validate().isEmpty()) {
+                throw new IllegalStateException("Duplicate is invalid: " + copy.validate());
+            }
             persist(snapshot(copy), TemplateOrigin.DUPLICATED, templateId);
             return copy.id();
         }, onCreated, onError);

@@ -65,10 +65,15 @@ public abstract class CatalogDao {
     @Query("UPDATE exercise SET is_active = 0, updated_at = :now WHERE owner_user_id IS NULL")
     abstract void deactivateSystemExercises(long now);
 
-    @Query("DELETE FROM exercise_muscle WHERE exercise_id IN (SELECT id FROM exercise WHERE owner_user_id IS NULL)")
+    // Only exercises present in the new catalog (re-activated by the upsert that runs before) get
+    // their links replaced. Retired exercises keep their muscles and equipment: old templates and
+    // per-muscle statistics still read them (docs/DATABASE.md §4).
+    @Query("DELETE FROM exercise_muscle WHERE exercise_id IN"
+            + " (SELECT id FROM exercise WHERE owner_user_id IS NULL AND is_active = 1)")
     abstract void deleteSystemExerciseMuscles();
 
-    @Query("DELETE FROM exercise_equipment WHERE exercise_id IN (SELECT id FROM exercise WHERE owner_user_id IS NULL)")
+    @Query("DELETE FROM exercise_equipment WHERE exercise_id IN"
+            + " (SELECT id FROM exercise WHERE owner_user_id IS NULL AND is_active = 1)")
     abstract void deleteSystemExerciseEquipment();
 
     @Insert

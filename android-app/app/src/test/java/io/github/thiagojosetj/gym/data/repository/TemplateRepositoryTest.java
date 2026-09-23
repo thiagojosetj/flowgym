@@ -36,6 +36,7 @@ import io.github.thiagojosetj.gym.domain.template.ExerciseRef;
 import io.github.thiagojosetj.gym.domain.template.SetPlan;
 import io.github.thiagojosetj.gym.domain.template.TemplateDraft;
 import io.github.thiagojosetj.gym.domain.template.TemplateExerciseDraft;
+import io.github.thiagojosetj.gym.domain.template.TemplateRules;
 import io.github.thiagojosetj.gym.domain.template.TemplateSummary;
 import io.github.thiagojosetj.gym.domain.util.IdGenerator;
 import io.github.thiagojosetj.gym.testutil.LiveDataTestUtil;
@@ -149,7 +150,7 @@ public class TemplateRepositoryTest {
     public void duplicateIsAnIndependentCopy() throws Exception {
         String originalId = save(newPushTemplate());
         AtomicReference<String> copyId = new AtomicReference<>();
-        templates.duplicate(originalId, "Push A (cópia)", copyId::set, e -> { throw new AssertionError(e); });
+        templates.duplicate(originalId, " (cópia)", copyId::set, e -> { throw new AssertionError(e); });
 
         assertNotNull(copyId.get());
         assertNotEquals(originalId, copyId.get());
@@ -162,6 +163,23 @@ public class TemplateRepositoryTest {
         save(copy);
         assertEquals(2, load(originalId).exercises().size());
         assertEquals("DUPLICATED", string("SELECT origin FROM workout_template WHERE id = '" + copyId.get() + "'"));
+    }
+
+    @Test
+    public void duplicatingALongNameStoresAValidName() throws Exception {
+        // Regression (review 2026-09-22): a 60-char name + " (cópia)" used to be stored as 68 chars,
+        // and the copy could then never be saved from the editor.
+        TemplateDraft draft = newPushTemplate();
+        draft.rename("Treino de hipertrofia para membros superiores com foco em ombros"
+                .substring(0, TemplateRules.MAX_NAME_LENGTH));
+        String originalId = save(draft);
+        AtomicReference<String> copyId = new AtomicReference<>();
+        templates.duplicate(originalId, " (cópia)", copyId::set, e -> { throw new AssertionError(e); });
+
+        TemplateDraft copy = load(copyId.get());
+        assertTrue(copy.name().length() <= TemplateRules.MAX_NAME_LENGTH);
+        assertTrue(copy.name().endsWith(" (cópia)"));
+        assertTrue(copy.validate().isEmpty());
     }
 
     @Test

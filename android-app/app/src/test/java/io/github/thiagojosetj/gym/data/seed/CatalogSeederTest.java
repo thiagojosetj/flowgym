@@ -5,17 +5,21 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
+import android.database.Cursor;
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
@@ -53,6 +57,38 @@ public class CatalogSeederTest {
     @After
     public void tearDown() {
         database.close();
+    }
+
+    @Test
+    public void retiringAnExerciseDeactivatesItButKeepsItsMusclesAndEquipment() throws Exception {
+        // Regression (review 2026-09-22): a re-seed used to delete the links of every system
+        // exercise, including the ones it had just retired, so old templates lost their muscles.
+        seeder.seedIfNeeded();
+        JSONObject catalog = new JSONObject(json);
+        JSONArray exercises = catalog.getJSONArray("exercises");
+        String retiredId = exercises.getJSONObject(0).getString("id");
+        exercises.remove(0);
+        byte[] nextCatalog = catalog.toString().getBytes(StandardCharsets.UTF_8);
+        database.metadataDao().put(new AppMetadataEntity(AppMetadataEntity.KEY_CATALOG_VERSION, "0"));
+
+        CatalogSeeder next = new CatalogSeeder(database, () -> new ByteArrayInputStream(nextCatalog),
+                TestContainers.FIXED_CLOCK);
+        assertTrue(next.seedIfNeeded());
+
+        assertEquals(0, count("SELECT is_active FROM exercise WHERE id = '" + retiredId + "'"));
+        assertTrue(count("SELECT COUNT(*) FROM exercise_muscle WHERE exercise_id = '" + retiredId + "'") > 0);
+        assertTrue(count("SELECT COUNT(*) FROM exercise_equipment WHERE exercise_id = '" + retiredId + "'") > 0);
+        // Exercises still in the catalog keep exactly one highlighted primary muscle.
+        assertEquals(0, count("SELECT COUNT(*) FROM exercise e WHERE e.owner_user_id IS NULL AND e.is_active = 1"
+                + " AND NOT EXISTS (SELECT 1 FROM exercise_muscle em WHERE em.exercise_id = e.id"
+                + " AND em.role = 'PRIMARY' AND em.sort_order = 0)"));
+    }
+
+    private int count(String sql) {
+        try (Cursor c = database.getOpenHelper().getReadableDatabase().query(sql)) {
+            assertTrue(c.moveToFirst());
+            return c.getInt(0);
+        }
     }
 
     @Test
