@@ -32,6 +32,8 @@ são respondidos aqui quando mudam ou confirmam uma decisão.
 | 0024 | Android Auto Backup habilitado com regras explícitas | Aceita |
 | 0025 | Kotlin embutido do AGP 9 mantido no padrão | Aceita (revisada) |
 | 0026 | Pacote Java neutro; nome do app provisório | Aceita |
+| 0027 | Testes de UI na JVM com `TestGymApplication` | Aceita |
+| 0028 | Revisão multi-lente com verificação adversarial antes de fechar cada etapa | Aceita |
 
 ---
 
@@ -143,9 +145,15 @@ templates; eventos append-only para ajustes de rotina, PRs e conquistas. LWW ape
 foi analisado e aceito.
 
 ### ADR-0016 — Catálogo em JSON
-**Decisão:** `app/src/main/assets/catalog/catalog.json` com UUIDs fixos, `catalogVersion`, músculos,
-equipamentos e exercícios. O `CatalogSeeder` faz *upsert* quando a versão embarcada é maior que a
-gravada em `app_metadata`.
+**Decisão:** `app/src/main/assets/catalog/catalog.json` com UUIDs fixos, um campo raiz `version`,
+músculos (grupos com subgrupos aninhados), equipamentos e exercícios (que referenciam músculos e
+equipamentos pelo `code`). O `CatalogSeeder` roda quando a constante `CatalogSeeder.BUNDLED_VERSION`
+é maior que `app_metadata.catalog_version` — assim uma inicialização normal não precisa ler o JSON. O
+`version` do JSON precisa ser igual a `BUNDLED_VERSION` (o `CatalogSeederTest` garante), então os dois
+sobem juntos a cada mudança de catálogo.
+**Regras do re-seed:** *upsert* (nunca DELETE+INSERT, que quebraria as FKs dos treinos); exercícios que
+saírem do JSON são apenas **desativados**, e mantêm seus vínculos de músculos e equipamentos, porque
+treinos antigos e estatísticas por grupo muscular ainda os usam.
 **Alternativas:** banco pré-empacotado (`createFromAsset`) — binário, impossível de revisar por diff.
 **Consequências:** o mesmo arquivo poderá alimentar a migration de seed do backend. Os textos do
 catálogo são **autorais** (não copiados de nenhum produto).
@@ -209,3 +217,24 @@ escritas em Kotlin (Room, Lifecycle, Navigation).
 GitHub do autor); nome "FlowGym" só em `app_name`, `applicationId` e docs.
 **Consequências:** trocar a marca = alterar 1 string + `applicationId` (antes da 1ª publicação). O
 `applicationId` definitivo precisa ser decidido antes de publicar na Play (não pode mudar depois).
+
+### ADR-0027 — Testes de UI na JVM com `TestGymApplication`
+**Contexto:** não há emulador nem aparelho neste ambiente, mas o fluxo principal (biblioteca → treino →
+salvar → reabrir) precisa de teste automatizado pela interface real.
+**Decisão:** testes de UI em `app/src/test` com Robolectric + Espresso. Uma `TestGymApplication`
+(só nos testes) sobrescreve `GymApplication.createContainer()` e monta o app sobre um banco em memória
+com executores síncronos; a produção não tem nenhum gancho de teste além desse método protegido.
+**Consequências:** testes rápidos e determinísticos, sem *idling resources*. Robolectric não substitui um
+aparelho (teclado real, gestos, desempenho): os mesmos cenários devem ganhar versões em
+`app/src/androidTest` quando houver dispositivo/CI com emulador.
+
+### ADR-0028 — Revisão multi-lente com verificação adversarial
+**Contexto:** o Claude implementa e o Codex revisa; ainda assim, erros sutis passam pelo autor.
+**Decisão:** antes de fechar cada etapa, uma revisão com várias lentes independentes (regras de
+domínio, dados, ciclo de vida/threads, UI/acessibilidade, build/segurança/privacidade, docs × código),
+em que cada achado só é aceito se a maioria de três verificadores independentes (rastreamento de
+código, comportamento da plataforma, intenção do produto) não conseguir refutá-lo.
+**Primeira execução (22/09/2026):** confirmou, entre outros, que o re-seed do catálogo apagava os
+vínculos musculares de exercícios aposentados, que a duplicação podia gravar um nome acima do limite,
+que `Weight` aceitava `NaN`/`Long.MIN_VALUE`, e várias afirmações falsas nesta documentação. Todos
+corrigidos com testes de regressão (ver histórico do Git).

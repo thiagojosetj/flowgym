@@ -83,15 +83,17 @@ android-app/
 io.github.thiagojosetj.gym
 ├── GymApplication             Application: cria o AppContainer (raiz de composição)
 ├── AppContainer               Monta banco, executores e repositórios (DI manual)
-├── core/                      Infra transversal pequena: AppExecutors, Event, utilidades
+├── core/                      Infra transversal pequena: AppExecutors, Event
 ├── data/
-│   ├── local/                 Room: AppDatabase, dao/, entity/, relation/, Converters
+│   ├── local/                 Room: AppDatabase, dao/, entity/, row/ (projeções de consultas), SqlLike
+│   │                          (enums gravados pelo nome via conversor embutido do Room; sem Converters próprios)
 │   ├── seed/                  Carga do catálogo inicial (JSON em assets)
+│   ├── prefs/                 Preferências só do aparelho (UiPreferences → SharedPreferences)
 │   ├── repository/            Repositórios: API para os ViewModels, mapeiam entity ⇄ domain
-│   └── remote/                (Fase 8+) Retrofit/OkHttp
-├── ui/                        Uma pasta por funcionalidade: home/, library/, templates/, settings/, common/
-├── service/                   (Fase 3) Foreground service do treino ativo
-└── worker/                    (Fase 6/9) WorkManager: lembretes de rotina, sync
+│   └── remote/                (Fase 8+, ainda não existe) Retrofit/OkHttp
+├── ui/                        Uma pasta por funcionalidade: home/, library/, templates/ (+ editor/), settings/, common/
+├── service/                   (Fase 3, ainda não existe) Foreground service do treino ativo
+└── worker/                    (Fase 6/9, ainda não existe) WorkManager: lembretes de rotina, sync
 ```
 
 Organização **por funcionalidade dentro da UI** (tudo de "biblioteca" junto) e **por camada nos
@@ -245,13 +247,16 @@ Swift + SwiftUI consumindo a mesma API. O que torna isso viável:
 | Nível | Onde | Ferramenta |
 |---|---|---|
 | Regras puras | `domain/src/test` | JUnit 4 na JVM |
-| Room (DAO, relações, migrations) | `app/src/test` | Robolectric + Room in-memory + `MigrationTestHelper` |
+| Room (DAO, consultas, seed, schema) | `app/src/test` | Robolectric + Room in-memory; `SchemaTest` compara o schema exportado com as entidades |
+| Migrations (a partir da versão 2) | `app/src/androidTest` (ainda não existe) | `MigrationTestHelper` em aparelho/emulador ou CI — não funciona sob Robolectric no Windows (ADR-0012) |
 | ViewModels / repositórios | `app/src/test` | Robolectric + `InstantTaskExecutorRule` |
-| Fluxos de UI | `app/src/test` (Robolectric + Espresso) e `app/src/androidTest` (dispositivo) | Espresso |
+| Fluxos de UI | `app/src/test` (hoje) e `app/src/androidTest` (quando houver aparelho) | Robolectric + Espresso, com `TestGymApplication` (ADR-0027) |
 | Backend | `backend/src/test` | JUnit 5, Spring Boot Test, Testcontainers |
 
 Robolectric permite rodar testes de Room e de UI **sem emulador** (o ambiente atual não tem um).
-Testes instrumentados em dispositivo real complementam quando houver aparelho/emulador.
+Nos testes de UI, a `TestGymApplication` troca o container por um banco em memória com executores
+síncronos: o teste fica determinístico e dispensa *idling resources*. Testes instrumentados em
+dispositivo real complementam quando houver aparelho/emulador.
 
 ## 13. Acessibilidade
 
@@ -261,6 +266,10 @@ compacto; textos em `sp`; estados com ícone + texto, nunca só cor; ordem de fo
 ## 14. Tema e design system
 
 Material 3 (Material Components for Android) com paleta própria (verde-petróleo + âmbar para
-recordes/conquistas), temas claro e escuro, e escolha "seguir o sistema". Espaçamentos, raios e
-tipografia centralizados em `values/dimens.xml`, `themes.xml` e `type.xml`. A preferência de
-densidade (compacto/padrão/ampliado) será aplicada via *theme overlays* que trocam essas dimensões.
+recordes/conquistas), temas claro e escuro, e escolha "seguir o sistema".
+
+Hoje: as cores por papel ficam em `values/colors.xml` e `values-night/colors.xml` (mesmos nomes) e são
+ligadas aos atributos do Material 3 em um único `themes.xml`; espaçamentos, margem de tela, largura
+máxima de conteúdo e alvo mínimo de toque são tokens em `values/dimens.xml`. Tipografia e formas usam
+os padrões do Material 3. **Planejado:** tokens de raio/tipografia próprios e a preferência de
+densidade (compacto/padrão/ampliado), aplicada via *theme overlays* que trocam essas dimensões.

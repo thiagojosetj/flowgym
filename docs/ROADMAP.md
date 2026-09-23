@@ -17,22 +17,25 @@ Legenda: ✅ concluído · 🟡 em andamento/parcial · ⬜ não iniciado.
 - ✅ Inspeção do ambiente; instalação do Android SDK mínimo (autorizada).
 - ✅ Git, `.gitignore`, `.gitattributes`, `.editorconfig`.
 - ✅ Documentação: produto, arquitetura, banco, sync, roadmap, decisões.
-- ⬜ Projeto Android em Java (AGP 9.4.1, Gradle 9.7.1, compile/target 37, min 28), módulos `:app` e `:domain`.
-- ⬜ Banco inicial (Room v1) com schema exportado.
-- ⬜ Navegação (single-activity + bottom navigation) e design system (Material 3, paleta própria, claro/escuro).
-- ⬜ Seletor de tema nas configurações.
+- ✅ Projeto Android em Java (AGP 9.4.1, Gradle 9.7.1, compile/target 37, min 28), módulos `:app` e `:domain`.
+- ✅ Banco inicial (Room v1) com schema exportado e verificado por teste.
+- ✅ Navegação (single-activity + bottom navigation) e design system (Material 3, paleta própria, claro/escuro).
+- ✅ Seletor de tema nas configurações.
+- ✅ Build de release com R8 (minify + shrink) validado.
 - ⬜ CI (GitHub Actions: build + testes + lint) — quando o repositório for publicado.
+- ⬜ Testes instrumentados em aparelho/emulador (`androidTest`) — quando houver dispositivo.
 
-### Fase 1 — Biblioteca ⬜
-- ⬜ Grupos/subgrupos hierárquicos, equipamentos, catálogo inicial (JSON com UUIDs fixos).
-- ⬜ Lista, busca tolerante a acentos, filtros combinados (grupo + subgrupo + equipamento + papel).
-- ⬜ Detalhe do exercício (principal em destaque, secundários, instruções, dicas, erros comuns).
+### Fase 1 — Biblioteca 🟡
+- ✅ Grupos/subgrupos hierárquicos (13 grupos, 38 subgrupos), 14 equipamentos, 55 exercícios com textos próprios (JSON com UUIDs fixos).
+- ✅ Lista, busca tolerante a acentos e apelidos, filtros combinados (grupo + subgrupo + equipamento + papel).
+- ✅ Detalhe do exercício (principal em destaque, secundários, instruções, dicas, erros comuns, como registrar).
 - ⬜ Mídia (imagens início/fim, animação) + cache.
 - ⬜ Ampliar o catálogo.
+- ⬜ Exercícios personalizados (o modelo já suporta).
 
-### Fase 2 — Templates ⬜
-- ⬜ Criar, editar, salvar e reabrir; defaults 3 × 12; faixa de reps, carga, descanso, observações.
-- ⬜ Reordenar (arrastar e soltar), remover exercício, duplicar e excluir (lógico) treino.
+### Fase 2 — Templates 🟡
+- ✅ Criar, editar, salvar e reabrir; defaults 3 × 12; faixa de reps, carga (por halter / peso corporal ±), descanso, observações.
+- ✅ Reordenar (arrastar e soltar + mover pelo menu, acessível), remover exercício, duplicar e excluir (lógico) treino.
 - ⬜ Edição série a série (cargas/reps diferentes por série).
 - ⬜ Técnicas avançadas (tabela de técnicas, badges, ⓘ) e grupos (supersérie…).
 - ⬜ Arquivar/desarquivar.
