@@ -72,6 +72,7 @@
             android:id="@+id/sets_error"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:accessibilityLiveRegion="polite"
             android:gravity="end"
             android:textAppearance="?attr/textAppearanceBodySmall"
             android:textColor="?attr/colorError"

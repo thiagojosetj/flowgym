@@ -32,8 +32,9 @@ public final class TemplateListViewModel extends ViewModel {
         return messages;
     }
 
-    public void duplicate(String templateId, String copyName) {
-        templates.duplicate(templateId, copyName,
+    /** @param copySuffix localized suffix, e.g. " (cópia)"; the domain fits it to the name limit */
+    public void duplicate(String templateId, String copySuffix) {
+        templates.duplicate(templateId, copySuffix,
                 newId -> messages.setValue(new Event<>(Message.DUPLICATED)),
                 error -> messages.setValue(new Event<>(Message.FAILED)));
     }

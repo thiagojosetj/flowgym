@@ -14,12 +14,12 @@ import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.navigation.fragment.NavHostFragment;
 
 import io.github.thiagojosetj.gym.AppContainer;
 import io.github.thiagojosetj.gym.R;
 import io.github.thiagojosetj.gym.databinding.FragmentHomeBinding;
 import io.github.thiagojosetj.gym.ui.TabNavigator;
+import io.github.thiagojosetj.gym.ui.common.SafeNavigation;
 import io.github.thiagojosetj.gym.ui.common.ViewModelFactories;
 import io.github.thiagojosetj.gym.ui.templates.editor.TemplateEditorFragment;
 
@@ -51,8 +51,8 @@ public class HomeFragment extends Fragment {
 
         binding.buttonTemplates.setOnClickListener(v -> tabs().selectTab(R.id.templateListFragment));
         binding.buttonLibrary.setOnClickListener(v -> tabs().selectTab(R.id.exerciseLibraryFragment));
-        binding.buttonCreateTemplate.setOnClickListener(v -> NavHostFragment.findNavController(this)
-                .navigate(R.id.action_home_to_editor, TemplateEditorFragment.args(null)));
+        binding.buttonCreateTemplate.setOnClickListener(v ->
+                SafeNavigation.navigate(this, R.id.action_home_to_editor, TemplateEditorFragment.args(null)));
 
         requireActivity().addMenuProvider(new MenuProvider() {
             @Override
@@ -63,7 +63,7 @@ public class HomeFragment extends Fragment {
             @Override
             public boolean onMenuItemSelected(@NonNull MenuItem item) {
                 if (item.getItemId() == R.id.action_settings) {
-                    NavHostFragment.findNavController(HomeFragment.this).navigate(R.id.action_home_to_settings);
+                    SafeNavigation.navigate(HomeFragment.this, R.id.action_home_to_settings);
                     return true;
                 }
                 return false;

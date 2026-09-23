@@ -56,7 +56,8 @@
     <string name="template_action_duplicate">Duplicar</string>
     <string name="template_action_delete">Excluir</string>
     <string name="template_more_options">Mais opções para %s</string>
-    <string name="template_copy_name">%s (cópia)</string>
+    <!-- Leading space kept by the quotes; the domain fits base + suffix into the name limit. -->
+    <string name="template_copy_suffix">" (cópia)"</string>
     <string name="template_duplicated">Treino duplicado</string>
     <string name="template_deleted">Treino excluído</string>
     <string name="template_delete_title">Excluir treino?</string>
@@ -79,6 +80,7 @@
         <item quantity="other">%d exercícios</item>
     </plurals>
     <string name="library_empty">Nenhum exercício encontrado com esses filtros.</string>
+    <string name="library_result_none">Nenhum exercício</string>
     <string name="library_equipment_dialog_title">Filtrar por equipamento</string>
     <string name="library_select_hint">Toque para selecionar. A ordem de seleção será a ordem no treino.</string>
     <plurals name="library_add_selected">
@@ -133,10 +135,10 @@
     </plurals>
     <string name="editor_error_save">Não foi possível salvar. Tente novamente.</string>
     <string name="editor_error_load">Não foi possível abrir este treino.</string>
-    <string name="editor_drag_handle">Arrastar para reordenar %s</string>
     <string name="editor_exercise_options">Opções de %s</string>
     <string name="editor_edit_plan">Editar séries</string>
     <string name="editor_move_up">Mover para cima</string>
+    <string name="editor_moved">%1$s movido para a posição %2$d</string>
     <string name="editor_move_down">Mover para baixo</string>
     <string name="editor_remove">Remover do treino</string>
 

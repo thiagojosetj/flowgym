@@ -10,7 +10,6 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.widget.PopupMenu;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.navigation.fragment.NavHostFragment;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
@@ -19,6 +18,7 @@ import io.github.thiagojosetj.gym.AppContainer;
 import io.github.thiagojosetj.gym.R;
 import io.github.thiagojosetj.gym.databinding.FragmentTemplateListBinding;
 import io.github.thiagojosetj.gym.domain.template.TemplateSummary;
+import io.github.thiagojosetj.gym.ui.common.SafeNavigation;
 import io.github.thiagojosetj.gym.ui.common.ViewModelFactories;
 import io.github.thiagojosetj.gym.ui.templates.editor.TemplateEditorFragment;
 
@@ -77,7 +77,7 @@ public class TemplateListFragment extends Fragment implements TemplateAdapter.Li
             if (id == R.id.action_edit) {
                 openEditor(template.id());
             } else if (id == R.id.action_duplicate) {
-                viewModel.duplicate(template.id(), getString(R.string.template_copy_name, template.name()));
+                viewModel.duplicate(template.id(), getString(R.string.template_copy_suffix));
             } else if (id == R.id.action_delete) {
                 confirmDelete(template);
             } else {
@@ -98,8 +98,7 @@ public class TemplateListFragment extends Fragment implements TemplateAdapter.Li
     }
 
     private void openEditor(@Nullable String templateId) {
-        NavHostFragment.findNavController(this)
-                .navigate(R.id.action_templates_to_editor, TemplateEditorFragment.args(templateId));
+        SafeNavigation.navigate(this, R.id.action_templates_to_editor, TemplateEditorFragment.args(templateId));
     }
 
     @Override

@@ -12,6 +12,7 @@ import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.PopupMenu;
 import androidx.core.view.MenuProvider;
@@ -34,6 +35,7 @@ import io.github.thiagojosetj.gym.databinding.FragmentTemplateEditorBinding;
 import io.github.thiagojosetj.gym.domain.model.WeightUnit;
 import io.github.thiagojosetj.gym.domain.template.TemplateDraft;
 import io.github.thiagojosetj.gym.domain.template.TemplateRules;
+import io.github.thiagojosetj.gym.ui.common.SafeNavigation;
 import io.github.thiagojosetj.gym.ui.common.ViewModelFactories;
 import io.github.thiagojosetj.gym.ui.library.ExerciseLibraryFragment;
 
@@ -53,6 +55,7 @@ public class TemplateEditorFragment extends Fragment implements EditorExerciseAd
     private EditorFooterAdapter footerAdapter;
     private ItemTouchHelper touchHelper;
     private OnBackPressedCallback discardGuard;
+    private AlertDialog discardDialog;
     /** Last "save enabled" state shown in the menu; the menu is only rebuilt when it changes. */
     private Boolean menuEditable;
 
@@ -141,7 +144,9 @@ public class TemplateEditorFragment extends Fragment implements EditorExerciseAd
                 nameError(state.errors()), state.editable()));
         exerciseAdapter.submit(state.exercises());
         footerAdapter.submit(state.exercises().isEmpty(), state.editable());
-        discardGuard.setEnabled(viewModel.hasUnsavedChanges());
+        // Not while saving: the draft is still "modified" until the write completes, and a discard
+        // dialog opened then would outlive the screen when SAVED pops it.
+        discardGuard.setEnabled(state.editable() && viewModel.hasUnsavedChanges());
         if (menuEditable == null || menuEditable != state.editable()) {
             menuEditable = state.editable();
             requireActivity().invalidateMenu();
@@ -205,11 +210,14 @@ public class TemplateEditorFragment extends Fragment implements EditorExerciseAd
     }
 
     private void confirmDiscard() {
-        new MaterialAlertDialogBuilder(requireContext())
+        discardDialog = new MaterialAlertDialogBuilder(requireContext())
                 .setTitle(R.string.editor_discard_title)
                 .setMessage(R.string.editor_discard_message)
                 .setNegativeButton(R.string.editor_keep_editing, null)
                 .setPositiveButton(R.string.editor_discard, (dialog, which) -> {
+                    if (!isAdded()) {
+                        return; // the screen is already gone (e.g. a save finished meanwhile)
+                    }
                     discardGuard.setEnabled(false);
                     NavHostFragment.findNavController(this).popBackStack();
                 })
@@ -217,7 +225,7 @@ public class TemplateEditorFragment extends Fragment implements EditorExerciseAd
     }
 
     private void openPicker() {
-        NavHostFragment.findNavController(this).navigate(R.id.action_editor_to_picker);
+        SafeNavigation.navigate(this, R.id.action_editor_to_picker);
     }
 
     private void snackbar(String text) {
@@ -244,9 +252,9 @@ public class TemplateEditorFragment extends Fragment implements EditorExerciseAd
             if (id == R.id.action_edit_plan) {
                 onEdit(item);
             } else if (id == R.id.action_move_up) {
-                viewModel.moveExercise(position, position - 1);
+                onMoveRequested(item, position, position - 1);
             } else if (id == R.id.action_move_down) {
-                viewModel.moveExercise(position, position + 1);
+                onMoveRequested(item, position, position + 1);
             } else if (id == R.id.action_remove) {
                 viewModel.removeExercise(item.id());
             } else {
@@ -255,6 +263,14 @@ public class TemplateEditorFragment extends Fragment implements EditorExerciseAd
             return true;
         });
         popup.show();
+    }
+
+    @Override
+    public void onMoveRequested(TemplateExerciseItem item, int fromPosition, int toPosition) {
+        viewModel.moveExercise(fromPosition, toPosition);
+        // Dragging shows what happened; a move from the menu or from TalkBack does not, so confirm
+        // it with a snackbar (which TalkBack also announces).
+        snackbar(getString(R.string.editor_moved, item.name(), toPosition + 1));
     }
 
     @Override
@@ -323,6 +339,18 @@ public class TemplateEditorFragment extends Fragment implements EditorExerciseAd
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        // Release the destroyed view hierarchy: adapters and ItemTouchHelper keep a reference to
+        // the RecyclerView, so the fragment would hold the old views while it sits in the back stack.
+        binding.list.setAdapter(null);
+        touchHelper.attachToRecyclerView(null);
+        if (discardDialog != null) {
+            discardDialog.dismiss();
+            discardDialog = null;
+        }
+        headerAdapter = null;
+        exerciseAdapter = null;
+        footerAdapter = null;
+        touchHelper = null;
         binding = null;
         menuEditable = null;
     }

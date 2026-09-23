@@ -8,6 +8,7 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
+import androidx.core.view.ViewCompat;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -30,6 +31,9 @@ final class EditorExerciseAdapter extends RecyclerView.Adapter<EditorExerciseAda
         void onEdit(TemplateExerciseItem item);
 
         void onMore(TemplateExerciseItem item, int position, View anchor);
+
+        /** Reorder requested without dragging (overflow menu or TalkBack action). */
+        void onMoveRequested(TemplateExerciseItem item, int fromPosition, int toPosition);
 
         void onStartDrag(RecyclerView.ViewHolder holder);
     }
@@ -101,8 +105,10 @@ final class EditorExerciseAdapter extends RecyclerView.Adapter<EditorExerciseAda
     final class Holder extends RecyclerView.ViewHolder {
 
         private final ItemTemplateExerciseBinding binding;
+        /** Ids of the accessibility actions added on the last bind, so rebinds don't stack them. */
+        private final List<Integer> accessibilityActionIds = new ArrayList<>(2);
 
-        @SuppressLint("ClickableViewAccessibility") // drag is optional; the menu offers move up/down
+        @SuppressLint("ClickableViewAccessibility") // drag is optional; see the accessibility actions
         Holder(ItemTemplateExerciseBinding binding) {
             super(binding.getRoot());
             this.binding = binding;
@@ -123,11 +129,54 @@ final class EditorExerciseAdapter extends RecyclerView.Adapter<EditorExerciseAda
             binding.rest.setText(formatter.restLine(item));
             binding.notes.setText(item.notes());
             binding.notes.setVisibility(item.notes() == null ? View.GONE : View.VISIBLE);
-            binding.dragHandle.setContentDescription(res.getString(R.string.editor_drag_handle, item.name()));
             binding.buttonMore.setContentDescription(res.getString(R.string.editor_exercise_options, item.name()));
             // Position ("2 of 5") is announced by RecyclerView's own collection accessibility info.
             binding.getRoot().setOnClickListener(v -> listener.onEdit(item));
-            binding.buttonMore.setOnClickListener(v -> listener.onMore(item, getBindingAdapterPosition(), v));
+            binding.buttonMore.setOnClickListener(v -> {
+                int position = getBindingAdapterPosition();
+                if (position != RecyclerView.NO_POSITION) {
+                    listener.onMore(item, position, v);
+                }
+            });
+            bindAccessibilityActions(item, res);
+        }
+
+        /**
+         * Dragging is a pointer gesture TalkBack cannot perform, so reordering is also offered as
+         * accessibility actions on the card (and in the overflow menu).
+         */
+        private void bindAccessibilityActions(TemplateExerciseItem item, Resources res) {
+            for (Integer id : accessibilityActionIds) {
+                ViewCompat.removeAccessibilityAction(binding.getRoot(), id);
+            }
+            accessibilityActionIds.clear();
+            int position = getBindingAdapterPosition();
+            if (position == RecyclerView.NO_POSITION) {
+                return;
+            }
+            if (position > 0) {
+                accessibilityActionIds.add(ViewCompat.addAccessibilityAction(binding.getRoot(),
+                        res.getString(R.string.editor_move_up), (view, arguments) ->
+                                requestMove(item, -1)));
+            }
+            if (position < items.size() - 1) {
+                accessibilityActionIds.add(ViewCompat.addAccessibilityAction(binding.getRoot(),
+                        res.getString(R.string.editor_move_down), (view, arguments) ->
+                                requestMove(item, +1)));
+            }
+        }
+
+        private boolean requestMove(TemplateExerciseItem item, int delta) {
+            int position = getBindingAdapterPosition();
+            if (position == RecyclerView.NO_POSITION) {
+                return false;
+            }
+            int target = position + delta;
+            if (target < 0 || target >= items.size()) {
+                return false;
+            }
+            listener.onMoveRequested(item, position, target);
+            return true;
         }
     }
 }

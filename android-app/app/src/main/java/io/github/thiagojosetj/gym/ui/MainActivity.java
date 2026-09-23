@@ -35,6 +35,8 @@ public class MainActivity extends AppCompatActivity implements TabNavigator {
 
     private ActivityMainBinding binding;
     private NavController navController;
+    /** Whether the current screen is a bottom-navigation tab (read by the insets listener). */
+    private boolean topLevelDestination = true;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -50,8 +52,10 @@ public class MainActivity extends AppCompatActivity implements TabNavigator {
         AppBarConfiguration appBarConfiguration = new AppBarConfiguration.Builder(TOP_LEVEL).build();
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
         NavigationUI.setupWithNavController(binding.bottomNav, navController);
-        navController.addOnDestinationChangedListener((controller, destination, arguments) ->
-                setBottomNavVisible(isTopLevel(destination)));
+        navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
+            topLevelDestination = isTopLevel(destination);
+            ViewCompat.requestApplyInsets(binding.getRoot());
+        });
 
         applyWindowInsets();
     }
@@ -60,29 +64,25 @@ public class MainActivity extends AppCompatActivity implements TabNavigator {
         return TOP_LEVEL.contains(destination.getId());
     }
 
-    private void setBottomNavVisible(boolean visible) {
-        int visibility = visible ? View.VISIBLE : View.GONE;
-        if (binding.bottomNav.getVisibility() != visibility) {
-            binding.bottomNav.setVisibility(visibility);
-            ViewCompat.requestApplyInsets(binding.getRoot());
-        }
-    }
-
     /**
-     * Status bar → app bar top padding. Keyboard / navigation bar → content bottom padding.
-     * The bottom navigation view pads itself for the navigation bar (Material default), so the
-     * content only needs the keyboard part that overlaps it.
+     * Status bar → app bar top padding; navigation bar / keyboard → content bottom padding.
+     *
+     * <p>The bottom navigation is hidden while the keyboard is open: it would only steal space from
+     * the form, and hiding it keeps the padding math independent of how the Material component
+     * handles IME insets itself. Everything is decided in this single pass over the same insets.
      */
     private void applyWindowInsets() {
         ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (root, insets) -> {
             Insets bars = insets.getInsets(
                     WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
             Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
+            boolean imeVisible = insets.isVisible(WindowInsetsCompat.Type.ime());
+
             binding.appBar.setPadding(bars.left, bars.top, bars.right, 0);
-            boolean bottomNavVisible = binding.bottomNav.getVisibility() == View.VISIBLE;
-            int bottom = bottomNavVisible
-                    ? Math.max(0, ime.bottom - binding.bottomNav.getHeight())
-                    : Math.max(bars.bottom, ime.bottom);
+            boolean showBottomNav = topLevelDestination && !imeVisible;
+            binding.bottomNav.setVisibility(showBottomNav ? View.VISIBLE : View.GONE);
+            // With the bar visible it sits below the content and pads itself for the navigation bar.
+            int bottom = showBottomNav ? 0 : Math.max(bars.bottom, ime.bottom);
             binding.navHost.setPadding(bars.left, 0, bars.right, bottom);
             return insets;
         });

@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Android 12+ backup rules (ADR-0024). Cache is never backed up. -->
 <data-extraction-rules>
-    <cloud-backup>
+    <!-- ADR-0024: training data only leaves the device when the backup can be encrypted
+         (client-side encryption needs a screen lock). Device-to-device transfer still works. -->
+    <cloud-backup disableIfNoEncryptionCapabilities="true">
         <include domain="database" path="." />
         <include domain="sharedpref" path="." />
     </cloud-backup>

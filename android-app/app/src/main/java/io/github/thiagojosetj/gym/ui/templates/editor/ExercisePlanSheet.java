@@ -10,6 +10,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
@@ -85,6 +87,9 @@ public class ExercisePlanSheet extends BottomSheetDialogFragment {
         if (savedInstanceState == null) {
             fillFromItem();
         }
+        // Accessibility: the selected option must not be signalled by colour alone.
+        markCheckedWithIcon(binding.bodyweightToggle);
+        markCheckedWithIcon(binding.sideToggle);
         binding.buttonDecreaseSets.setOnClickListener(v -> stepSets(-1));
         binding.buttonIncreaseSets.setOnClickListener(v -> stepSets(+1));
         binding.buttonCancel.setOnClickListener(v -> dismiss());
@@ -150,6 +155,20 @@ public class ExercisePlanSheet extends BottomSheetDialogFragment {
         binding.sideToggle.check(item.sideMode() == SideMode.PER_SIDE
                 ? R.id.button_side_per_side : R.id.button_side_combined);
         binding.notesInput.setText(item.notes());
+    }
+
+    /** Shows a check icon on the selected button of a toggle group, and keeps it in sync. */
+    private static void markCheckedWithIcon(MaterialButtonToggleGroup group) {
+        group.addOnButtonCheckedListener((g, checkedId, isChecked) -> updateToggleIcons(g));
+        updateToggleIcons(group);
+    }
+
+    private static void updateToggleIcons(MaterialButtonToggleGroup group) {
+        for (int i = 0; i < group.getChildCount(); i++) {
+            if (group.getChildAt(i) instanceof MaterialButton button) {
+                button.setIconResource(button.getId() == group.getCheckedButtonId() ? R.drawable.ic_check : 0);
+            }
+        }
     }
 
     private void stepSets(int delta) {

@@ -95,6 +95,46 @@ public class TemplateFlowTest {
     }
 
     @Test
+    public void emptySearchResultSaysNoneInsteadOfZeroSingular() {
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            onView(withId(R.id.exerciseLibraryFragment)).perform(click());
+            onView(withId(R.id.search_input)).perform(replaceText("zzzzz"));
+            waitForSearchDebounce();
+
+            // Portuguese plural rules would render "0 exercício" (singular) for the count.
+            onView(withText(R.string.library_result_none)).check(matches(isDisplayed()));
+            onView(withText(R.string.library_empty)).check(matches(isDisplayed()));
+        }
+    }
+
+    @Test
+    public void duplicatingKeepsTheOriginalNamePlusTheSuffix() {
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            createSimpleTemplate("Push A");
+
+            onView(withId(R.id.button_more)).perform(click());
+            onView(withText(R.string.template_action_duplicate)).perform(click());
+
+            // Regression (review 2026-09-22): the copy was named "Push APush A (cópia)".
+            onView(withText("Push A (cópia)")).check(matches(isDisplayed()));
+            onView(withText("Push A")).check(matches(isDisplayed()));
+        }
+    }
+
+    /** Creates a template with one exercise and returns to the list. */
+    private void createSimpleTemplate(String name) {
+        onView(withId(R.id.templateListFragment)).perform(click());
+        onView(withId(R.id.fab_new)).perform(click());
+        onView(withId(R.id.name_input)).perform(replaceText(name));
+        onView(withId(R.id.button_add)).perform(click());
+        onView(withId(R.id.search_input)).perform(replaceText("supino reto com barra"));
+        waitForSearchDebounce();
+        onView(withText("Supino reto com barra")).perform(click());
+        onView(withText("Adicionar 1 exercício")).perform(click());
+        onView(withId(R.id.action_save)).perform(click());
+    }
+
+    @Test
     public void dumbbellLoadIsPlannedPerDumbbell() {
         try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
             onView(withId(R.id.templateListFragment)).perform(click());

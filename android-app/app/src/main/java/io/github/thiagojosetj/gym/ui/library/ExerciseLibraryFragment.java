@@ -13,7 +13,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.google.android.material.chip.Chip;
@@ -36,6 +35,7 @@ import io.github.thiagojosetj.gym.domain.library.ExerciseSummary;
 import io.github.thiagojosetj.gym.domain.library.MuscleGroup;
 import io.github.thiagojosetj.gym.domain.library.MuscleNode;
 import io.github.thiagojosetj.gym.domain.library.MuscleRoleScope;
+import io.github.thiagojosetj.gym.ui.common.SafeNavigation;
 import io.github.thiagojosetj.gym.ui.common.ViewModelFactories;
 
 /**
@@ -287,8 +287,10 @@ public class ExerciseLibraryFragment extends Fragment implements ExerciseAdapter
 
     private void showExercises(List<ExerciseSummary> list) {
         adapter.submitList(list);
-        binding.resultCount.setText(getResources().getQuantityString(R.plurals.library_result_count,
-                list.size(), list.size()));
+        // Explicit text for zero: Portuguese plural rules treat 0 as singular ("0 exercício").
+        binding.resultCount.setText(list.isEmpty()
+                ? getString(R.string.library_result_none)
+                : getResources().getQuantityString(R.plurals.library_result_count, list.size(), list.size()));
         binding.empty.setVisibility(list.isEmpty() ? View.VISIBLE : View.GONE);
     }
 
@@ -328,8 +330,7 @@ public class ExerciseLibraryFragment extends Fragment implements ExerciseAdapter
     }
 
     private void openDetail(ExerciseSummary exercise) {
-        NavController nav = NavHostFragment.findNavController(this);
-        nav.navigate(selectMode ? R.id.action_picker_to_detail : R.id.action_library_to_detail,
+        SafeNavigation.navigate(this, selectMode ? R.id.action_picker_to_detail : R.id.action_library_to_detail,
                 ExerciseDetailFragment.args(exercise.id()));
     }
 
@@ -339,6 +340,9 @@ public class ExerciseLibraryFragment extends Fragment implements ExerciseAdapter
         if (pendingSearch != null) {
             handler.removeCallbacks(pendingSearch);
         }
+        // Detach the adapter so the fragment does not keep the destroyed list alive in the back stack.
+        binding.list.setAdapter(null);
+        adapter = null;
         binding = null;
     }
 }
