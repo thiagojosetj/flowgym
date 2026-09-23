@@ -16,7 +16,8 @@ public final class Weight implements Comparable<Weight> {
     private final long grams;
 
     private Weight(long grams) {
-        if (Math.abs(grams) > MAX_ABS_GRAMS) {
+        // Explicit bounds: Math.abs(Long.MIN_VALUE) would overflow and slip through.
+        if (grams < -MAX_ABS_GRAMS || grams > MAX_ABS_GRAMS) {
             throw new IllegalArgumentException("Weight out of range: " + grams + " g");
         }
         this.grams = grams;
@@ -26,6 +27,7 @@ public final class Weight implements Comparable<Weight> {
         return new Weight(grams);
     }
 
+    /** @throws IllegalArgumentException for NaN, infinities or values beyond ±1 tonne */
     public static Weight of(double value, WeightUnit unit) {
         return new Weight(unit.toGrams(value));
     }

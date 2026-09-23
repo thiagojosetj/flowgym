@@ -127,19 +127,27 @@ public final class TemplateExerciseDraft {
     /**
      * Applies the same plan to all sets. Existing set ids are reused in order so references stay
      * stable; extra sets get new ids; surplus sets are dropped.
+     *
+     * @return true when anything actually changed (so a no-op edit is not an unsaved change)
      */
-    void applyUniformPlan(ExercisePlanUpdate update, List<String> newIds) {
+    boolean applyUniformPlan(ExercisePlanUpdate update, List<String> newIds) {
         List<SetPlan> rebuilt = new ArrayList<>(update.setCount());
         int nextNewId = 0;
         for (int i = 0; i < update.setCount(); i++) {
             String setId = i < sets.size() ? sets.get(i).id() : newIds.get(nextNewId++);
             rebuilt.add(new SetPlan(setId, update.reps(), update.weight(), update.durationSeconds(), null));
         }
+        String newNotes = blankToNull(update.notes());
+        boolean changed = !rebuilt.equals(sets) // SetPlan is a record: compares id and every value
+                || restSeconds != update.restSeconds()
+                || !Objects.equals(notes, newNotes)
+                || sideMode != update.sideMode();
         sets.clear();
         sets.addAll(rebuilt);
         restSeconds = update.restSeconds();
-        notes = blankToNull(update.notes());
+        notes = newNotes;
         sideMode = update.sideMode();
+        return changed;
     }
 
     static String blankToNull(String text) {

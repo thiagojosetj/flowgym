@@ -207,16 +207,22 @@ public final class TemplateDraft {
         for (int i = 0; i < missing; i++) {
             newIds.add(ids.newId());
         }
-        target.applyUniformPlan(update, newIds);
-        modified = true;
+        if (target.applyUniformPlan(update, newIds)) {
+            modified = true; // re-applying the same plan is not an unsaved change
+        }
         return errors;
     }
 
     /**
      * A new, unsaved copy with fresh ids for the template, its exercises and sets. The copy is
      * independent: later edits to either template never affect the other.
+     *
+     * @param copySuffix localized suffix appended to this template's name, e.g. " (cópia)". The
+     *                   base name is shortened when needed so the copy still respects
+     *                   {@link TemplateRules#MAX_NAME_LENGTH}: a duplicate is always a valid draft.
      */
-    public TemplateDraft duplicate(String copyName) {
+    public TemplateDraft duplicate(String copySuffix) {
+        String copyName = copyName(name, copySuffix);
         List<TemplateExerciseDraft> copies = new ArrayList<>(exercises.size());
         for (TemplateExerciseDraft source : exercises) {
             List<SetPlan> sets = new ArrayList<>(source.setCount());
@@ -230,6 +236,30 @@ public final class TemplateDraft {
         TemplateDraft copy = new TemplateDraft(ids.newId(), true, ids, copyName, description, notes, copies);
         copy.modified = true;
         return copy;
+    }
+
+    /** base + suffix, cutting the base (never the suffix) to fit the name limit. */
+    static String copyName(String base, String suffix) {
+        String safeBase = base == null ? "" : base.trim();
+        String safeSuffix = suffix == null ? "" : suffix;
+        int max = TemplateRules.MAX_NAME_LENGTH;
+        if (safeSuffix.trim().length() >= max) {
+            return truncate(safeSuffix.trim(), max).trim();
+        }
+        String fittedBase = truncate(safeBase, max - safeSuffix.length()).trim();
+        return (fittedBase + safeSuffix).trim();
+    }
+
+    /** Cuts to at most {@code maxChars} UTF-16 units without splitting a surrogate pair (emoji). */
+    private static String truncate(String text, int maxChars) {
+        if (text.length() <= maxChars) {
+            return text;
+        }
+        int end = Math.max(0, maxChars);
+        if (end > 0 && Character.isHighSurrogate(text.charAt(end - 1))) {
+            end--;
+        }
+        return text.substring(0, end);
     }
 
     // ------------------------------------------------------------------ validation

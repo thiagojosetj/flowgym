@@ -237,7 +237,7 @@ public class TemplateDraftTest {
         original.rename("Pull");
         original.addExercises(Arrays.asList(ROW, PULL_UP), TemplateDefaults.standard());
 
-        TemplateDraft copy = original.duplicate("Pull (cópia)");
+        TemplateDraft copy = original.duplicate(" (cópia)");
 
         assertTrue(copy.isNew());
         assertEquals("Pull (cópia)", copy.name());
@@ -252,6 +252,58 @@ public class TemplateDraftTest {
     }
 
     @Test
+    public void duplicateOfALongNameStillRespectsTheLimit() {
+        // Regression (review 2026-09-22): a 60-char name + " (cópia)" used to be saved as 68 chars.
+        TemplateDraft original = TemplateDraft.newTemplate(ids);
+        original.rename(repeat('x', TemplateRules.MAX_NAME_LENGTH));
+        original.addExercises(Collections.singletonList(BENCH), TemplateDefaults.standard());
+
+        TemplateDraft copy = original.duplicate(" (cópia)");
+
+        assertEquals(TemplateRules.MAX_NAME_LENGTH, copy.name().length());
+        assertTrue(copy.name().endsWith(" (cópia)"));
+        assertTrue(copy.validate().isEmpty());
+        assertTrue(copy.duplicate(" (cópia)").validate().isEmpty()); // copies of copies too
+    }
+
+    @Test
+    public void copyNameNeverSplitsAnEmoji() {
+        // 51 chars + U+1F4AA (flexed biceps, 2 UTF-16 units) = 53; only 52 fit before the suffix.
+        String base = repeat('x', 51) + "💪";
+        String name = TemplateDraft.copyName(base, " (cópia)");
+        assertEquals(repeat('x', 51) + " (cópia)", name); // the emoji is dropped whole, never halved
+        assertTrue(name.length() <= TemplateRules.MAX_NAME_LENGTH);
+    }
+
+    @Test
+    public void reapplyingTheSamePlanIsNotAnUnsavedChange() {
+        // Regression (review 2026-09-22): opening "Editar séries" and tapping Aplicar without
+        // changes used to trigger the "Descartar alterações?" guard.
+        TemplateDraft draft = TemplateDraft.newTemplate(ids);
+        TemplateExerciseDraft bench = draft.addExercises(
+                Collections.singletonList(BENCH), TemplateDefaults.standard()).get(0);
+        draft.markSaved();
+
+        draft.updateExercisePlan(bench.id(), new ExercisePlanUpdate(
+                3, RepRange.exactly(12), null, null, 90, "  ", SideMode.COMBINED));
+
+        assertFalse(draft.isModified());
+    }
+
+    @Test
+    public void changingOnlyTheNoteIsAnUnsavedChange() {
+        TemplateDraft draft = TemplateDraft.newTemplate(ids);
+        TemplateExerciseDraft bench = draft.addExercises(
+                Collections.singletonList(BENCH), TemplateDefaults.standard()).get(0);
+        draft.markSaved();
+
+        draft.updateExercisePlan(bench.id(), new ExercisePlanUpdate(
+                3, RepRange.exactly(12), null, null, 90, "Banco no 3º encaixe", SideMode.COMBINED));
+
+        assertTrue(draft.isModified());
+    }
+
+    @Test
     public void addingBeyondTheLimitFails() {
         TemplateDraft draft = TemplateDraft.newTemplate(ids);
         List<ExerciseRef> many = new ArrayList<>();
@@ -260,6 +312,14 @@ public class TemplateDraftTest {
         }
         assertThrows(IllegalStateException.class, () -> draft.addExercises(many, TemplateDefaults.standard()));
         assertTrue(draft.exercises().isEmpty());
+    }
+
+    private static String repeat(char c, int times) {
+        StringBuilder sb = new StringBuilder(times);
+        for (int i = 0; i < times; i++) {
+            sb.append(c);
+        }
+        return sb.toString();
     }
 
     private static List<String> exerciseIds(TemplateDraft draft) {

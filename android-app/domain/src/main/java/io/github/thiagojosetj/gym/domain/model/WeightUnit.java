@@ -20,8 +20,16 @@ public enum WeightUnit {
         return symbol;
     }
 
-    /** Converts a value typed by the user in this unit to grams, rounded to the nearest gram. */
+    /**
+     * Converts a value typed by the user in this unit to grams, rounded to the nearest gram.
+     *
+     * @throws IllegalArgumentException for NaN or infinite values (Math.round would silently turn
+     *                                  NaN into 0 g)
+     */
     public long toGrams(double value) {
+        if (Double.isNaN(value) || Double.isInfinite(value)) {
+            throw new IllegalArgumentException("Not a finite weight: " + value);
+        }
         return Math.round(value * gramsPerUnit);
     }
 
