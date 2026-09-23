@@ -72,6 +72,16 @@ Link, código, deep link e QR; importação como cópia; revogação.
 ### Fase 11 — Bioimpedância ⬜
 Métricas flexíveis sobre o modelo de medições da Fase 5.
 
+## Pendências conhecidas (precisam de aparelho/emulador para validar)
+
+Levantadas pela revisão de 22/09/2026 e **não corrigidas às cegas**, porque dependem de ver a tela:
+
+- **Snackbar do editor** pode aparecer mais alto que o necessário: o contêiner de conteúdo já recebe o
+  inset da barra de navegação e o Snackbar pode somar o seu. Ajustar depois de medir em um aparelho.
+- **Biblioteca em paisagem / telas baixas:** busca + chips + filtros ocupam um bloco fixo no topo e
+  sobra pouco espaço para a lista. Provável solução: recolher o cabeçalho ao rolar (AppBarLayout).
+- Validar em aparelho o teclado, o arrastar e soltar e o contraste real dos dois temas.
+
 ## Próxima etapa recomendada
 Completar a Fase 2 (edição série a série, técnicas e grupos) e iniciar a Fase 3 (treino ativo), que é
 o coração do produto.
