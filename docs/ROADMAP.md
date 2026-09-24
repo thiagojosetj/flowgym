@@ -23,7 +23,8 @@ Legenda: ✅ concluído · 🟡 em andamento/parcial · ⬜ não iniciado.
 - ✅ Seletor de tema nas configurações.
 - ✅ Build de release com R8 (minify + shrink) validado.
 - ⬜ CI (GitHub Actions: build + testes + lint) — quando o repositório for publicado.
-- ⬜ Testes instrumentados em aparelho/emulador (`androidTest`) — quando houver dispositivo.
+- ✅ Testes instrumentados (`androidTest`): smoke test do fluxo principal e migration 1 → 2 com o
+  `MigrationTestHelper` — escritos, aguardando a primeira execução em aparelho.
 
 ### Fase 1 — Biblioteca 🟡
 - ✅ Grupos/subgrupos hierárquicos (13 grupos, 38 subgrupos), 14 equipamentos, 55 exercícios com textos próprios (JSON com UUIDs fixos).

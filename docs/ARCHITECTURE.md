@@ -248,6 +248,7 @@ Swift + SwiftUI consumindo a mesma API. O que torna isso viável:
 |---|---|---|
 | Regras puras | `domain/src/test` | JUnit 4 na JVM |
 | Room (DAO, consultas, seed, schema) | `app/src/test` | Robolectric + Room in-memory; `SchemaTest` compara o schema exportado com as entidades |
+| Fluxo principal em aparelho | `app/src/androidTest` | Espresso com SQLite, teclado e widgets reais (`connectedDebugAndroidTest`) |
 | Migrations | `app/src/test` | `MigrationTest` monta a versão anterior a partir do schema exportado e abre com o Room, que roda a migration e valida o esquema (sem `MigrationTestHelper`, que não funciona sob Robolectric no Windows — ADR-0012) |
 | ViewModels / repositórios | `app/src/test` | Robolectric + `InstantTaskExecutorRule` |
 | Fluxos de UI | `app/src/test` (hoje) e `app/src/androidTest` (quando houver aparelho) | Robolectric + Espresso, com `TestGymApplication` (ADR-0027) |

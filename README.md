@@ -115,6 +115,17 @@ release (o id de debug termina em `.debug`).
   interface**: biblioteca → selecionar exercício → criar treino → editar séries → salvar → reabrir.
 - **Lint** do Android sem avisos, inclusive sobre o módulo `:domain` contra a API 28.
 
+Com um aparelho conectado (depuração USB ligada) ou um emulador:
+
+```bash
+./gradlew :app:connectedDebugAndroidTest
+```
+
+- **Smoke test** do fluxo principal no SQLite real, com teclado e widgets reais: criar treino →
+  adicionar exercício → ajustar o descanso → salvar → excluir (limpa o que criou).
+- **Migration 1 → 2** com o `MigrationTestHelper` do Room, que valida tabelas, colunas, índices e
+  chaves estrangeiras contra o schema exportado.
+
 ## Estrutura
 
 ```
