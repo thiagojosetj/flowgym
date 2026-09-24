@@ -238,3 +238,23 @@ código, comportamento da plataforma, intenção do produto) não conseguir refu
 vínculos musculares de exercícios aposentados, que a duplicação podia gravar um nome acima do limite,
 que `Weight` aceitava `NaN`/`Long.MIN_VALUE`, e várias afirmações falsas nesta documentação. Todos
 corrigidos com testes de regressão (ver histórico do Git).
+
+### ADR-0029 — Preferências: conta no banco, aparelho no SharedPreferences
+**Contexto:** o usuário pediu descanso padrão, som e vibração editáveis. Algumas preferências fazem
+sentido seguir a conta para outro aparelho; outras são do aparelho.
+**Decisão:** preferências **da conta** (descanso padrão, som e vibração do descanso, e no futuro
+unidade e pré-preenchimento) ficam na tabela `user_setting`, chave-valor por usuário, com
+`sync_status` — sincronizam por chave com última-escrita-vence (docs/SYNC.md §6). Preferências **do
+aparelho** (tema, tamanho da interface) continuam em SharedPreferences (`UiPreferences`).
+**Consequências:** um valor inválido no banco não pode derrubar o app: `SettingsRepository` cai no
+padrão e registra um aviso. Chaves desconhecidas (de uma versão mais nova) são ignoradas, não apagadas.
+
+### ADR-0030 — Técnica por série, não por exercício
+**Contexto:** aquecimento, drop-set e rest-pause acontecem em **séries** específicas; pirâmide descreve
+a sequência de séries; supersérie liga **exercícios**.
+**Decisão:** `template_set.technique_id` guarda a técnica de cada série, e o editor passou a permitir
+edição série a série (`ExercisePlanUpdate` recebe um `SetSpec` por série). O domínio valida que a
+técnica existe e que seu escopo é `SET`; escopos `EXERCISE` e `GROUP` já existem no catálogo e ficam
+disponíveis quando os grupos de exercícios entrarem.
+**Consequências:** o card do treino mostra os badges das técnicas usadas, e cada opção do seletor tem um
+ⓘ com descrição e instruções (o app explica o método em vez de mostrar só uma sigla).

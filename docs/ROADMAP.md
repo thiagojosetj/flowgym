@@ -36,8 +36,11 @@ Legenda: ✅ concluído · 🟡 em andamento/parcial · ⬜ não iniciado.
 ### Fase 2 — Templates 🟡
 - ✅ Criar, editar, salvar e reabrir; defaults 3 × 12; faixa de reps, carga (por halter / peso corporal ±), descanso, observações.
 - ✅ Reordenar (arrastar e soltar + mover pelo menu, acessível), remover exercício, duplicar e excluir (lógico) treino.
-- ⬜ Edição série a série (cargas/reps diferentes por série).
-- ⬜ Técnicas avançadas (tabela de técnicas, badges, ⓘ) e grupos (supersérie…).
+- ✅ Edição série a série (cada série com suas reps/carga; "copiar a 1ª para todas" como atalho).
+- ✅ Técnicas avançadas como dados (12 métodos), escolha por série com badge e ⓘ explicando o método.
+- ✅ Configurações da conta: descanso padrão (90 s de fábrica, editável), som e vibração do descanso.
+- ✅ Banco na versão 2 com migration explícita e testada.
+- ⬜ Grupos de exercícios (supersérie, bi-set, tri-set, giant set) e técnicas de escopo exercício (pirâmides).
 - ⬜ Arquivar/desarquivar.
 
 ### Fase 3 — Treino ativo ⬜
@@ -83,5 +86,7 @@ Levantadas pela revisão de 22/09/2026 e **não corrigidas às cegas**, porque d
 - Validar em aparelho o teclado, o arrastar e soltar e o contraste real dos dois temas.
 
 ## Próxima etapa recomendada
-Completar a Fase 2 (edição série a série, técnicas e grupos) e iniciar a Fase 3 (treino ativo), que é
-o coração do produto.
+**Fase 3 — treino em andamento**: sessão com snapshots, tela única com todos os exercícios, planejado /
+anterior / atual, cronômetro por timestamps com pausa, descanso automático (usando as preferências de
+som e vibração já existentes), notificação com foreground service `health` e recuperação após morte do
+processo. Os grupos de exercícios (supersérie) podem entrar depois, sem bloquear a Fase 3.

@@ -21,7 +21,7 @@ usam esses dados estão em [PRODUCT_SPEC.md](PRODUCT_SPEC.md); a sincronização
 `sync_status`: `PENDING` (alteração local ainda não enviada) ou `SYNCED`. Linhas do catálogo do
 sistema nascem `SYNCED` e nunca são enviadas.
 
-## 2. Esquema implementado — versão 1 (Fases 0–2)
+## 2. Esquema implementado — versão 2 (Fases 0–2)
 
 ```mermaid
 erDiagram
@@ -119,7 +119,31 @@ exercício neste treino) · `side_mode` TEXT (`COMBINED`/`PER_SIDE`).
 ### `template_set` (filho) — "SetPlan"
 `id` TEXT PK · `template_exercise_id` FK CASCADE · `position` INTEGER · `target_reps_min` /
 `target_reps_max` INTEGER NULL (faixa 8–10; valor fixo quando iguais) · `target_weight_g` INTEGER
-NULL · `target_duration_s` INTEGER NULL · `rest_seconds` INTEGER NULL (sobrescreve o do exercício).
+NULL · `target_duration_s` INTEGER NULL · `rest_seconds` INTEGER NULL (sobrescreve o do exercício) ·
+`technique_id` TEXT NULL FK → `training_technique.id` (NULL = série normal de trabalho).
+
+### `training_technique` (catálogo, v2)
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | TEXT PK | UUID fixo do catálogo |
+| `owner_user_id` | TEXT NULL | `NULL` = sistema; preenchido = técnica do usuário (futuro) |
+| `code` | TEXT NOT NULL UNIQUE | Badge curto: `AQ`, `D`, `RP`, `MR`, `CL`, `F`, `PIR`, `PIV`, `SS`, `BI`, `TRI`, `GS` |
+| `name` | TEXT NOT NULL | |
+| `scope` | TEXT NOT NULL | `SET` (série), `EXERCISE` (sequência de séries), `GROUP` (liga exercícios) |
+| `counts_as_working_set` | INTEGER NOT NULL | 0 no aquecimento: fica fora de volume e recordes |
+| `description`, `instructions` | TEXT NULL | Conteúdo do ⓘ na interface |
+| `params_schema` | TEXT NULL | JSON com parâmetros (quedas, mini-séries) — ainda não usado |
+| `sort_order`, `is_active`, `created_at`, `updated_at` | | |
+
+O índice único é só em `code` enquanto existirem apenas linhas do sistema. Antes de permitir técnicas
+criadas pelo usuário, trocar por um índice em (`owner_user_id`, `code`) — lembrando que, no SQLite,
+vários `NULL` são considerados distintos em índices únicos.
+
+### `user_setting` (v2)
+PK (`owner_user_id`, `setting_key`) · `value` TEXT · `updated_at` · `sync_status`. Chaves atuais:
+`rest_default_seconds`, `rest_sound_enabled`, `rest_vibration_enabled`. Preferências **da conta**
+ficam aqui (seguem o usuário para outro aparelho); as **do aparelho** (tema, tamanho da interface)
+ficam em SharedPreferences.
 
 **Por que filhos não têm `deleted_at`/`sync_status`:** o agregado "treino" é salvo e sincronizado
 como uma unidade. Ao salvar, os filhos são substituídos em uma transação, **preservando seus UUIDs**
@@ -132,13 +156,10 @@ como uma unidade. Ao salvar, os filhos são substituídos em uma transação, **
 `ANIMATION`, `VIDEO`), `source_uri`, `local_path`, `mime_type`, `width`, `height`, `size_bytes`,
 `duration_ms`, `license`, `attribution`, `sort_order`.
 
-### Fase 2 — técnicas e grupos
-- `training_technique`: `id`, `owner_user_id` NULL, `code` (único por dono), `scope`
-  (`SET`/`EXERCISE`/`GROUP`), `name`, `description`, `instructions`, `params_schema` (JSON),
-  `counts_as_working_set`, `sort_order`, `is_active`.
+### Fase 2 — grupos de exercícios (o que falta)
 - `template_exercise_group`: `id`, `template_id`, `label` (A, B…), `technique_id`, `rest_after_round_s`.
-- Novas colunas: `template_exercise.group_id`, `.technique_id`, `.technique_params`;
-  `template_set.technique_id`, `.technique_params`.
+- Novas colunas: `template_exercise.group_id`, `.technique_id` (esquema de séries, ex.: pirâmide),
+  `.technique_params`; `template_set.technique_params`.
 
 ### Fase 3 — sessões (histórico)
 ```mermaid
@@ -199,9 +220,8 @@ sugestão é derivada do `previous_session_exercise_id` (ou do planejado).
   `session_id`. Único por (`owner_user_id`, `tier_id`). Progresso é **calculado**, não armazenado.
 
 ### Configurações e sync
-- `user_setting`: PK (`owner_user_id`, `key`), `value`, `updated_at`, `sync_status` — preferências
-  que devem acompanhar a conta (unidade, descanso padrão, pré-preenchimento). Preferências do
-  aparelho (tema, tamanho da interface) ficam em SharedPreferences e não sincronizam.
+- `user_setting`: **já implementada** (ver §2). Faltam as chaves de unidade (kg/lb) e de
+  pré-preenchimento, que entram com as funções que as usam.
 - `sync_state` (Fase 9): cursor de pull por escopo.
 
 ### Somente no servidor (Fase 8+)
@@ -221,7 +241,11 @@ revogação), `change_log` (sequência monotônica por usuário para o pull).
 ## 5. Migrations
 
 - `exportSchema = true`; os JSONs de esquema ficam versionados em `android-app/app/schemas/`.
-- Toda mudança de esquema = nova versão + `Migration` explícita + teste com `MigrationTestHelper`.
+- Toda mudança de esquema = nova versão + `Migration` explícita + teste de migration.
+- **v1 → v2** (`AppDatabase.MIGRATION_1_2`): cria `training_technique` e `user_setting`, e adiciona
+  `template_set.technique_id` (com FK e índice). O `MigrationTest` monta um banco v1 a partir do
+  schema exportado, insere um treino e abre com o Room: se a migration divergir do esquema esperado,
+  o teste falha (verificado quebrando o índice de propósito).
 - **Nunca** `fallbackToDestructiveMigration` em builds de release: o usuário usa o app de verdade.
 
 ## 6. Correspondência com PostgreSQL (Fase 8)

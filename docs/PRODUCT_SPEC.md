@@ -141,7 +141,13 @@ opcionais.
 
 Regras dos códigos: únicos, maiúsculos, 1–3 caracteres, **sem colisão com o badge de recorde
 (`PR`)** e sem ambiguidade com rótulos de grupo (A1, A2 — letra + número). Ao lado do badge, um
-ícone ⓘ abre a explicação da técnica. Aquecimento não conta para volume nem PRs.
+ícone ⓘ abre a explicação da técnica (o que é + como registrar). Aquecimento não conta para volume
+nem PRs (`counts_as_working_set = 0`).
+
+**Implementado:** as 12 técnicas existem como dados (`training_technique`), e as de escopo **série**
+podem ser escolhidas por série no editor de treino, com badge e ⓘ. As de escopo exercício (pirâmides)
+e grupo (supersérie e companhia) já estão no catálogo e serão aplicáveis quando os grupos de
+exercícios entrarem.
 
 Técnicas com várias etapas (drop-set, rest-pause, myo-reps, cluster) registram cada etapa como um
 **segmento** da mesma série (ex.: 40 kg × 10 → 30 kg × 8 → 20 kg × 6).
@@ -282,6 +288,10 @@ dados, pois cada equipamento de bioimpedância fornece um conjunto diferente.
 Tema (claro/escuro/sistema), unidade (kg padrão; lb suportado), som, vibração, descanso padrão,
 tamanho da interface (compacto/padrão/ampliado), notificações, pré-preenchimento pela sessão
 anterior, comportamento ao concluir série, conta (futuro).
+
+**Implementado:** tema (aparelho) e, na conta, **descanso padrão (90 s de fábrica, editável)**,
+**som** e **vibração** do fim do descanso — ligados de fábrica, conforme decidido em 23/09/2026. As
+preferências da conta ficam em `user_setting` e vão sincronizar; o tema fica só no aparelho.
 
 ## 17. Acessibilidade (desde o início)
 
