@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    One editable set inside the plan sheet: number, technique badge (with ⓘ), reps (or time) and
+    load. Rows are inflated directly into a LinearLayout instead of a RecyclerView: with at most 20
+    sets there is nothing to recycle, and text fields keep focus and state without extra work.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:baselineAligned="false"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingVertical="@dimen/space_xs">
+
+    <TextView
+        android:id="@+id/set_number"
+        android:layout_width="20dp"
+        android:layout_height="wrap_content"
+        android:fontFeatureSettings="tnum"
+        android:textAppearance="?attr/textAppearanceTitleMedium"
+        tools:text="1" />
+
+    <Button
+        android:id="@+id/button_technique"
+        style="@style/Widget.Material3.Button.TextButton"
+        android:layout_width="wrap_content"
+        android:layout_height="@dimen/touch_target_min"
+        android:minWidth="56dp"
+        android:paddingHorizontal="@dimen/space_s"
+        android:textAppearance="?attr/textAppearanceLabelLarge"
+        tools:text="AQ" />
+
+    <ImageButton
+        android:id="@+id/button_technique_info"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:padding="@dimen/space_s"
+        android:src="@drawable/ic_info"
+        android:visibility="gone"
+        app:tint="?attr/colorPrimary"
+        tools:ignore="ContentDescription"
+        tools:visibility="visible" />
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/reps_layout"
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.Dense"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/space_xs"
+        android:layout_weight="1.1"
+        android:hint="@string/plan_sheet_reps_hint">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/reps_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:digits="0123456789-–"
+            android:importantForAutofill="no"
+            android:inputType="text"
+            android:maxLength="7"
+            android:maxLines="1" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/weight_layout"
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.Dense"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/space_xs"
+        android:layout_weight="1"
+        app:suffixText="kg">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/weight_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:digits="0123456789.,"
+            android:importantForAutofill="no"
+            android:inputType="numberDecimal"
+            android:maxLength="8"
+            android:maxLines="1" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <ImageButton
+        android:id="@+id/button_remove_set"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:padding="@dimen/space_s"
+        android:src="@drawable/ic_remove"
+        app:tint="?attr/colorOnSurfaceVariant"
+        tools:ignore="ContentDescription" />
+</LinearLayout>

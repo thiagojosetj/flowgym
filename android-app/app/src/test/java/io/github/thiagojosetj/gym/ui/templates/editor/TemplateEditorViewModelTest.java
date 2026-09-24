@@ -106,7 +106,7 @@ public class TemplateEditorViewModelTest {
         assertEquals("Push A", state(editor).name());
         String itemId = state(editor).exercises().get(0).id();
 
-        List<ExercisePlanUpdate.Error> errors = editor.updatePlan(itemId, new ExercisePlanUpdate(4,
+        List<ExercisePlanUpdate.Error> errors = editor.updatePlan(itemId, ExercisePlanUpdate.uniform(4,
                 RepRange.between(8, 10), Weight.of(40, WeightUnit.KILOGRAM), null, 120, "Banco no 3º encaixe",
                 SideMode.COMBINED));
         assertTrue(errors.isEmpty());
@@ -146,7 +146,8 @@ public class TemplateEditorViewModelTest {
     // ------------------------------------------------------------------ helpers
 
     private TemplateEditorViewModel newViewModel(String templateId) {
-        return new TemplateEditorViewModel(app.templates, app.exercises, app.templateDefaults, app.ids, templateId);
+        return new TemplateEditorViewModel(app.templates, app.exercises, app.techniques, app.settings,
+                app.ids, templateId);
     }
 
     private static TemplateEditorState state(TemplateEditorViewModel vm) throws Exception {

@@ -6,17 +6,26 @@ import static androidx.test.espresso.action.ViewActions.replaceText;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.RootMatchers.isDialog;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
+import static androidx.test.espresso.matcher.ViewMatchers.isDescendantOfA;
 import static androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility;
+import static androidx.test.espresso.matcher.ViewMatchers.withParent;
+import static androidx.test.espresso.matcher.ViewMatchers.withParentIndex;
+import static androidx.test.espresso.matcher.ViewMatchers.hasDescendant;
+import static androidx.test.espresso.matcher.ViewMatchers.hasSibling;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static org.robolectric.Shadows.shadowOf;
 
 import android.os.Looper;
+import android.view.View;
 
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.espresso.matcher.ViewMatchers.Visibility;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
+import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.annotation.Config;
@@ -59,10 +68,10 @@ public class TemplateFlowTest {
 
             // Edit the plan: 4 × 8–10 × 42,5 kg, 120 s rest (the sheet is a dialog window)
             onView(withText("3 séries × 12 reps")).perform(click());
-            onView(withId(R.id.sets_input)).inRoot(isDialog()).perform(replaceText("4"));
-            onView(withId(R.id.reps_input)).inRoot(isDialog()).perform(replaceText("8"));
-            onView(withId(R.id.reps_max_input)).inRoot(isDialog()).perform(replaceText("10"));
-            onView(withId(R.id.weight_input)).inRoot(isDialog()).perform(replaceText("42,5"));
+            onView(withId(R.id.button_add_set)).inRoot(isDialog()).perform(click()); // 3 → 4 sets
+            onView(setRow(0, R.id.reps_input)).inRoot(isDialog()).perform(replaceText("8-10"));
+            onView(setRow(0, R.id.weight_input)).inRoot(isDialog()).perform(replaceText("42,5"));
+            onView(withId(R.id.button_copy_first)).inRoot(isDialog()).perform(click());
             onView(withId(R.id.rest_input)).inRoot(isDialog()).perform(replaceText("120"));
             onView(withId(R.id.button_apply)).inRoot(isDialog()).perform(click());
             onView(withText("4 séries × 8–10 reps · 42,5 kg")).check(matches(isDisplayed()));
@@ -121,6 +130,41 @@ public class TemplateFlowTest {
         }
     }
 
+    @Test
+    public void techniquePerSetIsPickedWithItsExplanationAndPersisted() {
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            onView(withId(R.id.templateListFragment)).perform(click());
+            onView(withId(R.id.fab_new)).perform(click());
+            onView(withId(R.id.name_input)).perform(replaceText("Treino de peito"));
+            onView(withId(R.id.button_add)).perform(click());
+            onView(withId(R.id.search_input)).perform(replaceText("supino reto com barra"));
+            waitForSearchDebounce();
+            onView(withText("Supino reto com barra")).perform(click());
+            onView(withText("Adicionar 1 exercício")).perform(click());
+
+            // Open the plan sheet and the technique picker of the first set.
+            onView(withText("3 séries × 12 reps")).perform(click());
+            onView(setRow(0, R.id.button_technique)).inRoot(isDialog()).perform(click());
+
+            // The ⓘ explains the method (the picker is the focused window now).
+            onView(allOf(withId(R.id.button_info), hasSibling(hasDescendant(withText("Aquecimento")))))
+                    .inRoot(isDialog()).perform(click());
+            onView(withText(containsString("Série leve"))).inRoot(isDialog()).check(matches(isDisplayed()));
+            onView(withText(R.string.technique_understood)).inRoot(isDialog()).perform(click());
+
+            // Pick it: the row shows the badge.
+            onView(allOf(withId(R.id.name), withText("Aquecimento"))).inRoot(isDialog()).perform(click());
+            onView(setRow(0, R.id.button_technique)).inRoot(isDialog()).check(matches(withText("AQ")));
+            onView(withId(R.id.button_apply)).inRoot(isDialog()).perform(click());
+            onView(withId(R.id.badges)).check(matches(withText("AQ")));
+
+            // Saved and reopened, the warm-up is still there.
+            onView(withId(R.id.action_save)).perform(click());
+            onView(withText("Treino de peito")).perform(click());
+            onView(withId(R.id.badges)).check(matches(withText("AQ")));
+        }
+    }
+
     /** Creates a template with one exercise and returns to the list. */
     private void createSimpleTemplate(String name) {
         onView(withId(R.id.templateListFragment)).perform(click());
@@ -146,11 +190,18 @@ public class TemplateFlowTest {
             onView(withText("Adicionar 1 exercício")).perform(click());
 
             onView(withText("3 séries × 12 reps")).perform(click());
-            onView(withId(R.id.weight_input)).inRoot(isDialog()).perform(replaceText("12"));
+            onView(setRow(0, R.id.weight_input)).inRoot(isDialog()).perform(replaceText("12"));
+            onView(withId(R.id.button_copy_first)).inRoot(isDialog()).perform(click());
             onView(withId(R.id.button_apply)).inRoot(isDialog()).perform(click());
 
             onView(withText("3 séries × 12 reps · 12 kg por halter")).check(matches(isDisplayed()));
         }
+    }
+
+    /** Targets a view inside the Nth set row of the plan sheet (all rows share the same ids). */
+    private static Matcher<View> setRow(int index, int viewId) {
+        return allOf(withId(viewId), isDescendantOfA(
+                allOf(withParent(withId(R.id.sets_container)), withParentIndex(index))));
     }
 
     /** The search field is debounced (250 ms); advance the paused main looper past it. */

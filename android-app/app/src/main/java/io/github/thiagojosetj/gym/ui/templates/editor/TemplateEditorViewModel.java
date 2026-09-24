@@ -11,10 +11,12 @@ import java.util.List;
 
 import io.github.thiagojosetj.gym.core.Event;
 import io.github.thiagojosetj.gym.data.repository.ExerciseRepository;
+import io.github.thiagojosetj.gym.data.repository.SettingsRepository;
+import io.github.thiagojosetj.gym.data.repository.TechniqueRepository;
 import io.github.thiagojosetj.gym.data.repository.TemplateRepository;
 import io.github.thiagojosetj.gym.domain.template.ExercisePlanUpdate;
+import io.github.thiagojosetj.gym.domain.technique.TechniqueCatalog;
 import io.github.thiagojosetj.gym.domain.template.ExerciseRef;
-import io.github.thiagojosetj.gym.domain.template.TemplateDefaults;
 import io.github.thiagojosetj.gym.domain.template.TemplateDraft;
 import io.github.thiagojosetj.gym.domain.template.TemplateExerciseDraft;
 import io.github.thiagojosetj.gym.domain.template.TemplateRules;
@@ -33,7 +35,8 @@ public final class TemplateEditorViewModel extends ViewModel {
 
     private final TemplateRepository templates;
     private final ExerciseRepository exercises;
-    private final TemplateDefaults defaults;
+    private final SettingsRepository settingsRepository;
+    private final MutableLiveData<TechniqueCatalog> techniqueCatalog = new MutableLiveData<>(TechniqueCatalog.empty());
 
     private final MutableLiveData<TemplateEditorState> state = new MutableLiveData<>();
     private final MutableLiveData<Event<EditorEvent>> events = new MutableLiveData<>();
@@ -45,10 +48,13 @@ public final class TemplateEditorViewModel extends ViewModel {
     private List<TemplateDraft.Error> visibleErrors = Collections.emptyList();
 
     public TemplateEditorViewModel(TemplateRepository templates, ExerciseRepository exercises,
-                                   TemplateDefaults defaults, IdGenerator ids, @Nullable String templateId) {
+                                   TechniqueRepository techniques, SettingsRepository settings,
+                                   IdGenerator ids, @Nullable String templateId) {
         this.templates = templates;
         this.exercises = exercises;
-        this.defaults = defaults;
+        this.settingsRepository = settings;
+        // Techniques are needed to validate set plans and to show badges; load them once.
+        techniques.loadCatalog(techniqueCatalog::setValue, error -> { /* keep the empty catalog */ });
         if (templateId == null) {
             draft = TemplateDraft.newTemplate(ids);
             status = Status.READY;
@@ -73,6 +79,11 @@ public final class TemplateEditorViewModel extends ViewModel {
 
     public LiveData<Event<EditorEvent>> events() {
         return events;
+    }
+
+    /** Techniques available for a single set, for the plan sheet picker. */
+    public LiveData<TechniqueCatalog> techniqueCatalog() {
+        return techniqueCatalog;
     }
 
     public boolean hasUnsavedChanges() {
@@ -107,7 +118,8 @@ public final class TemplateEditorViewModel extends ViewModel {
         if (!editable() || exerciseIds == null || exerciseIds.isEmpty()) {
             return;
         }
-        exercises.loadRefs(exerciseIds, refs -> {
+        // The default rest comes from the user's settings (PRODUCT_SPEC §16), not from a constant.
+        settingsRepository.loadSettings(settings -> exercises.loadRefs(exerciseIds, refs -> {
             if (!editable()) {
                 return;
             }
@@ -116,9 +128,10 @@ public final class TemplateEditorViewModel extends ViewModel {
             if (accepted.size() < refs.size()) {
                 events.setValue(new Event<>(EditorEvent.EXERCISE_LIMIT_REACHED));
             }
-            draft.addExercises(accepted, defaults);
+            draft.addExercises(accepted, settings.templateDefaults());
             publish(true);
-        }, error -> events.setValue(new Event<>(EditorEvent.ADD_FAILED)));
+        }, error -> events.setValue(new Event<>(EditorEvent.ADD_FAILED))),
+                error -> events.setValue(new Event<>(EditorEvent.ADD_FAILED)));
     }
 
     public void removeExercise(String templateExerciseId) {
@@ -140,7 +153,8 @@ public final class TemplateEditorViewModel extends ViewModel {
         if (!editable()) {
             return Collections.emptyList();
         }
-        List<ExercisePlanUpdate.Error> errors = draft.updateExercisePlan(templateExerciseId, update);
+        List<ExercisePlanUpdate.Error> errors =
+                draft.updateExercisePlan(templateExerciseId, update, currentCatalog());
         if (errors.isEmpty()) {
             publish(true);
         }
@@ -186,6 +200,11 @@ public final class TemplateEditorViewModel extends ViewModel {
 
     // ------------------------------------------------------------------ internals
 
+    private TechniqueCatalog currentCatalog() {
+        TechniqueCatalog catalog = techniqueCatalog.getValue();
+        return catalog == null ? TechniqueCatalog.empty() : catalog;
+    }
+
     private boolean editable() {
         return draft != null && status == Status.READY;
     }
@@ -203,7 +222,7 @@ public final class TemplateEditorViewModel extends ViewModel {
         if (exercisesChanged) {
             List<TemplateExerciseItem> rebuilt = new ArrayList<>(draft.exercises().size());
             for (TemplateExerciseDraft e : draft.exercises()) {
-                rebuilt.add(TemplateExerciseItem.from(e));
+                rebuilt.add(TemplateExerciseItem.from(e, currentCatalog()));
             }
             items = Collections.unmodifiableList(rebuilt);
         }

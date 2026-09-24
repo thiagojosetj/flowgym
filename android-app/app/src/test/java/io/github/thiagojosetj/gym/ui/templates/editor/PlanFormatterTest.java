@@ -7,6 +7,8 @@ import android.content.Context;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
+import java.util.Collections;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -75,13 +77,14 @@ public class PlanFormatterTest {
     public void noRestAndPerSide() {
         TemplateExerciseItem item = new TemplateExerciseItem("id", "ex", "Búlgaro", null, TrackingType.WEIGHT_REPS,
                 LoadBasis.PER_IMPLEMENT, "dumbbell", true, 3, RepRange.exactly(10), null, null, true, 0, null,
-                SideMode.PER_SIDE);
+                SideMode.PER_SIDE, Collections.emptyList(), Collections.emptyList());
         assertEquals("sem descanso automático · cada lado registrado separadamente", formatter.restLine(item));
     }
 
     private static TemplateExerciseItem item(TrackingType tracking, LoadBasis basis, String equipment, int sets,
                                              RepRange reps, Weight weight, Integer duration) {
         return new TemplateExerciseItem("id", "ex", "Exercício", null, tracking, basis, equipment, false, sets,
-                reps, weight, duration, true, 90, null, SideMode.COMBINED);
+                reps, weight, duration, true, 90, null, SideMode.COMBINED,
+                Collections.emptyList(), Collections.emptyList());
     }
 }

@@ -71,7 +71,7 @@ public class TemplateEditorFragment extends Fragment implements EditorExerciseAd
         AppContainer app = ViewModelFactories.container(this);
         String templateId = getArguments() == null ? null : getArguments().getString(ARG_TEMPLATE_ID);
         return ViewModelFactories.of(TemplateEditorViewModel.class, () -> new TemplateEditorViewModel(
-                app.templates, app.exercises, app.templateDefaults, app.ids, templateId));
+                app.templates, app.exercises, app.techniques, app.settings, app.ids, templateId));
     }
 
     @Override

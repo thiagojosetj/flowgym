@@ -167,12 +167,25 @@
     <string name="duration_minutes_seconds">%1$d:%2$02d min</string>
 
     <!-- Plan editing sheet -->
-    <string name="plan_sheet_sets">Séries</string>
-    <string name="plan_sheet_decrease_sets">Diminuir séries</string>
-    <string name="plan_sheet_increase_sets">Aumentar séries</string>
-    <string name="plan_sheet_reps">Repetições</string>
-    <string name="plan_sheet_reps_max">Até (opcional)</string>
-    <string name="plan_sheet_reps_helper">Para uma faixa, preencha os dois: 8 até 10.</string>
+    <string name="plan_sheet_sets_title">Séries</string>
+    <string name="plan_sheet_copy_first">Copiar a 1ª série para todas</string>
+    <string name="plan_sheet_add_set">Adicionar série</string>
+    <string name="plan_sheet_remove_set">Remover série %d</string>
+    <string name="plan_sheet_set_number">%d</string>
+    <string name="plan_sheet_reps_hint">Reps</string>
+    <string name="plan_sheet_reps_range_hint">Reps (ex.: 8 ou 8-10)</string>
+    <string name="plan_sheet_duration_hint">Tempo (s)</string>
+    <string name="plan_sheet_technique_none">—</string>
+    <string name="plan_sheet_technique_of_set">Técnica da série %d</string>
+    <string name="plan_sheet_technique_explain">O que é %s</string>
+    <string name="technique_picker_title">Técnica da série</string>
+    <string name="technique_none_option">Série normal (sem técnica)</string>
+    <string name="technique_explain_title">%1$s · %2$s</string>
+    <string name="technique_understood">Entendi</string>
+    <string name="plan_error_reps_format">Use 8 ou 8-10</string>
+    <string name="plan_error_no_sets">Deixe pelo menos uma série</string>
+    <string name="plan_error_too_many_sets">Máximo de %d séries</string>
+    <string name="plan_error_technique_invalid">Técnica indisponível</string>
     <string name="plan_sheet_weight">Carga planejada (opcional)</string>
     <string name="plan_sheet_weight_per_implement">Carga de cada implemento (opcional)</string>
     <string name="plan_sheet_weight_bodyweight">Carga extra ou assistência (opcional)</string>
@@ -193,14 +206,19 @@
         <item quantity="other">Entre 1 e %d séries</item>
     </plurals>
     <string name="plan_error_reps_range">Entre 1 e %d</string>
-    <string name="plan_error_reps_order">Deve ser maior ou igual às repetições</string>
-    <string name="plan_error_reps_max_without_min">Preencha as repetições</string>
     <string name="plan_error_rest_range">Entre 0 e %d s</string>
     <string name="plan_error_weight">Carga inválida</string>
     <string name="plan_error_duration_range">Entre 1 e %d s</string>
     <string name="plan_error_notes_long">Texto longo demais</string>
 
     <!-- Settings -->
+    <string name="settings_workout">Treino</string>
+    <string name="settings_rest_default">Descanso padrão (s)</string>
+    <string name="settings_rest_default_helper">Aplicado ao adicionar um exercício a um treino. Você pode mudar o descanso em cada exercício.</string>
+    <string name="settings_rest_sound">Som ao terminar o descanso</string>
+    <string name="settings_rest_vibration">Vibrar ao terminar o descanso</string>
+    <string name="settings_rest_alerts_helper">Valem para o cronômetro de descanso do treino em andamento.</string>
+    <string name="settings_rest_invalid">Entre 0 e %d s</string>
     <string name="settings_theme">Tema</string>
     <string name="settings_theme_system">Seguir o sistema</string>
     <string name="settings_theme_light">Claro</string>

@@ -127,6 +127,9 @@ final class EditorExerciseAdapter extends RecyclerView.Adapter<EditorExerciseAda
             binding.muscle.setVisibility(item.primaryMuscleName() == null ? View.GONE : View.VISIBLE);
             binding.plan.setText(formatter.planLine(item));
             binding.rest.setText(formatter.restLine(item));
+            String badges = String.join(res.getString(R.string.separator_dot), item.badges());
+            binding.badges.setText(badges);
+            binding.badges.setVisibility(badges.isEmpty() ? View.GONE : View.VISIBLE);
             binding.notes.setText(item.notes());
             binding.notes.setVisibility(item.notes() == null ? View.GONE : View.VISIBLE);
             binding.buttonMore.setContentDescription(res.getString(R.string.editor_exercise_options, item.name()));
