@@ -9,10 +9,11 @@ import io.github.thiagojosetj.gym.core.AppExecutors;
 import io.github.thiagojosetj.gym.data.local.AppDatabase;
 import io.github.thiagojosetj.gym.data.prefs.UiPreferences;
 import io.github.thiagojosetj.gym.data.repository.ExerciseRepository;
+import io.github.thiagojosetj.gym.data.repository.SettingsRepository;
+import io.github.thiagojosetj.gym.data.repository.TechniqueRepository;
 import io.github.thiagojosetj.gym.data.repository.TemplateRepository;
 import io.github.thiagojosetj.gym.data.repository.UserRepository;
 import io.github.thiagojosetj.gym.data.seed.CatalogSeeder;
-import io.github.thiagojosetj.gym.domain.template.TemplateDefaults;
 import io.github.thiagojosetj.gym.domain.util.IdGenerator;
 
 /**
@@ -33,7 +34,8 @@ public final class AppContainer {
     public final UserRepository users;
     public final ExerciseRepository exercises;
     public final TemplateRepository templates;
-    public final TemplateDefaults templateDefaults;
+    public final TechniqueRepository techniques;
+    public final SettingsRepository settings;
     private final CatalogSeeder catalogSeeder;
 
     /** Production wiring. */
@@ -58,7 +60,8 @@ public final class AppContainer {
         this.users = new UserRepository(database, clock, ids);
         this.exercises = new ExerciseRepository(database.exerciseDao(), database.catalogDao(), executors);
         this.templates = new TemplateRepository(database, users, executors, clock, ids);
-        this.templateDefaults = TemplateDefaults.standard();
+        this.techniques = new TechniqueRepository(database.techniqueDao(), executors);
+        this.settings = new SettingsRepository(database.userSettingDao(), users, executors, clock);
         this.catalogSeeder = new CatalogSeeder(database, catalogSource, clock);
     }
 

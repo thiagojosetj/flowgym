@@ -66,7 +66,7 @@ final class TemplateMapper {
             reps = RepRange.between(s.targetRepsMin, max);
         }
         Weight weight = s.targetWeightGrams != null ? Weight.ofGrams(s.targetWeightGrams) : null;
-        return new SetPlan(s.id, reps, weight, s.targetDurationSeconds, s.restSeconds);
+        return new SetPlan(s.id, reps, weight, s.targetDurationSeconds, s.restSeconds, s.techniqueId);
     }
 
     /** Children of the aggregate with positions from the draft order. Pure: safe on any thread. */
@@ -101,6 +101,7 @@ final class TemplateMapper {
                 entity.targetWeightGrams = set.weight() != null ? set.weight().grams() : null;
                 entity.targetDurationSeconds = set.durationSeconds();
                 entity.restSeconds = set.restSecondsOverride();
+                entity.techniqueId = set.techniqueId();
                 result.add(entity);
             }
         }

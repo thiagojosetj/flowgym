@@ -30,10 +30,13 @@ import io.github.thiagojosetj.gym.domain.library.ExerciseSummary;
 import io.github.thiagojosetj.gym.domain.model.RepRange;
 import io.github.thiagojosetj.gym.domain.model.SideMode;
 import io.github.thiagojosetj.gym.domain.model.Weight;
+import io.github.thiagojosetj.gym.domain.settings.AppSettings;
+import io.github.thiagojosetj.gym.domain.technique.TechniqueCatalog;
 import io.github.thiagojosetj.gym.domain.model.WeightUnit;
 import io.github.thiagojosetj.gym.domain.template.ExercisePlanUpdate;
 import io.github.thiagojosetj.gym.domain.template.ExerciseRef;
 import io.github.thiagojosetj.gym.domain.template.SetPlan;
+import io.github.thiagojosetj.gym.domain.template.SetSpec;
 import io.github.thiagojosetj.gym.domain.template.TemplateDraft;
 import io.github.thiagojosetj.gym.domain.template.TemplateExerciseDraft;
 import io.github.thiagojosetj.gym.domain.template.TemplateRules;
@@ -70,8 +73,9 @@ public class TemplateRepositoryTest {
     public void savedTemplateReopensWithTheSamePlan() throws Exception {
         TemplateDraft draft = newPushTemplate();
         TemplateExerciseDraft bench = draft.exercises().get(0);
-        draft.updateExercisePlan(bench.id(), new ExercisePlanUpdate(4, RepRange.between(8, 10),
-                Weight.of(40, WeightUnit.KILOGRAM), null, 120, "Banco no terceiro encaixe", SideMode.COMBINED));
+        draft.updateExercisePlan(bench.id(), ExercisePlanUpdate.uniform(4, RepRange.between(8, 10),
+                        Weight.of(40, WeightUnit.KILOGRAM), null, 120, "Banco no terceiro encaixe", SideMode.COMBINED),
+                TechniqueCatalog.empty());
 
         String id = save(draft);
         TemplateDraft reopened = load(id);
@@ -92,6 +96,35 @@ public class TemplateRepositoryTest {
         assertTrue(row.exercise().isLoadPerImplement());
         assertEquals(RepRange.exactly(12), row.uniformReps()); // default 3 x 12
         assertEquals(3, row.setCount());
+    }
+
+    @Test
+    public void setTechniquesSurviveSaveAndReopen() throws Exception {
+        TemplateDraft draft = newPushTemplate();
+        TemplateExerciseDraft bench = draft.exercises().get(0);
+        TechniqueCatalog catalog = LiveDataTestUtil.getOrAwaitValue(container.techniques.observeCatalog());
+        String warmUpId = idOfTechnique(catalog, "AQ");
+        String dropSetId = idOfTechnique(catalog, "D");
+
+        draft.updateExercisePlan(bench.id(), new ExercisePlanUpdate(Arrays.asList(
+                new SetSpec(RepRange.exactly(12), Weight.of(20, WeightUnit.KILOGRAM), null, warmUpId),
+                new SetSpec(RepRange.between(8, 10), Weight.of(40, WeightUnit.KILOGRAM), null, null),
+                new SetSpec(RepRange.between(8, 10), Weight.of(40, WeightUnit.KILOGRAM), null, dropSetId)),
+                120, null, SideMode.COMBINED), catalog);
+        String id = save(draft);
+
+        TemplateExerciseDraft reopened = load(id).exercises().get(0);
+        assertEquals(Arrays.asList(warmUpId, null, dropSetId), reopened.techniqueIds());
+        assertEquals(Weight.ofGrams(20_000), reopened.sets().get(0).weight());
+        assertFalse(reopened.hasUniformPlan());
+    }
+
+    private static String idOfTechnique(TechniqueCatalog catalog, String code) {
+        return catalog.all().stream()
+                .filter(t -> t.code().equals(code))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("No technique " + code))
+                .id();
     }
 
     @Test
@@ -222,7 +255,7 @@ public class TemplateRepositoryTest {
 
         TemplateDraft draft = TemplateDraft.newTemplate(IdGenerator.UUID_V7);
         draft.rename("Push A");
-        draft.addExercises(refs.get(), container.templateDefaults);
+        draft.addExercises(refs.get(), AppSettings.standard().templateDefaults());
         return draft;
     }
 
