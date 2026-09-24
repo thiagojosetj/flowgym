@@ -92,6 +92,23 @@ public class CatalogSeederTest {
     }
 
     @Test
+    public void seedsTheTrainingTechniquesWithTheirExplanations() throws Exception {
+        assertTrue(seeder.seedIfNeeded());
+
+        assertEquals(12, count("SELECT COUNT(*) FROM training_technique WHERE is_active = 1"));
+        // Warm-up must not count as a working set: it stays out of volume and records.
+        assertEquals(0, count("SELECT counts_as_working_set FROM training_technique WHERE code = 'AQ'"));
+        assertEquals(1, count("SELECT counts_as_working_set FROM training_technique WHERE code = 'D'"));
+        assertEquals(6, count("SELECT COUNT(*) FROM training_technique WHERE scope = 'SET'"));
+        assertEquals(2, count("SELECT COUNT(*) FROM training_technique WHERE scope = 'EXERCISE'"));
+        assertEquals(4, count("SELECT COUNT(*) FROM training_technique WHERE scope = 'GROUP'"));
+        // Every technique explains itself (the ⓘ has something to show).
+        assertEquals(0, count("SELECT COUNT(*) FROM training_technique"
+                + " WHERE description IS NULL OR instructions IS NULL"));
+        assertEquals(0, count("SELECT COUNT(*) FROM training_technique WHERE owner_user_id IS NOT NULL"));
+    }
+
+    @Test
     public void bundledVersionConstantMatchesTheJson() throws Exception {
         assertEquals(CatalogSeeder.BUNDLED_VERSION, CatalogSeeder.parse(json, 0).version);
     }

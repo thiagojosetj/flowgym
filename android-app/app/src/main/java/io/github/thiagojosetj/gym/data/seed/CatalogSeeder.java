@@ -27,10 +27,12 @@ import io.github.thiagojosetj.gym.data.local.entity.ExerciseEquipmentEntity;
 import io.github.thiagojosetj.gym.data.local.entity.ExerciseMuscleEntity;
 import io.github.thiagojosetj.gym.data.local.entity.MuscleEntity;
 import io.github.thiagojosetj.gym.data.local.entity.SyncStatus;
+import io.github.thiagojosetj.gym.data.local.entity.TrainingTechniqueEntity;
 import io.github.thiagojosetj.gym.domain.model.Laterality;
 import io.github.thiagojosetj.gym.domain.model.LoadBasis;
 import io.github.thiagojosetj.gym.domain.model.MuscleRole;
 import io.github.thiagojosetj.gym.domain.model.TrackingType;
+import io.github.thiagojosetj.gym.domain.technique.TechniqueScope;
 import io.github.thiagojosetj.gym.domain.util.TextNormalizer;
 
 /**
@@ -44,7 +46,7 @@ public final class CatalogSeeder {
     public static final String ASSET_PATH = "catalog/catalog.json";
 
     /** Must equal "version" in the bundled JSON (enforced by CatalogSeederTest). Bump both together. */
-    public static final int BUNDLED_VERSION = 1;
+    public static final int BUNDLED_VERSION = 2;
 
     /** Where the JSON comes from: app assets in production, test resources in tests. */
     @FunctionalInterface
@@ -76,8 +78,8 @@ public final class CatalogSeeder {
                     + " != BUNDLED_VERSION " + BUNDLED_VERSION);
         }
         database.runInTransaction(() -> {
-            database.catalogDao().replaceSystemCatalog(catalog.muscles, catalog.equipment, catalog.exercises,
-                    catalog.exerciseMuscles, catalog.exerciseEquipment, catalog.now);
+            database.catalogDao().replaceSystemCatalog(catalog.muscles, catalog.equipment, catalog.techniques,
+                    catalog.exercises, catalog.exerciseMuscles, catalog.exerciseEquipment, catalog.now);
             database.metadataDao().put(new AppMetadataEntity(
                     AppMetadataEntity.KEY_CATALOG_VERSION, Integer.toString(catalog.version)));
         });
@@ -91,6 +93,7 @@ public final class CatalogSeeder {
         long now;
         final List<MuscleEntity> muscles = new ArrayList<>();
         final List<EquipmentEntity> equipment = new ArrayList<>();
+        final List<TrainingTechniqueEntity> techniques = new ArrayList<>();
         final List<ExerciseEntity> exercises = new ArrayList<>();
         final List<ExerciseMuscleEntity> exerciseMuscles = new ArrayList<>();
         final List<ExerciseEquipmentEntity> exerciseEquipment = new ArrayList<>();
@@ -130,6 +133,25 @@ public final class CatalogSeeder {
             entity.sortOrder = i;
             out.equipment.add(entity);
             equipmentIdByCode.put(entity.code, entity.id);
+        }
+
+        JSONArray techniques = root.getJSONArray("techniques");
+        for (int i = 0; i < techniques.length(); i++) {
+            JSONObject item = techniques.getJSONObject(i);
+            TrainingTechniqueEntity technique = new TrainingTechniqueEntity();
+            technique.id = item.getString("id");
+            technique.ownerUserId = null;
+            technique.code = item.getString("code");
+            technique.name = item.getString("name");
+            technique.scope = TechniqueScope.valueOf(item.getString("scope"));
+            technique.countsAsWorkingSet = item.optBoolean("countsAsWorkingSet", true);
+            technique.description = item.optString("description", null);
+            technique.instructions = item.optString("instructions", null);
+            technique.sortOrder = i;
+            technique.isActive = true;
+            technique.createdAt = now;
+            technique.updatedAt = now;
+            out.techniques.add(technique);
         }
 
         JSONArray exercises = root.getJSONArray("exercises");

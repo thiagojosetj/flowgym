@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "_comment": "System exercise catalog. IDs are permanent: never change or reuse them. Texts are original content. See docs/DATABASE.md and ADR-0016.",
   "muscles": [
     {
@@ -354,6 +354,116 @@
       "id": "e9d21df5-982b-4747-a00a-5d59daa3d570",
       "code": "plate",
       "name": "Anilha"
+    }
+  ],
+  "techniques": [
+    {
+      "id": "5cd5e8b6-54eb-4d6c-aa17-53e22b7db779",
+      "code": "AQ",
+      "name": "Aquecimento",
+      "scope": "SET",
+      "countsAsWorkingSet": false,
+      "description": "Série leve feita antes das séries de trabalho, para preparar a articulação e o padrão do movimento.",
+      "instructions": "Use algo entre 40% e 60% da carga de trabalho e pare longe da falha. Séries de aquecimento não entram no volume nem valem recorde."
+    },
+    {
+      "id": "6639d53d-3331-47fa-ade6-4c040ad0aaef",
+      "code": "D",
+      "name": "Drop-set",
+      "scope": "SET",
+      "countsAsWorkingSet": true,
+      "description": "Ao chegar perto da falha, reduza a carga na hora e continue o exercício sem descansar.",
+      "instructions": "Registre cada queda como uma etapa da mesma série: a carga inicial e as reduções seguintes. Costuma-se reduzir de 20% a 30% por queda, com 1 a 3 quedas."
+    },
+    {
+      "id": "d71db4b7-39e2-4d46-b41c-4637e96cf611",
+      "code": "RP",
+      "name": "Rest-pause",
+      "scope": "SET",
+      "countsAsWorkingSet": true,
+      "description": "Leva a série até perto da falha, descansa poucos segundos e continua com a mesma carga.",
+      "instructions": "Faça a série principal, descanse de 10 a 20 segundos e faça mais repetições com a mesma carga. Registre cada retomada como uma etapa da série."
+    },
+    {
+      "id": "cc9dc077-fdd5-4975-ac82-42be87a0479c",
+      "code": "MR",
+      "name": "Myo-reps",
+      "scope": "SET",
+      "countsAsWorkingSet": true,
+      "description": "Uma série de ativação até perto da falha, seguida de mini-séries curtas com descansos muito curtos.",
+      "instructions": "Depois da série de ativação, faça mini-séries de 3 a 5 repetições com 5 a 15 segundos de descanso, até não manter mais as repetições."
+    },
+    {
+      "id": "0dad282a-0b30-4105-8320-516c0c2da3d4",
+      "code": "CL",
+      "name": "Cluster",
+      "scope": "SET",
+      "countsAsWorkingSet": true,
+      "description": "Divide a série em blocos curtos com descansos pequenos, o que permite manter uma carga mais alta.",
+      "instructions": "Exemplo: 3 blocos de 3 repetições com 15 a 30 segundos entre eles, contando tudo como uma série."
+    },
+    {
+      "id": "59eb4d63-5c1f-459f-a8a2-2be3d2ad19e7",
+      "code": "F",
+      "name": "Até a falha",
+      "scope": "SET",
+      "countsAsWorkingSet": true,
+      "description": "A série continua até não ser mais possível completar uma repetição com boa execução.",
+      "instructions": "Use com cuidado em exercícios livres e de preferência com alguém ajudando. Registre as repetições que você realmente completou bem."
+    },
+    {
+      "id": "debd879a-5001-44f9-858c-41a59eab34a3",
+      "code": "PIR",
+      "name": "Pirâmide crescente",
+      "scope": "EXERCISE",
+      "countsAsWorkingSet": true,
+      "description": "A cada série, a carga sobe e as repetições caem.",
+      "instructions": "Exemplo: 12 repetições, depois 10, depois 8, aumentando a carga em cada série."
+    },
+    {
+      "id": "8a88f759-4a34-415e-bcd0-8fe6be4f07e3",
+      "code": "PIV",
+      "name": "Pirâmide invertida",
+      "scope": "EXERCISE",
+      "countsAsWorkingSet": true,
+      "description": "Começa na série mais pesada e, depois, a carga cai e as repetições sobem.",
+      "instructions": "Aqueça bem antes, porque a primeira série de trabalho já é a mais pesada. Exemplo: 6 repetições, depois 8, depois 10."
+    },
+    {
+      "id": "b34ddad1-445b-469b-bb22-50b72a149a43",
+      "code": "SS",
+      "name": "Supersérie",
+      "scope": "GROUP",
+      "countsAsWorkingSet": true,
+      "description": "Dois exercícios feitos em sequência, sem descanso entre eles, normalmente para músculos opostos.",
+      "instructions": "Descanse só depois de terminar os dois exercícios. Na tela do treino eles aparecem ligados como A1 e A2."
+    },
+    {
+      "id": "f279cea0-b123-43d6-b41c-71b37e74c4de",
+      "code": "BI",
+      "name": "Bi-set",
+      "scope": "GROUP",
+      "countsAsWorkingSet": true,
+      "description": "Dois exercícios em sequência para o mesmo grupo muscular, sem descanso entre eles.",
+      "instructions": "Descanse apenas ao final da dupla. Aumenta bastante a fadiga local, então ajuste a carga."
+    },
+    {
+      "id": "e86ca305-0056-4252-aed7-ef27dfc7795b",
+      "code": "TRI",
+      "name": "Tri-set",
+      "scope": "GROUP",
+      "countsAsWorkingSet": true,
+      "description": "Três exercícios em sequência, sem descanso entre eles.",
+      "instructions": "Deixe os equipamentos preparados antes de começar. Descanse só ao final dos três."
+    },
+    {
+      "id": "adc9f9aa-6556-4818-9dcc-6905488a1743",
+      "code": "GS",
+      "name": "Giant set",
+      "scope": "GROUP",
+      "countsAsWorkingSet": true,
+      "description": "Quatro ou mais exercícios em sequência, com pouco ou nenhum descanso.",
+      "instructions": "Útil quando há pouco tempo. Escolha exercícios que não dependam do mesmo equipamento."
     }
   ],
   "exercises": [

@@ -14,6 +14,7 @@ import io.github.thiagojosetj.gym.data.local.entity.ExerciseEntity;
 import io.github.thiagojosetj.gym.data.local.entity.ExerciseEquipmentEntity;
 import io.github.thiagojosetj.gym.data.local.entity.ExerciseMuscleEntity;
 import io.github.thiagojosetj.gym.data.local.entity.MuscleEntity;
+import io.github.thiagojosetj.gym.data.local.entity.TrainingTechniqueEntity;
 
 /** Reference data (muscles, equipment, system exercises). Written only by the catalog seeder. */
 @Dao
@@ -39,12 +40,17 @@ public abstract class CatalogDao {
     @Transaction
     public void replaceSystemCatalog(List<MuscleEntity> muscles,
                                      List<EquipmentEntity> equipment,
+                                     List<TrainingTechniqueEntity> techniques,
                                      List<ExerciseEntity> exercises,
                                      List<ExerciseMuscleEntity> exerciseMuscles,
                                      List<ExerciseEquipmentEntity> exerciseEquipment,
                                      long now) {
         upsertMuscles(muscles);
         upsertEquipment(equipment);
+        // Techniques follow the same rule as exercises: missing ones are deactivated, never deleted,
+        // because planned sets (and later sessions) still point at them.
+        deactivateSystemTechniques(now);
+        upsertTechniques(techniques);
         deactivateSystemExercises(now);
         upsertExercises(exercises);
         deleteSystemExerciseMuscles();
@@ -61,6 +67,12 @@ public abstract class CatalogDao {
 
     @Upsert
     abstract void upsertExercises(List<ExerciseEntity> exercises);
+
+    @Upsert
+    abstract void upsertTechniques(List<TrainingTechniqueEntity> techniques);
+
+    @Query("UPDATE training_technique SET is_active = 0, updated_at = :now WHERE owner_user_id IS NULL")
+    abstract void deactivateSystemTechniques(long now);
 
     @Query("UPDATE exercise SET is_active = 0, updated_at = :now WHERE owner_user_id IS NULL")
     abstract void deactivateSystemExercises(long now);

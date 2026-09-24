@@ -11,9 +11,13 @@ import androidx.room.PrimaryKey;
 /** Planned set ("SetPlan") of a template exercise. Loads in grams (ADR-0008). */
 @Entity(
         tableName = "template_set",
-        foreignKeys = @ForeignKey(entity = TemplateExerciseEntity.class, parentColumns = "id",
-                childColumns = "template_exercise_id", onDelete = ForeignKey.CASCADE),
-        indices = @Index("template_exercise_id"))
+        foreignKeys = {
+                @ForeignKey(entity = TemplateExerciseEntity.class, parentColumns = "id",
+                        childColumns = "template_exercise_id", onDelete = ForeignKey.CASCADE),
+                @ForeignKey(entity = TrainingTechniqueEntity.class, parentColumns = "id",
+                        childColumns = "technique_id")
+        },
+        indices = {@Index("template_exercise_id"), @Index("technique_id")})
 public class TemplateSetEntity {
 
     @PrimaryKey
@@ -46,4 +50,9 @@ public class TemplateSetEntity {
     @Nullable
     @ColumnInfo(name = "rest_seconds")
     public Integer restSeconds;
+
+    /** Set technique (warm-up, drop-set…); null = normal working set. */
+    @Nullable
+    @ColumnInfo(name = "technique_id")
+    public String techniqueId;
 }
