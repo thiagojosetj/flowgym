@@ -1,5 +1,7 @@
 package io.github.thiagojosetj.gym.ui.templates.editor;
 
+import android.util.Log;
+
 import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -30,13 +32,16 @@ import io.github.thiagojosetj.gym.ui.templates.editor.TemplateEditorState.Status
  */
 public final class TemplateEditorViewModel extends ViewModel {
 
+    private static final String TAG = "TemplateEditorVM";
+
     /** One-shot outcomes for the screen. */
     public enum EditorEvent { SAVED, SAVE_FAILED, ADD_FAILED, EXERCISE_LIMIT_REACHED }
 
     private final TemplateRepository templates;
     private final ExerciseRepository exercises;
     private final SettingsRepository settingsRepository;
-    private final MutableLiveData<TechniqueCatalog> techniqueCatalog = new MutableLiveData<>(TechniqueCatalog.empty());
+    /** null while loading, and again if the load failed; empty only if the catalog really is empty. */
+    private final MutableLiveData<TechniqueCatalog> techniqueCatalog = new MutableLiveData<>();
 
     private final MutableLiveData<TemplateEditorState> state = new MutableLiveData<>();
     private final MutableLiveData<Event<EditorEvent>> events = new MutableLiveData<>();
@@ -54,7 +59,12 @@ public final class TemplateEditorViewModel extends ViewModel {
         this.exercises = exercises;
         this.settingsRepository = settings;
         // Techniques are needed to validate set plans and to show badges; load them once.
-        techniques.loadCatalog(techniqueCatalog::setValue, error -> { /* keep the empty catalog */ });
+        techniques.loadCatalog(techniqueCatalog::setValue, error -> {
+            // Without the catalog a set that already has a technique cannot be validated, so the
+            // plan sheet says so instead of rejecting the plan as "invalid technique".
+            Log.w(TAG, "Could not load the technique catalog", error);
+            techniqueCatalog.setValue(null);
+        });
         if (templateId == null) {
             draft = TemplateDraft.newTemplate(ids);
             status = Status.READY;

@@ -11,7 +11,6 @@ import io.github.thiagojosetj.gym.core.AppExecutors;
 import io.github.thiagojosetj.gym.data.local.dao.TechniqueDao;
 import io.github.thiagojosetj.gym.data.local.entity.TrainingTechniqueEntity;
 import io.github.thiagojosetj.gym.domain.technique.TechniqueCatalog;
-import io.github.thiagojosetj.gym.domain.technique.TechniqueScope;
 import io.github.thiagojosetj.gym.domain.technique.TrainingTechnique;
 
 /** Training techniques (PRODUCT_SPEC §6.2). Content comes from the seeded catalog. */
@@ -28,19 +27,6 @@ public final class TechniqueRepository {
     /** Everything available, so the UI can also explain exercise- and group-level methods later. */
     public LiveData<TechniqueCatalog> observeCatalog() {
         return Transformations.map(dao.observeVisible(), TechniqueRepository::toCatalog);
-    }
-
-    /** Only the techniques that can be attached to a single set (warm-up, drop-set…). */
-    public LiveData<List<TrainingTechnique>> observeSetTechniques() {
-        return Transformations.map(dao.observeVisible(), entities -> {
-            List<TrainingTechnique> result = new ArrayList<>();
-            for (TrainingTechniqueEntity entity : entities) {
-                if (entity.scope == TechniqueScope.SET) {
-                    result.add(toDomain(entity));
-                }
-            }
-            return result;
-        });
     }
 
     public void loadCatalog(Consumer<TechniqueCatalog> onResult, Consumer<Throwable> onError) {

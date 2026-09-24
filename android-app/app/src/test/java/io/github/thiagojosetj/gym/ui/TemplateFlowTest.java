@@ -7,10 +7,10 @@ import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.RootMatchers.isDialog;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.isDescendantOfA;
+import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription;
 import static androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility;
 import static androidx.test.espresso.matcher.ViewMatchers.withParent;
 import static androidx.test.espresso.matcher.ViewMatchers.withParentIndex;
-import static androidx.test.espresso.matcher.ViewMatchers.hasDescendant;
 import static androidx.test.espresso.matcher.ViewMatchers.hasSibling;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
@@ -147,7 +147,7 @@ public class TemplateFlowTest {
             onView(setRow(0, R.id.button_technique)).inRoot(isDialog()).perform(click());
 
             // The ⓘ explains the method (the picker is the focused window now).
-            onView(allOf(withId(R.id.button_info), hasSibling(hasDescendant(withText("Aquecimento")))))
+            onView(allOf(withId(R.id.button_info), hasSibling(withText("Aquecimento"))))
                     .inRoot(isDialog()).perform(click());
             onView(withText(containsString("Série leve"))).inRoot(isDialog()).check(matches(isDisplayed()));
             onView(withText(R.string.technique_understood)).inRoot(isDialog()).perform(click());
@@ -157,11 +157,41 @@ public class TemplateFlowTest {
             onView(setRow(0, R.id.button_technique)).inRoot(isDialog()).check(matches(withText("AQ")));
             onView(withId(R.id.button_apply)).inRoot(isDialog()).perform(click());
             onView(withId(R.id.badges)).check(matches(withText("AQ")));
+            // TalkBack must hear the method, not the abbreviation.
+            onView(withId(R.id.badges)).check(matches(withContentDescription("Aquecimento")));
 
             // Saved and reopened, the warm-up is still there.
             onView(withId(R.id.action_save)).perform(click());
             onView(withText("Treino de peito")).perform(click());
             onView(withId(R.id.badges)).check(matches(withText("AQ")));
+        }
+    }
+
+    @Test
+    public void rotatingKeepsEachSetRowWithItsOwnValues() {
+        try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
+            onView(withId(R.id.templateListFragment)).perform(click());
+            onView(withId(R.id.fab_new)).perform(click());
+            onView(withId(R.id.button_add)).perform(click());
+            onView(withId(R.id.search_input)).perform(replaceText("supino reto com barra"));
+            waitForSearchDebounce();
+            onView(withText("Supino reto com barra")).perform(click());
+            onView(withText("Adicionar 1 exercício")).perform(click());
+
+            // Three sets with three different loads, nothing applied yet.
+            onView(withText("3 séries × 12 reps")).perform(click());
+            onView(setRow(0, R.id.weight_input)).inRoot(isDialog()).perform(replaceText("40"));
+            onView(setRow(1, R.id.weight_input)).inRoot(isDialog()).perform(replaceText("45"));
+            onView(setRow(2, R.id.weight_input)).inRoot(isDialog()).perform(replaceText("50"));
+
+            scenario.recreate();
+
+            // Rows share the same view ids, so the automatic view-state restore used to give every
+            // row the last row's text ("50" three times) on top of the values restored by hand.
+            onView(setRow(0, R.id.weight_input)).inRoot(isDialog()).check(matches(withText("40")));
+            onView(setRow(1, R.id.weight_input)).inRoot(isDialog()).check(matches(withText("45")));
+            onView(setRow(2, R.id.weight_input)).inRoot(isDialog()).check(matches(withText("50")));
+            onView(withId(R.id.rest_input)).inRoot(isDialog()).check(matches(withText("90")));
         }
     }
 

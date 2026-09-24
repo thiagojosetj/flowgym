@@ -7,6 +7,7 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
@@ -19,6 +20,9 @@ import io.github.thiagojosetj.gym.domain.technique.TrainingTechnique;
 /**
  * Choosing and explaining a set technique (PRODUCT_SPEC §6.2). Every option carries an ⓘ that opens
  * the method's description and how to record it, so the app teaches instead of showing a code.
+ *
+ * <p>Both methods return the dialog so the caller can dismiss it in {@code onDestroyView}: a plain
+ * dialog is not recreated with the fragment and would leak its window on rotation.
  */
 final class TechniqueDialogs {
 
@@ -30,19 +34,28 @@ final class TechniqueDialogs {
     private TechniqueDialogs() {
     }
 
-    static void showPicker(Context context, List<TrainingTechnique> options,
-                           @Nullable String selectedId, OnPicked callback) {
+    static AlertDialog showPicker(Context context, List<TrainingTechnique> options,
+                                  @Nullable String selectedId, OnPicked callback) {
         LayoutInflater inflater = LayoutInflater.from(context);
         LinearLayout list = new LinearLayout(context);
         list.setOrientation(LinearLayout.VERTICAL);
         ScrollView scroll = new ScrollView(context);
         scroll.addView(list);
 
-        androidx.appcompat.app.AlertDialog dialog = new MaterialAlertDialogBuilder(context)
+        AlertDialog dialog = new MaterialAlertDialogBuilder(context)
                 .setTitle(R.string.technique_picker_title)
                 .setView(scroll)
                 .setNegativeButton(R.string.action_cancel, null)
                 .create();
+        // An explanation opened from a row goes away with the picker, so closing the picker (or the
+        // sheet) never leaves an orphan window behind.
+        AlertDialog[] explanation = new AlertDialog[1];
+        dialog.setOnDismissListener(d -> {
+            if (explanation[0] != null) {
+                explanation[0].dismiss();
+                explanation[0] = null;
+            }
+        });
 
         // "Normal" first: the common case and the way to clear a technique.
         ItemTechniqueOptionBinding none = ItemTechniqueOptionBinding.inflate(inflater, list, false);
@@ -64,7 +77,7 @@ final class TechniqueDialogs {
             row.option.setContentDescription(technique.name());
             row.buttonInfo.setContentDescription(
                     context.getString(R.string.plan_sheet_technique_explain, technique.name()));
-            row.buttonInfo.setOnClickListener(v -> showExplanation(context, technique));
+            row.buttonInfo.setOnClickListener(v -> explanation[0] = showExplanation(context, technique));
             row.option.setOnClickListener(v -> {
                 callback.onPicked(technique.id());
                 dialog.dismiss();
@@ -72,10 +85,11 @@ final class TechniqueDialogs {
             list.addView(row.getRoot());
         }
         dialog.show();
+        return dialog;
     }
 
     /** The ⓘ content: what the method is and how to record it. */
-    static void showExplanation(Context context, TrainingTechnique technique) {
+    static AlertDialog showExplanation(Context context, TrainingTechnique technique) {
         StringBuilder message = new StringBuilder();
         if (technique.description() != null) {
             message.append(technique.description());
@@ -86,7 +100,7 @@ final class TechniqueDialogs {
             }
             message.append(technique.instructions());
         }
-        new MaterialAlertDialogBuilder(context)
+        return new MaterialAlertDialogBuilder(context)
                 .setTitle(context.getString(R.string.technique_explain_title, technique.code(), technique.name()))
                 .setMessage(message.toString())
                 .setPositiveButton(R.string.technique_understood, null)

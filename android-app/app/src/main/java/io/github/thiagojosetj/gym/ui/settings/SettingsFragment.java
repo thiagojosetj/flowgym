@@ -124,8 +124,11 @@ public class SettingsFragment extends Fragment {
 
     private void render(AppSettings settings) {
         updatingViews = true;
+        // Writes reach the database asynchronously, so an emission for "1" can arrive after the user
+        // has already typed "15"; rewriting the field then would erase the digit and move the cursor.
+        // While the field has focus the user is the source of truth.
         String rest = String.valueOf(settings.defaultRestSeconds());
-        if (!rest.equals(text(binding.restInput.getText()))) {
+        if (!binding.restInput.hasFocus() && !rest.equals(text(binding.restInput.getText()))) {
             binding.restInput.setText(rest);
         }
         binding.switchSound.setChecked(settings.restSoundEnabled());

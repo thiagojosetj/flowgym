@@ -3,9 +3,11 @@ package io.github.thiagojosetj.gym.ui.templates.editor;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
+import androidx.lifecycle.LiveData;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import org.junit.After;
@@ -21,6 +23,9 @@ import java.util.List;
 import io.github.thiagojosetj.gym.AppContainer;
 import io.github.thiagojosetj.gym.core.Event;
 import io.github.thiagojosetj.gym.data.local.AppDatabase;
+import io.github.thiagojosetj.gym.data.local.dao.TechniqueDao;
+import io.github.thiagojosetj.gym.data.local.entity.TrainingTechniqueEntity;
+import io.github.thiagojosetj.gym.data.repository.TechniqueRepository;
 import io.github.thiagojosetj.gym.domain.library.ExerciseFilter;
 import io.github.thiagojosetj.gym.domain.library.ExerciseSummary;
 import io.github.thiagojosetj.gym.domain.model.RepRange;
@@ -141,6 +146,30 @@ public class TemplateEditorViewModelTest {
         vm.removeExercise(state(vm).exercises().get(1).id());
         assertEquals(Arrays.asList("Tríceps na polia", "Crucifixo com halteres"),
                 Arrays.asList(state(vm).exercises().get(0).name(), state(vm).exercises().get(1).name()));
+    }
+
+    @Test
+    public void aFailedTechniqueLoadIsReportedAsUnavailableInsteadOfEmpty() throws Exception {
+        // An empty catalog and an unreadable one must not look the same: with an empty catalog a set
+        // simply has no technique to offer, while a failed read means the plan cannot be validated
+        // and the screen has to say so (ExercisePlanSheet).
+        TechniqueRepository broken = new TechniqueRepository(new TechniqueDao() {
+            @Override
+            public LiveData<List<TrainingTechniqueEntity>> observeVisible() {
+                throw new IllegalStateException("unreadable");
+            }
+
+            @Override
+            public List<TrainingTechniqueEntity> findVisible() {
+                throw new IllegalStateException("unreadable");
+            }
+        }, app.executors);
+
+        TemplateEditorViewModel vm = new TemplateEditorViewModel(app.templates, app.exercises, broken,
+                app.settings, app.ids, null);
+
+        assertTrue(vm.techniqueCatalog().isInitialized());
+        assertNull(vm.techniqueCatalog().getValue());
     }
 
     // ------------------------------------------------------------------ helpers

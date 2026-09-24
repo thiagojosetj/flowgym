@@ -8,6 +8,7 @@ import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
@@ -64,6 +65,13 @@ public class ExercisePlanSheet extends BottomSheetDialogFragment {
     private TemplateExerciseItem item;
     private final List<Row> rows = new ArrayList<>();
     private List<TrainingTechnique> setTechniques = Collections.emptyList();
+    /** True while the catalog has not arrived, or if reading it failed. */
+    private boolean techniquesUnavailable = true;
+    /** Open plain dialogs, dismissed with the view so they do not leak their window on rotation. */
+    @Nullable
+    private AlertDialog techniquePicker;
+    @Nullable
+    private AlertDialog techniqueExplanation;
 
     /** A set row: its views plus the technique chosen for it. */
     private static final class Row {
@@ -127,7 +135,8 @@ public class ExercisePlanSheet extends BottomSheetDialogFragment {
         }
 
         viewModel.techniqueCatalog().observe(getViewLifecycleOwner(), catalog -> {
-            setTechniques = setScopedTechniques(catalog);
+            techniquesUnavailable = catalog == null;
+            setTechniques = catalog == null ? Collections.emptyList() : setScopedTechniques(catalog);
             refreshAllRowTechniques();
         });
 
@@ -211,6 +220,10 @@ public class ExercisePlanSheet extends BottomSheetDialogFragment {
             return;
         }
         ItemPlanSetBinding views = ItemPlanSetBinding.inflate(getLayoutInflater(), binding.setsContainer, false);
+        // Every row repeats the same view ids, and the framework saves view state in a map keyed by
+        // id: the last row would overwrite the others and, on restore, hand its text to all of them
+        // (verified by rotatingKeepsEachSetRowWithItsOwnValues). Rows are saved by hand instead.
+        views.getRoot().setSaveFromParentEnabled(false);
         Row row = new Row(views, techniqueId);
         boolean timed = item.trackingType().usesDuration() && !item.trackingType().usesReps();
         views.repsLayout.setHint(getString(timed
@@ -227,7 +240,7 @@ public class ExercisePlanSheet extends BottomSheetDialogFragment {
         views.buttonTechniqueInfo.setOnClickListener(v -> {
             TrainingTechnique technique = findTechnique(row.techniqueId);
             if (technique != null) {
-                TechniqueDialogs.showExplanation(requireContext(), technique);
+                techniqueExplanation = TechniqueDialogs.showExplanation(requireContext(), technique);
             }
         });
         views.buttonRemoveSet.setOnClickListener(v -> removeRow(row));
@@ -298,12 +311,17 @@ public class ExercisePlanSheet extends BottomSheetDialogFragment {
 
     private void pickTechnique(Row row) {
         if (setTechniques.isEmpty()) {
+            // Saying nothing would look like a broken button.
+            showSetsError(getString(techniquesUnavailable
+                    ? R.string.plan_error_technique_unavailable
+                    : R.string.plan_error_technique_invalid));
             return;
         }
-        TechniqueDialogs.showPicker(requireContext(), setTechniques, row.techniqueId, techniqueId -> {
-            row.techniqueId = techniqueId;
-            refreshRowTechnique(row);
-        });
+        techniquePicker = TechniqueDialogs.showPicker(requireContext(), setTechniques, row.techniqueId,
+                techniqueId -> {
+                    row.techniqueId = techniqueId;
+                    refreshRowTechnique(row);
+                });
     }
 
     @Nullable
@@ -436,8 +454,10 @@ public class ExercisePlanSheet extends BottomSheetDialogFragment {
                 case DURATION_NOT_APPLICABLE, DURATION_OUT_OF_RANGE, REPS_NOT_APPLICABLE -> firstRowRepsError();
                 case NOTES_TOO_LONG -> binding.notesLayout.setError(getString(R.string.plan_error_notes_long));
                 case PER_SIDE_REQUIRES_UNILATERAL -> binding.sideToggle.check(R.id.button_side_combined);
-                case UNKNOWN_TECHNIQUE, TECHNIQUE_NOT_FOR_SETS ->
-                        showSetsError(getString(R.string.plan_error_technique_invalid));
+                case UNKNOWN_TECHNIQUE, TECHNIQUE_NOT_FOR_SETS -> showSetsError(getString(
+                        techniquesUnavailable
+                                ? R.string.plan_error_technique_unavailable
+                                : R.string.plan_error_technique_invalid));
             }
         }
     }
@@ -494,7 +514,17 @@ public class ExercisePlanSheet extends BottomSheetDialogFragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        techniquePicker = dismiss(techniquePicker);
+        techniqueExplanation = dismiss(techniqueExplanation);
         rows.clear();
         binding = null;
+    }
+
+    @Nullable
+    private static AlertDialog dismiss(@Nullable AlertDialog dialog) {
+        if (dialog != null) {
+            dialog.dismiss();
+        }
+        return null;
     }
 }

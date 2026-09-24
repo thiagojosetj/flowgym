@@ -127,9 +127,17 @@ final class EditorExerciseAdapter extends RecyclerView.Adapter<EditorExerciseAda
             binding.muscle.setVisibility(item.primaryMuscleName() == null ? View.GONE : View.VISIBLE);
             binding.plan.setText(formatter.planLine(item));
             binding.rest.setText(formatter.restLine(item));
-            String badges = String.join(res.getString(R.string.separator_dot), item.badges());
-            binding.badges.setText(badges);
-            binding.badges.setVisibility(badges.isEmpty() ? View.GONE : View.VISIBLE);
+            List<String> codes = new ArrayList<>(item.badges().size());
+            List<String> names = new ArrayList<>(item.badges().size());
+            for (TemplateExerciseItem.Badge badge : item.badges()) {
+                codes.add(badge.code());
+                names.add(badge.name());
+            }
+            String separator = res.getString(R.string.separator_dot);
+            binding.badges.setText(String.join(separator, codes));
+            // A screen reader would otherwise spell out "AQ": read the technique names instead.
+            binding.badges.setContentDescription(names.isEmpty() ? null : String.join(separator, names));
+            binding.badges.setVisibility(codes.isEmpty() ? View.GONE : View.VISIBLE);
             binding.notes.setText(item.notes());
             binding.notes.setVisibility(item.notes() == null ? View.GONE : View.VISIBLE);
             binding.buttonMore.setContentDescription(res.getString(R.string.editor_exercise_options, item.name()));

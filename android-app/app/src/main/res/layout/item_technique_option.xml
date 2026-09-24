@@ -1,53 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- One option in the technique picker: badge + name, plus the ⓘ that explains the method. -->
+<!--
+  One option in the technique picker: badge + name, plus the ⓘ that explains the method.
+  A single level of layout_weight: the whole row is the clickable option, and the ⓘ handles its own
+  touches, so it does not need a wrapper (which would nest weights).
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/option"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground"
     android:gravity="center_vertical"
     android:minHeight="@dimen/touch_target_min"
-    android:orientation="horizontal">
+    android:orientation="horizontal"
+    android:paddingStart="@dimen/space_s"
+    android:paddingEnd="0dp">
 
-    <LinearLayout
-        android:id="@+id/option"
+    <TextView
+        android:id="@+id/badge"
+        android:layout_width="40dp"
+        android:layout_height="wrap_content"
+        android:textAppearance="?attr/textAppearanceLabelLarge"
+        android:textColor="?attr/colorPrimary"
+        tools:text="AQ" />
+
+    <TextView
+        android:id="@+id/name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:background="?attr/selectableItemBackground"
-        android:clickable="true"
-        android:focusable="true"
-        android:gravity="center_vertical"
-        android:minHeight="@dimen/touch_target_min"
-        android:orientation="horizontal"
-        android:paddingHorizontal="@dimen/space_s">
+        android:textAppearance="?attr/textAppearanceBodyLarge"
+        tools:text="Aquecimento" />
 
-        <TextView
-            android:id="@+id/badge"
-            android:layout_width="40dp"
-            android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceLabelLarge"
-            android:textColor="?attr/colorPrimary"
-            tools:text="AQ" />
-
-        <TextView
-            android:id="@+id/name"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:textAppearance="?attr/textAppearanceBodyLarge"
-            tools:text="Aquecimento" />
-
-        <ImageView
-            android:id="@+id/check"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:importantForAccessibility="no"
-            android:src="@drawable/ic_check"
-            android:visibility="invisible"
-            app:tint="?attr/colorPrimary"
-            tools:visibility="visible" />
-    </LinearLayout>
+    <ImageView
+        android:id="@+id/check"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:importantForAccessibility="no"
+        android:src="@drawable/ic_check"
+        android:visibility="invisible"
+        app:tint="?attr/colorPrimary"
+        tools:visibility="visible" />
 
     <ImageButton
         android:id="@+id/button_info"

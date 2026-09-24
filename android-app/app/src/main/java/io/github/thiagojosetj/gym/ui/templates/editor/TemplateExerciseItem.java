@@ -20,7 +20,7 @@ import io.github.thiagojosetj.gym.domain.template.TemplateExerciseDraft;
  *
  * @param uniformPlan false when sets differ; the card then says "valores variados"
  * @param sets        every planned set, so the plan sheet can edit them one by one
- * @param badges      distinct technique codes in order, for the card ("AQ", "D")
+ * @param badges      distinct techniques in use, in order, for the card ("AQ", "D")
  */
 public record TemplateExerciseItem(
         String id,
@@ -40,7 +40,11 @@ public record TemplateExerciseItem(
         String notes,
         SideMode sideMode,
         List<TemplateSetItem> sets,
-        List<String> badges) {
+        List<Badge> badges) {
+
+    /** A technique shown on the card: the short code is displayed, the name is what TalkBack reads. */
+    public record Badge(String code, String name) {
+    }
 
     public TemplateExerciseItem {
         sets = sets == null ? Collections.emptyList() : Collections.unmodifiableList(new ArrayList<>(sets));
@@ -49,14 +53,17 @@ public record TemplateExerciseItem(
 
     static TemplateExerciseItem from(TemplateExerciseDraft draft, TechniqueCatalog techniques) {
         List<TemplateSetItem> sets = new ArrayList<>(draft.setCount());
-        List<String> badges = new ArrayList<>();
+        List<Badge> badges = new ArrayList<>();
         for (SetPlan set : draft.sets()) {
             TrainingTechnique technique = techniques.byId(set.techniqueId());
             String code = technique == null ? null : technique.code();
             sets.add(new TemplateSetItem(set.id(), set.reps(), set.weight(), set.durationSeconds(),
                     set.techniqueId(), code));
-            if (code != null && !badges.contains(code)) {
-                badges.add(code);
+            if (technique != null) {
+                Badge badge = new Badge(code, technique.name());
+                if (!badges.contains(badge)) {
+                    badges.add(badge);
+                }
             }
         }
         return new TemplateExerciseItem(

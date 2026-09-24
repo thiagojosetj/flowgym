@@ -2,7 +2,6 @@ package io.github.thiagojosetj.gym.data.repository;
 
 import android.util.Log;
 
-import androidx.annotation.WorkerThread;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Transformations;
 
@@ -67,7 +66,7 @@ public final class SettingsRepository {
         });
     }
 
-    @WorkerThread
+    /** Pure mapping; runs on the disk executor (loadSettings) and on the main thread (observeSettings). */
     static AppSettings toSettings(List<UserSettingEntity> rows) {
         AppSettings settings = AppSettings.standard();
         for (UserSettingEntity row : rows) {

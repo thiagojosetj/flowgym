@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Default language: pt-BR (ADR-0020). Other languages go in values-xx. -->
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Provisional product name (ADR-0026). This is the ONLY place the brand appears in the app. -->
     <string name="app_name" translatable="false">FlowGym</string>
 
@@ -173,7 +173,7 @@
     <string name="plan_sheet_remove_set">Remover série %d</string>
     <string name="plan_sheet_set_number">%d</string>
     <string name="plan_sheet_reps_hint">Reps</string>
-    <string name="plan_sheet_reps_range_hint">Reps (ex.: 8 ou 8-10)</string>
+    <string name="plan_sheet_reps_range_hint" tools:ignore="TypographyDashes">Reps (ex.: 8 ou 8-10)</string>
     <string name="plan_sheet_duration_hint">Tempo (s)</string>
     <string name="plan_sheet_technique_none">—</string>
     <string name="plan_sheet_technique_of_set">Técnica da série %d</string>
@@ -182,17 +182,15 @@
     <string name="technique_none_option">Série normal (sem técnica)</string>
     <string name="technique_explain_title">%1$s · %2$s</string>
     <string name="technique_understood">Entendi</string>
-    <string name="plan_error_reps_format">Use 8 ou 8-10</string>
+    <string name="plan_error_reps_format" tools:ignore="TypographyDashes">Use 8 ou 8-10</string>
     <string name="plan_error_no_sets">Deixe pelo menos uma série</string>
-    <string name="plan_error_too_many_sets">Máximo de %d séries</string>
+    <string name="plan_error_too_many_sets">Máximo de séries por exercício: %d</string>
     <string name="plan_error_technique_invalid">Técnica indisponível</string>
-    <string name="plan_sheet_weight">Carga planejada (opcional)</string>
-    <string name="plan_sheet_weight_per_implement">Carga de cada implemento (opcional)</string>
+    <string name="plan_error_technique_unavailable">Não foi possível carregar as técnicas agora. Feche e abra o treino para tentar de novo.</string>
     <string name="plan_sheet_weight_bodyweight">Carga extra ou assistência (opcional)</string>
     <string name="plan_sheet_bodyweight_helper">Deixe vazio para usar só o peso do corpo.</string>
     <string name="plan_sheet_bodyweight_added">Carga adicional (+)</string>
     <string name="plan_sheet_bodyweight_assisted">Assistência (−)</string>
-    <string name="plan_sheet_duration">Duração de cada série (s)</string>
     <string name="plan_sheet_rest">Descanso após cada série (s)</string>
     <string name="plan_sheet_rest_helper">0 = sem cronômetro de descanso automático.</string>
     <string name="plan_sheet_side_mode">Registro dos lados</string>
@@ -201,11 +199,6 @@
     <string name="plan_sheet_notes">Observação deste exercício</string>
     <string name="plan_sheet_notes_helper">Permanente neste treino. Ex.: Banco no terceiro encaixe.</string>
     <string name="plan_error_number">Número inválido</string>
-    <plurals name="plan_error_sets_range">
-        <item quantity="one">Entre 1 e %d série</item>
-        <item quantity="other">Entre 1 e %d séries</item>
-    </plurals>
-    <string name="plan_error_reps_range">Entre 1 e %d</string>
     <string name="plan_error_rest_range">Entre 0 e %d s</string>
     <string name="plan_error_weight">Carga inválida</string>
     <string name="plan_error_duration_range">Entre 1 e %d s</string>
