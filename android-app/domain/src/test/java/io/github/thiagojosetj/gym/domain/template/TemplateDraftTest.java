@@ -24,6 +24,9 @@ import io.github.thiagojosetj.gym.domain.model.SideMode;
 import io.github.thiagojosetj.gym.domain.model.TrackingType;
 import io.github.thiagojosetj.gym.domain.model.Weight;
 import io.github.thiagojosetj.gym.domain.model.WeightUnit;
+import io.github.thiagojosetj.gym.domain.technique.TechniqueCatalog;
+import io.github.thiagojosetj.gym.domain.technique.TechniqueScope;
+import io.github.thiagojosetj.gym.domain.technique.TrainingTechnique;
 import io.github.thiagojosetj.gym.domain.util.IdGenerator;
 
 public class TemplateDraftTest {
@@ -36,6 +39,17 @@ public class TemplateDraftTest {
             TrackingType.DURATION, LoadBasis.TOTAL, 1, Laterality.BILATERAL, "Reto abdominal", "bodyweight");
     private static final ExerciseRef PULL_UP = new ExerciseRef("ex-pullup", "Barra fixa",
             TrackingType.BODYWEIGHT_REPS, LoadBasis.TOTAL, 1, Laterality.BILATERAL, "Latíssimo do dorso", "pull_up_bar");
+
+    private static final TechniqueCatalog NO_TECHNIQUES = TechniqueCatalog.empty();
+
+    private static final TrainingTechnique WARM_UP = new TrainingTechnique("t-warmup", "AQ", "Aquecimento",
+            TechniqueScope.SET, false, "Série leve", "Use 40% a 60% da carga");
+    private static final TrainingTechnique DROP_SET = new TrainingTechnique("t-drop", "D", "Drop-set",
+            TechniqueScope.SET, true, "Reduza a carga e continue", "20% a 30% por queda");
+    private static final TrainingTechnique SUPERSET = new TrainingTechnique("t-superset", "SS", "Supersérie",
+            TechniqueScope.GROUP, true, "Dois exercícios seguidos", "Descanse ao final da dupla");
+    private static final TechniqueCatalog CATALOG =
+            new TechniqueCatalog(Arrays.asList(WARM_UP, DROP_SET, SUPERSET));
 
     private IdGenerator ids;
 
@@ -150,9 +164,8 @@ public class TemplateDraftTest {
                 Collections.singletonList(BENCH), TemplateDefaults.standard()).get(0);
         List<String> originalSetIds = setIds(bench);
 
-        List<ExercisePlanUpdate.Error> errors = draft.updateExercisePlan(bench.id(), new ExercisePlanUpdate(
-                4, RepRange.between(8, 10), Weight.of(40, WeightUnit.KILOGRAM), null, 120,
-                "  Banco no terceiro encaixe ", SideMode.COMBINED));
+        List<ExercisePlanUpdate.Error> errors = draft.updateExercisePlan(bench.id(), ExercisePlanUpdate.uniform(4, RepRange.between(8, 10), Weight.of(40, WeightUnit.KILOGRAM), null, 120,
+                "  Banco no terceiro encaixe ", SideMode.COMBINED), NO_TECHNIQUES);
 
         assertTrue(errors.isEmpty());
         TemplateExerciseDraft updated = draft.findExercise(bench.id());
@@ -171,8 +184,7 @@ public class TemplateDraftTest {
                 Collections.singletonList(BENCH), TemplateDefaults.standard()).get(0);
         List<String> originalSetIds = setIds(bench);
 
-        draft.updateExercisePlan(bench.id(), new ExercisePlanUpdate(
-                2, RepRange.exactly(5), null, null, 180, null, SideMode.COMBINED));
+        draft.updateExercisePlan(bench.id(), ExercisePlanUpdate.uniform(2, RepRange.exactly(5), null, null, 180, null, SideMode.COMBINED), NO_TECHNIQUES);
 
         assertEquals(originalSetIds.subList(0, 2), setIds(draft.findExercise(bench.id())));
     }
@@ -184,14 +196,80 @@ public class TemplateDraftTest {
                 Collections.singletonList(BENCH), TemplateDefaults.standard()).get(0);
         draft.markSaved();
 
-        List<ExercisePlanUpdate.Error> errors = draft.updateExercisePlan(bench.id(), new ExercisePlanUpdate(
-                0, RepRange.exactly(10), Weight.of(-10, WeightUnit.KILOGRAM), null, 90, null, SideMode.PER_SIDE));
+        // No sets at all: there are no set values left to check, only the aggregate problems.
+        List<ExercisePlanUpdate.Error> empty = draft.updateExercisePlan(bench.id(),
+                ExercisePlanUpdate.uniform(0, RepRange.exactly(10), null, null, 90, null, SideMode.PER_SIDE),
+                NO_TECHNIQUES);
+        assertTrue(empty.contains(ExercisePlanUpdate.Error.NO_SETS));
+        assertTrue(empty.contains(ExercisePlanUpdate.Error.PER_SIDE_REQUIRES_UNILATERAL));
 
-        assertTrue(errors.contains(ExercisePlanUpdate.Error.SET_COUNT_OUT_OF_RANGE));
-        assertTrue(errors.contains(ExercisePlanUpdate.Error.NEGATIVE_WEIGHT_NOT_ALLOWED));
-        assertTrue(errors.contains(ExercisePlanUpdate.Error.PER_SIDE_REQUIRES_UNILATERAL));
+        // Assistance (negative load) only makes sense for body-weight exercises.
+        List<ExercisePlanUpdate.Error> negative = draft.updateExercisePlan(bench.id(),
+                ExercisePlanUpdate.uniform(3, RepRange.exactly(10), Weight.of(-10, WeightUnit.KILOGRAM),
+                        null, 90, null, SideMode.COMBINED),
+                NO_TECHNIQUES);
+        assertTrue(negative.contains(ExercisePlanUpdate.Error.NEGATIVE_WEIGHT_NOT_ALLOWED));
+
         assertEquals(3, draft.findExercise(bench.id()).setCount());
         assertFalse(draft.isModified());
+    }
+
+    @Test
+    public void setsCanDifferAndCarryTechniques() {
+        // Warm-up first, then two working sets, the last one a drop-set (PRODUCT_SPEC §6.2).
+        TemplateDraft draft = TemplateDraft.newTemplate(ids);
+        TemplateExerciseDraft bench = draft.addExercises(
+                Collections.singletonList(BENCH), TemplateDefaults.standard()).get(0);
+
+        List<ExercisePlanUpdate.Error> errors = draft.updateExercisePlan(bench.id(), new ExercisePlanUpdate(
+                Arrays.asList(
+                        new SetSpec(RepRange.exactly(12), Weight.of(20, WeightUnit.KILOGRAM), null, WARM_UP.id()),
+                        new SetSpec(RepRange.between(8, 10), Weight.of(40, WeightUnit.KILOGRAM), null, null),
+                        new SetSpec(RepRange.between(8, 10), Weight.of(40, WeightUnit.KILOGRAM), null, DROP_SET.id())),
+                120, null, SideMode.COMBINED), CATALOG);
+
+        assertTrue(errors.isEmpty());
+        TemplateExerciseDraft updated = draft.findExercise(bench.id());
+        assertEquals(Arrays.asList(WARM_UP.id(), null, DROP_SET.id()), updated.techniqueIds());
+        assertFalse("sets differ now", updated.hasUniformPlan());
+        assertNull(updated.uniformReps());
+        assertEquals(Weight.ofGrams(20_000), updated.sets().get(0).weight());
+    }
+
+    @Test
+    public void techniqueMustExistAndApplyToSets() {
+        TemplateDraft draft = TemplateDraft.newTemplate(ids);
+        TemplateExerciseDraft bench = draft.addExercises(
+                Collections.singletonList(BENCH), TemplateDefaults.standard()).get(0);
+
+        List<ExercisePlanUpdate.Error> unknown = draft.updateExercisePlan(bench.id(), new ExercisePlanUpdate(
+                Collections.singletonList(new SetSpec(RepRange.exactly(10), null, null, "gone")),
+                90, null, SideMode.COMBINED), CATALOG);
+        assertTrue(unknown.contains(ExercisePlanUpdate.Error.UNKNOWN_TECHNIQUE));
+
+        // A superset links exercises; it cannot be attached to a single set.
+        List<ExercisePlanUpdate.Error> wrongScope = draft.updateExercisePlan(bench.id(), new ExercisePlanUpdate(
+                Collections.singletonList(new SetSpec(RepRange.exactly(10), null, null, SUPERSET.id())),
+                90, null, SideMode.COMBINED), CATALOG);
+        assertTrue(wrongScope.contains(ExercisePlanUpdate.Error.TECHNIQUE_NOT_FOR_SETS));
+
+        assertEquals(3, draft.findExercise(bench.id()).setCount()); // unchanged
+    }
+
+    @Test
+    public void duplicateKeepsTheTechniqueOfEachSet() {
+        TemplateDraft draft = TemplateDraft.newTemplate(ids);
+        draft.rename("Push A");
+        TemplateExerciseDraft bench = draft.addExercises(
+                Collections.singletonList(BENCH), TemplateDefaults.standard()).get(0);
+        draft.updateExercisePlan(bench.id(), new ExercisePlanUpdate(
+                Arrays.asList(new SetSpec(RepRange.exactly(12), null, null, WARM_UP.id()),
+                        new SetSpec(RepRange.exactly(10), null, null, null)),
+                90, null, SideMode.COMBINED), CATALOG);
+
+        TemplateDraft copy = draft.duplicate(" (cópia)");
+
+        assertEquals(Arrays.asList(WARM_UP.id(), null), copy.exercises().get(0).techniqueIds());
     }
 
     @Test
@@ -200,8 +278,7 @@ public class TemplateDraftTest {
         TemplateExerciseDraft pullUp = draft.addExercises(
                 Collections.singletonList(PULL_UP), TemplateDefaults.standard()).get(0);
 
-        List<ExercisePlanUpdate.Error> errors = draft.updateExercisePlan(pullUp.id(), new ExercisePlanUpdate(
-                3, RepRange.exactly(8), Weight.of(-20, WeightUnit.KILOGRAM), null, 120, null, SideMode.COMBINED));
+        List<ExercisePlanUpdate.Error> errors = draft.updateExercisePlan(pullUp.id(), ExercisePlanUpdate.uniform(3, RepRange.exactly(8), Weight.of(-20, WeightUnit.KILOGRAM), null, 120, null, SideMode.COMBINED), NO_TECHNIQUES);
 
         assertTrue(errors.isEmpty());
     }
@@ -212,8 +289,7 @@ public class TemplateDraftTest {
         TemplateExerciseDraft plank = draft.addExercises(
                 Collections.singletonList(PLANK), TemplateDefaults.standard()).get(0);
 
-        List<ExercisePlanUpdate.Error> errors = draft.updateExercisePlan(plank.id(), new ExercisePlanUpdate(
-                3, RepRange.exactly(10), Weight.of(10, WeightUnit.KILOGRAM), 45, 60, null, SideMode.COMBINED));
+        List<ExercisePlanUpdate.Error> errors = draft.updateExercisePlan(plank.id(), ExercisePlanUpdate.uniform(3, RepRange.exactly(10), Weight.of(10, WeightUnit.KILOGRAM), 45, 60, null, SideMode.COMBINED), NO_TECHNIQUES);
 
         assertTrue(errors.contains(ExercisePlanUpdate.Error.WEIGHT_NOT_APPLICABLE));
         assertTrue(errors.contains(ExercisePlanUpdate.Error.REPS_NOT_APPLICABLE));
@@ -225,8 +301,7 @@ public class TemplateDraftTest {
         TemplateExerciseDraft row = draft.addExercises(
                 Collections.singletonList(ROW), TemplateDefaults.standard()).get(0);
 
-        draft.updateExercisePlan(row.id(), new ExercisePlanUpdate(
-                3, RepRange.exactly(10), Weight.of(22, WeightUnit.KILOGRAM), null, 90, null, SideMode.PER_SIDE));
+        draft.updateExercisePlan(row.id(), ExercisePlanUpdate.uniform(3, RepRange.exactly(10), Weight.of(22, WeightUnit.KILOGRAM), null, 90, null, SideMode.PER_SIDE), NO_TECHNIQUES);
 
         assertEquals(SideMode.PER_SIDE, draft.findExercise(row.id()).sideMode());
     }
@@ -284,8 +359,7 @@ public class TemplateDraftTest {
                 Collections.singletonList(BENCH), TemplateDefaults.standard()).get(0);
         draft.markSaved();
 
-        draft.updateExercisePlan(bench.id(), new ExercisePlanUpdate(
-                3, RepRange.exactly(12), null, null, 90, "  ", SideMode.COMBINED));
+        draft.updateExercisePlan(bench.id(), ExercisePlanUpdate.uniform(3, RepRange.exactly(12), null, null, 90, "  ", SideMode.COMBINED), NO_TECHNIQUES);
 
         assertFalse(draft.isModified());
     }
@@ -297,8 +371,7 @@ public class TemplateDraftTest {
                 Collections.singletonList(BENCH), TemplateDefaults.standard()).get(0);
         draft.markSaved();
 
-        draft.updateExercisePlan(bench.id(), new ExercisePlanUpdate(
-                3, RepRange.exactly(12), null, null, 90, "Banco no 3º encaixe", SideMode.COMBINED));
+        draft.updateExercisePlan(bench.id(), ExercisePlanUpdate.uniform(3, RepRange.exactly(12), null, null, 90, "Banco no 3º encaixe", SideMode.COMBINED), NO_TECHNIQUES);
 
         assertTrue(draft.isModified());
     }

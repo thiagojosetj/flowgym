@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Objects;
 
 import io.github.thiagojosetj.gym.domain.model.SideMode;
+import io.github.thiagojosetj.gym.domain.technique.TechniqueCatalog;
 import io.github.thiagojosetj.gym.domain.util.IdGenerator;
 
 /**
@@ -166,6 +167,7 @@ public final class TemplateDraft {
                 ref.trackingType().usesReps() ? defaults.reps() : null,
                 null,
                 timed ? defaults.durationSeconds() : null,
+                null,
                 null);
     }
 
@@ -189,16 +191,19 @@ public final class TemplateDraft {
     }
 
     /**
-     * Applies a uniform plan to one exercise.
+     * Applies a new plan (one spec per set) to one exercise.
      *
+     * @param techniques techniques available for validation (see {@link TechniqueCatalog})
      * @return validation errors; the draft is only changed when the list is empty
      */
-    public List<ExercisePlanUpdate.Error> updateExercisePlan(String templateExerciseId, ExercisePlanUpdate update) {
+    public List<ExercisePlanUpdate.Error> updateExercisePlan(String templateExerciseId,
+                                                             ExercisePlanUpdate update,
+                                                             TechniqueCatalog techniques) {
         TemplateExerciseDraft target = findExercise(templateExerciseId);
         if (target == null) {
             throw new IllegalArgumentException("Unknown template exercise: " + templateExerciseId);
         }
-        List<ExercisePlanUpdate.Error> errors = update.validateFor(target.exercise());
+        List<ExercisePlanUpdate.Error> errors = update.validateFor(target.exercise(), techniques);
         if (!errors.isEmpty()) {
             return errors;
         }
@@ -207,7 +212,7 @@ public final class TemplateDraft {
         for (int i = 0; i < missing; i++) {
             newIds.add(ids.newId());
         }
-        if (target.applyUniformPlan(update, newIds)) {
+        if (target.applyPlan(update, newIds)) {
             modified = true; // re-applying the same plan is not an unsaved change
         }
         return errors;
@@ -228,7 +233,7 @@ public final class TemplateDraft {
             List<SetPlan> sets = new ArrayList<>(source.setCount());
             for (SetPlan set : source.sets()) {
                 sets.add(new SetPlan(ids.newId(), set.reps(), set.weight(), set.durationSeconds(),
-                        set.restSecondsOverride()));
+                        set.restSecondsOverride(), set.techniqueId()));
             }
             copies.add(new TemplateExerciseDraft(ids.newId(), source.exercise(), source.restSeconds(),
                     source.notes(), source.sideMode(), sets));
