@@ -9,6 +9,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
 import androidx.room.Room;
+import androidx.sqlite.db.SupportSQLiteDatabase;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
@@ -27,8 +28,8 @@ import io.github.thiagojosetj.gym.data.local.entity.UserSettingEntity;
 
 /**
  * Real migration coverage on the JVM: builds a version 1 database from the exported schema, puts a
- * template in it, then opens it with Room. Room runs {@link AppDatabase#MIGRATION_1_2} and validates
- * the result against the version 2 schema, so a wrong statement fails here.
+ * template in it, then opens it with Room. Room runs every migration in turn and validates the
+ * result against the current schema, so a wrong statement fails here.
  *
  * <p>Room's own MigrationTestHelper would be the usual tool, but it cannot run under Robolectric on
  * Windows (ADR-0012), and this test does the same job without it.
@@ -58,10 +59,10 @@ public class MigrationTest {
         createVersion1Database(file);
 
         database = Room.databaseBuilder(context, AppDatabase.class, DB_NAME)
-                .addMigrations(AppDatabase.MIGRATION_1_2)
+                .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3)
                 .allowMainThreadQueries()
                 .build();
-        // Opening runs the migration and validates the schema against 2.json.
+        // Opening runs every migration and validates the schema against the current version.
         assertEquals(AppDatabase.VERSION, database.getOpenHelper().getWritableDatabase().getVersion());
 
         // The planned set survived and its new column starts empty (a normal working set).
@@ -93,6 +94,26 @@ public class MigrationTest {
                 UserSettingEntity.KEY_REST_DEFAULT_SECONDS, "120", 0));
         assertEquals(1, count("SELECT COUNT(*) FROM user_setting WHERE owner_user_id = 'user-1'"));
         assertNull(database.metadataDao().get("nothing-here")); // sanity: old DAOs still work
+
+        // v3: a session can be recorded against the migrated template, and its children cascade.
+        SupportSQLiteDatabase db = database.getOpenHelper().getWritableDatabase();
+        db.execSQL("INSERT INTO workout_session (id, owner_user_id, template_id, name, status, started_at,"
+                + " time_zone, local_date, total_paused_ms, created_at, updated_at, sync_status)"
+                + " VALUES ('s-1', 'user-1', '" + TEMPLATE_ID + "', 'Push A', 'ACTIVE', 10,"
+                + " 'America/Sao_Paulo', '2026-09-25', 0, 10, 10, 'PENDING')");
+        db.execSQL("INSERT INTO session_pause (id, session_id, started_at) VALUES ('p-1', 's-1', 20)");
+        db.execSQL("INSERT INTO session_exercise (id, session_id, exercise_id, position, exercise_name,"
+                + " tracking_type, load_basis, implement_count, laterality, side_mode, rest_seconds)"
+                + " VALUES ('se-1', 's-1', 'ex-1', 0, 'Supino', 'WEIGHT_REPS', 'TOTAL', 1, 'BILATERAL',"
+                + " 'COMBINED', 90)");
+        db.execSQL("INSERT INTO set_log (id, session_exercise_id, position, planned_rest_seconds, status)"
+                + " VALUES ('sl-1', 'se-1', 0, 90, 'PENDING')");
+        assertEquals(1, count("SELECT COUNT(*) FROM set_log WHERE session_exercise_id = 'se-1'"));
+
+        db.execSQL("DELETE FROM workout_session WHERE id = 's-1'");
+        assertEquals(0, count("SELECT COUNT(*) FROM session_exercise"));
+        assertEquals(0, count("SELECT COUNT(*) FROM session_pause"));
+        assertEquals(0, count("SELECT COUNT(*) FROM set_log"));
     }
 
     /** Creates the v1 database exactly as Room would have left it (schema + identity hash). */

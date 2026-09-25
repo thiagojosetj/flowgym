@@ -22,11 +22,15 @@ import io.github.thiagojosetj.gym.data.local.entity.ExerciseEntity;
 import io.github.thiagojosetj.gym.data.local.entity.ExerciseEquipmentEntity;
 import io.github.thiagojosetj.gym.data.local.entity.ExerciseMuscleEntity;
 import io.github.thiagojosetj.gym.data.local.entity.MuscleEntity;
+import io.github.thiagojosetj.gym.data.local.entity.SessionExerciseEntity;
+import io.github.thiagojosetj.gym.data.local.entity.SessionPauseEntity;
+import io.github.thiagojosetj.gym.data.local.entity.SetLogEntity;
 import io.github.thiagojosetj.gym.data.local.entity.TemplateExerciseEntity;
 import io.github.thiagojosetj.gym.data.local.entity.TemplateSetEntity;
 import io.github.thiagojosetj.gym.data.local.entity.TrainingTechniqueEntity;
 import io.github.thiagojosetj.gym.data.local.entity.UserProfileEntity;
 import io.github.thiagojosetj.gym.data.local.entity.UserSettingEntity;
+import io.github.thiagojosetj.gym.data.local.entity.WorkoutSessionEntity;
 import io.github.thiagojosetj.gym.data.local.entity.WorkoutTemplateEntity;
 
 /**
@@ -50,12 +54,16 @@ import io.github.thiagojosetj.gym.data.local.entity.WorkoutTemplateEntity;
                 TemplateExerciseEntity.class,
                 TemplateSetEntity.class,
                 TrainingTechniqueEntity.class,
-                UserSettingEntity.class
+                UserSettingEntity.class,
+                WorkoutSessionEntity.class,
+                SessionPauseEntity.class,
+                SessionExerciseEntity.class,
+                SetLogEntity.class
         })
 public abstract class AppDatabase extends RoomDatabase {
 
     /** Current schema version. Bump together with a Migration and a migration test. */
-    public static final int VERSION = 2;
+    public static final int VERSION = 3;
 
     public static final String FILE_NAME = "gym.db";
 
@@ -107,12 +115,77 @@ public abstract class AppDatabase extends RoomDatabase {
     };
 
     /**
+     * v2 -> v3: the session tables (PRODUCT_SPEC section 4.3), so a workout can be performed and
+     * kept as history. Statements copied from the generated schema (app/schemas/.../3.json).
+     *
+     * <p>Only new tables: nothing existing is touched, so an interrupted upgrade cannot damage the
+     * templates the user already has.
+     */
+    public static final Migration MIGRATION_2_3 = new Migration(2, 3) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS `workout_session` (`id` TEXT NOT NULL,"
+                    + " `owner_user_id` TEXT NOT NULL, `template_id` TEXT, `name` TEXT NOT NULL, `notes` TEXT,"
+                    + " `status` TEXT NOT NULL, `started_at` INTEGER NOT NULL, `ended_at` INTEGER,"
+                    + " `time_zone` TEXT NOT NULL, `local_date` TEXT NOT NULL, `total_paused_ms` INTEGER NOT NULL,"
+                    + " `rating` INTEGER, `rest_set_log_id` TEXT, `rest_ends_at` INTEGER,"
+                    + " `rest_remaining_ms_when_paused` INTEGER, `created_at` INTEGER NOT NULL,"
+                    + " `updated_at` INTEGER NOT NULL, `deleted_at` INTEGER, `sync_status` TEXT NOT NULL,"
+                    + " `server_version` INTEGER, PRIMARY KEY(`id`))");
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_workout_session_owner_user_id`"
+                    + " ON `workout_session` (`owner_user_id`)");
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_workout_session_owner_user_id_local_date`"
+                    + " ON `workout_session` (`owner_user_id`, `local_date`)");
+
+            db.execSQL("CREATE TABLE IF NOT EXISTS `session_pause` (`id` TEXT NOT NULL,"
+                    + " `session_id` TEXT NOT NULL, `started_at` INTEGER NOT NULL, `ended_at` INTEGER,"
+                    + " PRIMARY KEY(`id`), FOREIGN KEY(`session_id`) REFERENCES `workout_session`(`id`)"
+                    + " ON UPDATE NO ACTION ON DELETE CASCADE )");
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_session_pause_session_id`"
+                    + " ON `session_pause` (`session_id`)");
+
+            db.execSQL("CREATE TABLE IF NOT EXISTS `session_exercise` (`id` TEXT NOT NULL,"
+                    + " `session_id` TEXT NOT NULL, `exercise_id` TEXT NOT NULL, `template_exercise_id` TEXT,"
+                    + " `position` INTEGER NOT NULL, `exercise_name` TEXT NOT NULL, `tracking_type` TEXT NOT NULL,"
+                    + " `load_basis` TEXT NOT NULL, `implement_count` INTEGER NOT NULL, `laterality` TEXT NOT NULL,"
+                    + " `side_mode` TEXT NOT NULL, `rest_seconds` INTEGER NOT NULL, `permanent_notes` TEXT,"
+                    + " `notes` TEXT, `previous_session_exercise_id` TEXT, `started_at` INTEGER,"
+                    + " PRIMARY KEY(`id`), FOREIGN KEY(`session_id`) REFERENCES `workout_session`(`id`)"
+                    + " ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`exercise_id`)"
+                    + " REFERENCES `exercise`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )");
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_session_exercise_session_id`"
+                    + " ON `session_exercise` (`session_id`)");
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_session_exercise_exercise_id`"
+                    + " ON `session_exercise` (`exercise_id`)");
+
+            db.execSQL("CREATE TABLE IF NOT EXISTS `set_log` (`id` TEXT NOT NULL,"
+                    + " `session_exercise_id` TEXT NOT NULL, `parent_set_id` TEXT, `position` INTEGER NOT NULL,"
+                    + " `technique_id` TEXT, `planned_reps_min` INTEGER, `planned_reps_max` INTEGER,"
+                    + " `planned_weight_g` INTEGER, `planned_duration_s` INTEGER,"
+                    + " `planned_rest_seconds` INTEGER NOT NULL, `weight_g` INTEGER, `reps` INTEGER,"
+                    + " `reps_left` INTEGER, `reps_right` INTEGER, `duration_s` INTEGER, `status` TEXT NOT NULL,"
+                    + " `completed_at` INTEGER, `notes` TEXT, PRIMARY KEY(`id`),"
+                    + " FOREIGN KEY(`session_exercise_id`) REFERENCES `session_exercise`(`id`)"
+                    + " ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`parent_set_id`)"
+                    + " REFERENCES `set_log`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE ,"
+                    + " FOREIGN KEY(`technique_id`) REFERENCES `training_technique`(`id`)"
+                    + " ON UPDATE NO ACTION ON DELETE NO ACTION )");
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_set_log_session_exercise_id`"
+                    + " ON `set_log` (`session_exercise_id`)");
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_set_log_parent_set_id`"
+                    + " ON `set_log` (`parent_set_id`)");
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_set_log_technique_id`"
+                    + " ON `set_log` (`technique_id`)");
+        }
+    };
+
+    /**
      * Opens the on-disk database. Called once by the AppContainer, which owns the only instance
      * (no static singleton here - ADR-0005).
      */
     public static AppDatabase open(Context context) {
         return Room.databaseBuilder(context.getApplicationContext(), AppDatabase.class, FILE_NAME)
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .build();
     }
 }
