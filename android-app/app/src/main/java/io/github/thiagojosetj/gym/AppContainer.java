@@ -4,10 +4,12 @@ import android.content.Context;
 import android.util.Log;
 
 import java.time.Clock;
+import java.time.ZoneId;
 
 import io.github.thiagojosetj.gym.core.AppExecutors;
 import io.github.thiagojosetj.gym.data.local.AppDatabase;
 import io.github.thiagojosetj.gym.data.prefs.UiPreferences;
+import io.github.thiagojosetj.gym.data.repository.ActiveSessionRepository;
 import io.github.thiagojosetj.gym.data.repository.ExerciseRepository;
 import io.github.thiagojosetj.gym.data.repository.SettingsRepository;
 import io.github.thiagojosetj.gym.data.repository.TechniqueRepository;
@@ -36,6 +38,7 @@ public final class AppContainer {
     public final TemplateRepository templates;
     public final TechniqueRepository techniques;
     public final SettingsRepository settings;
+    public final ActiveSessionRepository activeSessions;
     private final CatalogSeeder catalogSeeder;
 
     /** Production wiring. */
@@ -45,14 +48,15 @@ public final class AppContainer {
                 AppDatabase.open(app),
                 AppExecutors.create(),
                 Clock.systemUTC(),
+                ZoneId.systemDefault(),
                 IdGenerator.UUID_V7,
                 () -> app.getAssets().open(CatalogSeeder.ASSET_PATH),
                 new UiPreferences(app.getSharedPreferences(UiPreferences.FILE_NAME, Context.MODE_PRIVATE)));
     }
 
     /** Explicit wiring, also used by tests (in-memory database, direct executors, fixed clock). */
-    public AppContainer(AppDatabase database, AppExecutors executors, Clock clock, IdGenerator ids,
-                        CatalogSeeder.Source catalogSource, UiPreferences uiPreferences) {
+    public AppContainer(AppDatabase database, AppExecutors executors, Clock clock, ZoneId zone,
+                        IdGenerator ids, CatalogSeeder.Source catalogSource, UiPreferences uiPreferences) {
         this.database = database;
         this.executors = executors;
         this.ids = ids;
@@ -62,6 +66,7 @@ public final class AppContainer {
         this.templates = new TemplateRepository(database, users, executors, clock, ids);
         this.techniques = new TechniqueRepository(database.techniqueDao(), executors);
         this.settings = new SettingsRepository(database.userSettingDao(), users, executors, clock);
+        this.activeSessions = new ActiveSessionRepository(database, users, executors, clock, zone, ids);
         this.catalogSeeder = new CatalogSeeder(database, catalogSource, clock);
     }
 

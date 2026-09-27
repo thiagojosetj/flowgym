@@ -47,7 +47,12 @@ public final class TestContainers {
     }
 
     public static AppContainer create(Context context, AppDatabase database) {
-        return new AppContainer(database, directExecutors(), FIXED_CLOCK, IdGenerator.UUID_V7,
+        return create(context, database, FIXED_CLOCK);
+    }
+
+    /** Same, with a clock the test can move forward (sessions, pauses, rest). */
+    public static AppContainer create(Context context, AppDatabase database, Clock clock) {
+        return new AppContainer(database, directExecutors(), clock, ZoneOffset.UTC, IdGenerator.UUID_V7,
                 () -> context.getAssets().open(CatalogSeeder.ASSET_PATH),
                 new UiPreferences(context.getSharedPreferences("test_ui_prefs", Context.MODE_PRIVATE)));
     }

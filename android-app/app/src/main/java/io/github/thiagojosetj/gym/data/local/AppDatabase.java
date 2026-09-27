@@ -12,6 +12,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
 import io.github.thiagojosetj.gym.data.local.dao.CatalogDao;
 import io.github.thiagojosetj.gym.data.local.dao.ExerciseDao;
 import io.github.thiagojosetj.gym.data.local.dao.MetadataDao;
+import io.github.thiagojosetj.gym.data.local.dao.SessionDao;
 import io.github.thiagojosetj.gym.data.local.dao.TechniqueDao;
 import io.github.thiagojosetj.gym.data.local.dao.TemplateDao;
 import io.github.thiagojosetj.gym.data.local.dao.UserSettingDao;
@@ -78,6 +79,8 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract TemplateDao templateDao();
 
     public abstract TechniqueDao techniqueDao();
+
+    public abstract SessionDao sessionDao();
 
     public abstract UserSettingDao userSettingDao();
 
