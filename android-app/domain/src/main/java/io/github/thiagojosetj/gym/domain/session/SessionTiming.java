@@ -5,17 +5,11 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * The clock of a session, computed from persisted timestamps (PRODUCT_SPEC section 7).
+ * A session and its pause rows, as stored (PRODUCT_SPEC section 7). This is the exact view, used
+ * when the session is finished (to write the cached paused total) and by the tests.
  *
- * <p>There is deliberately no counter to increment: the UI asks this class again every second, and
- * the answer is a pure function of {@code now}. That is what makes the numbers survive rotation,
- * process death and the app being in the background for an hour.
- *
- * <ul>
- *   <li>total     = end - start
- *   <li>paused    = sum of the pause intervals
- *   <li>effective = total - paused
- * </ul>
+ * <p>The arithmetic itself lives in {@link SessionClock}: this record only reduces the rows to it,
+ * so the live screen (which reads a cheap projection) and the summary cannot disagree.
  *
  * @param startedAt when the session started (wall clock, ms)
  * @param endedAt   when it finished, or null while it is running
@@ -64,25 +58,32 @@ public record SessionTiming(long startedAt, Long endedAt, List<PauseInterval> pa
     }
 
     /**
-     * Wall-clock duration of the session. Clamped at zero so a backwards clock change shows 0
-     * instead of a negative time; the stored timestamps are never rewritten to hide it.
+     * Reduces the pause rows to the projection the screen uses. The open pause keeps its start, so
+     * its duration is still computed from {@code now} by {@link SessionClock}.
      */
+    public SessionClock clock() {
+        long closed = 0L;
+        Long open = null;
+        for (PauseInterval pause : pauses) {
+            if (pause.isOpen()) {
+                open = pause.startedAt();
+            } else {
+                closed += pause.durationMs(pause.startedAt());
+            }
+        }
+        return new SessionClock(startedAt, endedAt, closed, open);
+    }
+
     public long totalMs(long now) {
-        long end = endedAt != null ? endedAt : now;
-        return Math.max(0L, end - startedAt);
+        return clock().totalMs(now);
     }
 
     public long pausedMs(long now) {
-        long reference = endedAt != null ? endedAt : now;
-        long sum = 0L;
-        for (PauseInterval pause : pauses) {
-            sum += pause.durationMs(reference);
-        }
-        return Math.min(sum, totalMs(now));
+        return clock().pausedMs(now);
     }
 
     /** Time actually training: total minus every pause. This is what the big timer shows. */
     public long effectiveMs(long now) {
-        return Math.max(0L, totalMs(now) - pausedMs(now));
+        return clock().effectiveMs(now);
     }
 }
