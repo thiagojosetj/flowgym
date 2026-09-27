@@ -49,15 +49,38 @@ public class MigrationOnDeviceTest {
                 + " VALUES ('" + SET_ID + "', 'te-1', 0, 12, 12)");
         db.close();
 
-        // Validates every table, column, index and foreign key against the exported v2 schema.
-        SupportSQLiteDatabase migrated =
-                helper.runMigrationsAndValidate(DB_NAME, 2, true, AppDatabase.MIGRATION_1_2);
+        // Validates every table, column, index and foreign key against the exported schema.
+        SupportSQLiteDatabase migrated = helper.runMigrationsAndValidate(DB_NAME, 3, true,
+                AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3);
 
         try (Cursor cursor = migrated.query(
                 "SELECT target_reps_min, technique_id FROM template_set WHERE id = '" + SET_ID + "'")) {
             assertTrue("the planned set must survive the migration", cursor.moveToFirst());
             assertEquals(12, cursor.getInt(0));
             assertTrue("a migrated set has no technique yet", cursor.isNull(1));
+        }
+        migrated.close();
+    }
+
+    @Test
+    public void migratesFromVersion2CreatingTheSessionTables() throws IOException {
+        String name = "migration-device-test-2.db";
+        SupportSQLiteDatabase db = helper.createDatabase(name, 2);
+        db.execSQL("INSERT INTO app_metadata (meta_key, meta_value) VALUES ('current_user_id', 'user-1')");
+        db.execSQL("INSERT INTO user_profile (id, is_local, created_at, updated_at) VALUES ('user-1', 1, 0, 0)");
+        db.close();
+
+        SupportSQLiteDatabase migrated =
+                helper.runMigrationsAndValidate(name, 3, true, AppDatabase.MIGRATION_2_3);
+
+        // The session tables exist and the rows that were there are untouched.
+        try (Cursor cursor = migrated.query("SELECT COUNT(*) FROM workout_session")) {
+            assertTrue(cursor.moveToFirst());
+            assertEquals(0, cursor.getInt(0));
+        }
+        try (Cursor cursor = migrated.query("SELECT COUNT(*) FROM user_profile")) {
+            assertTrue(cursor.moveToFirst());
+            assertEquals(1, cursor.getInt(0));
         }
         migrated.close();
     }

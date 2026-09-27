@@ -21,7 +21,7 @@ usam esses dados estão em [PRODUCT_SPEC.md](PRODUCT_SPEC.md); a sincronização
 `sync_status`: `PENDING` (alteração local ainda não enviada) ou `SYNCED`. Linhas do catálogo do
 sistema nascem `SYNCED` e nunca são enviadas.
 
-## 2. Esquema implementado — versão 2 (Fases 0–2)
+## 2. Esquema implementado — versão 3 (Fases 0–3)
 
 ```mermaid
 erDiagram
@@ -149,6 +149,61 @@ ficam em SharedPreferences.
 como uma unidade. Ao salvar, os filhos são substituídos em uma transação, **preservando seus UUIDs**
 (o rascunho carrega os ids), então referências externas continuam válidas.
 
+### `workout_session` (raiz de agregado, v3)
+| Coluna | Tipo | Notas |
+|---|---|---|
+| `id` | TEXT PK | |
+| `owner_user_id` | TEXT NOT NULL | |
+| `template_id` | TEXT NULL | **Sem FK**: o template pode ser excluído sem tocar o histórico |
+| `name` | TEXT NOT NULL | Snapshot do nome do treino no início |
+| `notes` | TEXT NULL | Observação **desta sessão** |
+| `status` | TEXT NOT NULL | `ACTIVE`, `COMPLETED`, `DISCARDED` |
+| `started_at` | INTEGER NOT NULL | |
+| `ended_at` | INTEGER NULL | |
+| `time_zone` | TEXT NOT NULL | Fuso em que o treino foi feito |
+| `local_date` | TEXT NOT NULL | Data ISO naquele fuso: é por ela que o calendário agrupa |
+| `total_paused_ms` | INTEGER NOT NULL | **Cache**: recalculado das pausas ao finalizar; nenhuma leitura o trata como verdade |
+| `rating` | INTEGER NULL | Avaliação 1–5 (sem interface ainda) |
+| `rest_set_log_id` | TEXT NULL | Série cujo descanso está correndo (sem FK: estado transitório) |
+| `rest_ends_at` | INTEGER NULL | **Instante** em que o descanso termina |
+| `rest_remaining_ms_when_paused` | INTEGER NULL | Descanso congelado enquanto a sessão está pausada |
+| `created_at`, `updated_at`, `deleted_at` | INTEGER | |
+| `sync_status`, `server_version` | | |
+
+Índices: `owner_user_id` e (`owner_user_id`, `local_date`).
+
+**Uma sessão ativa por usuário** é garantida por `countActive()` + inserção **na mesma transação**, na
+thread única de disco — não por índice: o Room não declara índice único parcial, e criar um por fora
+faz a validação de esquema falhar ao abrir o banco (ADR-0032).
+
+### `session_pause` (v3)
+`id` TEXT PK · `session_id` FK CASCADE · `started_at` INTEGER NOT NULL · `ended_at` INTEGER NULL
+(`NULL` = pausa aberta, ou seja, a sessão está pausada agora).
+
+### `session_exercise` (v3)
+`id` TEXT PK · `session_id` FK CASCADE · `exercise_id` FK (o catálogo só é desativado, nunca apagado)
+· `template_exercise_id` TEXT NULL · `position` · **snapshots**: `exercise_name`, `tracking_type`,
+`load_basis`, `implement_count`, `laterality`, `side_mode`, `rest_seconds`, `permanent_notes` ·
+`notes` (da sessão) · `previous_session_exercise_id` (ponteiro congelado para a comparação, sem FK) ·
+`started_at` NULL.
+
+Músculos **não** são copiados: estatísticas por grupamento leem o catálogo atual, então uma correção
+anatômica também corrige o passado (§4).
+
+### `set_log` (v3)
+`id` TEXT PK · `session_exercise_id` FK CASCADE · `parent_set_id` TEXT NULL (auto-FK: segmentos de
+drop-set/rest-pause, ainda sem interface) · `position` · `technique_id` FK →
+`training_technique.id` · **planejado**: `planned_reps_min`, `planned_reps_max`, `planned_weight_g`,
+`planned_duration_s`, `planned_rest_seconds` (NOT NULL) · **realizado**: `weight_g`, `reps`,
+`reps_left`, `reps_right`, `duration_s` · `status` (`PENDING`/`COMPLETED`/`SKIPPED`) · `completed_at`
+· `notes`.
+
+Um campo de realizado em `NULL` significa **"ainda não confirmado"**. Sugestões nunca são gravadas
+aqui: elas são derivadas da sessão anterior (PRODUCT_SPEC §6.5). O pareamento com a sessão anterior é
+por **ordinal entre as séries de trabalho**, calculado em Java (`WorkingSetPairing`), porque o SQLite
+da API 28 não tem funções de janela — e porque dado derivado se corrige com um release, enquanto uma
+coluna exigiria migration (ADR-0033).
+
 ## 3. Tabelas planejadas (próximas migrations)
 
 ### Fase 1 — mídia
@@ -161,33 +216,13 @@ como uma unidade. Ao salvar, os filhos são substituídos em uma transação, **
 - Novas colunas: `template_exercise.group_id`, `.technique_id` (esquema de séries, ex.: pirâmide),
   `.technique_params`; `template_set.technique_params`.
 
-### Fase 3 — sessões (histórico)
-```mermaid
-erDiagram
-    workout_session ||--o{ session_exercise : ""
-    workout_session ||--o{ session_pause : ""
-    workout_session ||--o{ session_exercise_group : ""
-    session_exercise ||--o{ set_log : ""
-    set_log ||--o{ set_log : "parent_set_id (segmentos)"
-```
-- `workout_session` (raiz): `id`, `owner_user_id`, `template_id` NULL (sem FK — template pode ser
-  excluído), `name` (snapshot), `notes` (da sessão), `status` (`ACTIVE`/`COMPLETED`/`DISCARDED`),
-  `started_at`, `ended_at`, `time_zone`, `local_date`, `total_paused_ms` (cache), `rating` NULL,
-  `routine_id`/`routine_date` NULL, estado do descanso (`rest_set_log_id`, `rest_ends_at`,
-  `rest_remaining_ms_when_paused`), colunas de sync.
-- `session_pause`: `id`, `session_id`, `started_at`, `ended_at` NULL (pausa aberta).
-- `session_exercise_group`: `id`, `session_id`, `label`, `technique_id`.
-- `session_exercise`: `id`, `session_id`, `exercise_id`, `template_exercise_id` NULL, `group_id`,
-  `position`, **snapshots** (`exercise_name`, `tracking_type`, `load_basis`, `implement_count`,
-  `laterality`, `side_mode`, `rest_seconds`, `permanent_notes`), `notes` (da sessão),
-  `previous_session_exercise_id` (ponteiro congelado para a comparação), `started_at`.
-- `set_log`: `id`, `session_exercise_id`, `parent_set_id` NULL (segmento de drop-set/rest-pause),
-  `position`, `technique_id`, **planejado** (`planned_reps_min/max`, `planned_weight_g`,
-  `planned_duration_s`), **realizado** (`weight_g`, `reps`, `reps_left`, `reps_right`,
-  `duration_s`), `status` (`PENDING`/`COMPLETED`/`SKIPPED`), `completed_at`, `notes`.
-
-Sugestões **não** são gravadas como realizado: campo realizado `NULL` = ainda não confirmado; a
-sugestão é derivada do `previous_session_exercise_id` (ou do planejado).
+### Fase 3 — o que ficou de fora da v3 (migrations futuras)
+As sessões **já existem** (ver §2). Continuam planejados, e **não foram criados** na v3:
+- `session_exercise_group` e `session_exercise.group_id` — entram com os grupos (supersérie), junto
+  com `template_exercise_group`.
+- `workout_session.routine_id` e `.routine_date` — entram com as rotinas (Fase 6).
+- Segmentos de drop-set/rest-pause: a coluna `set_log.parent_set_id` **existe**, e todas as consultas
+  filtram `parent_set_id IS NULL`; falta a interface para registrar as etapas.
 
 ### Fase 5 — recordes e peso corporal
 - `personal_record`: `id`, `owner_user_id`, `exercise_id`, `record_type` (`MAX_WEIGHT`,
@@ -246,6 +281,10 @@ revogação), `change_log` (sequência monotônica por usuário para o pull).
   `template_set.technique_id` (com FK e índice). O `MigrationTest` monta um banco v1 a partir do
   schema exportado, insere um treino e abre com o Room: se a migration divergir do esquema esperado,
   o teste falha (verificado quebrando o índice de propósito).
+- **v2 → v3** (`AppDatabase.MIGRATION_2_3`): cria as quatro tabelas de sessão. **Só cria tabelas** —
+  nada existente é tocado, então uma atualização interrompida não pode danificar os treinos que o
+  usuário já tem. O `MigrationTest` vai de v1 a v3 e também prova o cascade: excluir uma sessão
+  remove pausas, exercícios e séries.
 - **Nunca** `fallbackToDestructiveMigration` em builds de release: o usuário usa o app de verdade.
 
 ## 6. Correspondência com PostgreSQL (Fase 8)

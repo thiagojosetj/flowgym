@@ -91,8 +91,8 @@ io.github.thiagojosetj.gym
 │   ├── prefs/                 Preferências só do aparelho (UiPreferences → SharedPreferences)
 │   ├── repository/            Repositórios: API para os ViewModels, mapeiam entity ⇄ domain
 │   └── remote/                (Fase 8+, ainda não existe) Retrofit/OkHttp
-├── ui/                        Uma pasta por funcionalidade: home/, library/, templates/ (+ editor/), settings/, common/
-├── service/                   (Fase 3, ainda não existe) Foreground service do treino ativo
+├── ui/                        Uma pasta por funcionalidade: home/, library/, templates/ (+ editor/), session/, settings/, common/
+├── service/                   Foreground service `health` do treino ativo + notificação e alerta de descanso
 └── worker/                    (Fase 6/9, ainda não existe) WorkManager: lembretes de rotina, sync
 ```
 
@@ -248,6 +248,8 @@ Swift + SwiftUI consumindo a mesma API. O que torna isso viável:
 |---|---|---|
 | Regras puras | `domain/src/test` | JUnit 4 na JVM |
 | Room (DAO, consultas, seed, schema) | `app/src/test` | Robolectric + Room in-memory; `SchemaTest` compara o schema exportado com as entidades |
+| Treino em andamento (fluxo, rotação, faixa de recuperação) | `app/src/test` | Espresso sobre Robolectric; o relógio do container é fixo, então os cronômetros são determinísticos |
+| Recuperação após morte do processo | `app/src/test` | `SessionRecoveryTest`: banco em **arquivo**, fechado e reaberto com um container novo |
 | Fluxo principal em aparelho | `app/src/androidTest` | Espresso com SQLite, teclado e widgets reais (`connectedDebugAndroidTest`) |
 | Migrations | `app/src/test` | `MigrationTest` monta a versão anterior a partir do schema exportado e abre com o Room, que roda a migration e valida o esquema (sem `MigrationTestHelper`, que não funciona sob Robolectric no Windows — ADR-0012) |
 | ViewModels / repositórios | `app/src/test` | Robolectric + `InstantTaskExecutorRule` |

@@ -87,6 +87,12 @@ Os IDs abaixo são usados no ROADMAP, nos commits e nos testes. Estado atualizad
 - **ACT-08** Recuperação: "Você possui um treino em andamento. [CONTINUAR]".
 - **ACT-09** Finalizar: validar séries parcialmente preenchidas (nunca descartar silenciosamente) e mostrar resumo.
 
+**Implementado (27/09/2026):** ACT-01, ACT-02, ACT-04 (exceto registro por lado e segmentos), ACT-05,
+ACT-06, ACT-07, ACT-08 e ACT-09. O pré-preenchimento (ACT-03) existe e vem da sessão anterior, mas
+ainda **não é configurável**; uma faixa planejada (8–10) de propósito **não** pré-preenche as
+repetições — escolher 8 pelo usuário seria inventar um resultado. Falta validar em aparelho a
+notificação, o serviço em primeiro plano e o alerta com a tela apagada.
+
 ### 4.4 Histórico e resumo (Fase 4)
 - **HIS-01** Resumo: nome, data, horário, duração total e efetiva, pausas, exercícios, séries, repetições, volume, recordes, comparação, medalhas, avaliação subjetiva opcional (1–5).
 - **HIS-02** Calendário com dias treinados; tocar numa data abre as sessões do dia.

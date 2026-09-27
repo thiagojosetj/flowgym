@@ -11,10 +11,11 @@ apenas como referência conceitual: nenhum código, texto, imagem ou identidade 
 
 ## Status
 
-🟡 **Em desenvolvimento — Fundação + primeira fatia vertical concluídas.**
+🟡 **Em desenvolvimento — já dá para treinar com ele.**
 
-Já é possível navegar pela biblioteca de exercícios, montar treinos, salvá-los no banco local e
-reabri-los. O treino em andamento (cronômetros, séries realizadas) é a próxima fase. Veja o
+O ciclo completo funciona: montar um treino, iniciá-lo, registrar cada série, descansar com
+cronômetro, finalizar e ver o resumo. Tudo local, sem conta e sem internet. Falta validar em aparelho
+a notificação e o serviço em primeiro plano, e o histórico ainda não tem tela própria. Veja o
 [roadmap](docs/ROADMAP.md).
 
 ## Screenshots
@@ -37,11 +38,25 @@ verificadas por testes de UI automatizados.)
   permanentes; **reordenação por arrastar e soltar** (e por menu, acessível ao TalkBack).
 - **Cargas honestas**: halteres sempre "por halter" (nunca somados na tela); exercícios de peso
   corporal aceitam carga adicional (+) ou assistência (−).
+- **Treino em andamento**: uma tela com todos os exercícios, uma linha por série com **planejado /
+  anterior / atual**, marcar série feita, adicionar e remover séries, técnica por série com ⓘ.
+- **Nada se perde**: cada série confirmada vai para o banco na hora; o treino sobrevive a girar a tela,
+  ao app ir para o fundo e ao processo ser morto — ao voltar, a faixa "você tem um treino em andamento"
+  continua de onde parou.
+- **Tempo por timestamps**: o cronômetro geral e o descanso são sempre calculados de instantes
+  gravados, nunca de um contador — então ficam certos depois de uma hora com a tela apagada. Pausa,
+  retomada e ajustes de descanso (−15 / +15 / +30 s).
+- **Notificação persistente** com cronômetro nativo e ações Pausar/Abrir, em foreground service
+  `health`; som e vibração de fim de descanso conforme as configurações.
+- **Finalização honesta**: antes de finalizar, o app diz exatamente o que fará com cada série não
+  confirmada; nada é descartado em silêncio, e o resumo informa quantas séries **não** entraram no
+  volume (peso corporal e exercícios por tempo ficam fora de propósito).
+- **Configurações da conta**: descanso padrão (90 s de fábrica, editável), som e vibração.
 - **Tema** claro, escuro ou seguindo o sistema; paleta própria (Material 3).
 - **Multiusuário desde o banco**: identidade local agora, pronta para contas e sincronização depois.
 
 ### Planejadas
-Treino em andamento com cronômetros por timestamp e notificação persistente, histórico e calendário,
+Histórico e calendário,
 comparação com a sessão anterior, recordes pessoais, gráficos, rotinas semanais e **cíclicas**,
 metas e sequências de aderência, conquistas, contas + sincronização entre aparelhos, compartilhamento
 de treinos e dados corporais (peso e bioimpedância). Detalhes em
@@ -109,10 +124,16 @@ release (o id de debug termina em `.debug`).
 ./gradlew :domain:test :app:testDebugUnitTest :app:lintDebug
 ```
 
-- **`:domain`** — regras puras (padrões de treino, validações, cargas, UUID v7, normalização de busca).
-- **`:app`** (Robolectric, sem emulador) — seed do catálogo, busca e filtros no SQLite real, ida e volta
-  do agregado de treino, schema exportado vs. entidades, ViewModel do editor e o **fluxo completo pela
-  interface**: biblioteca → selecionar exercício → criar treino → editar séries → salvar → reabrir.
+São **183 testes** (96 no `:domain`, 87 no `:app`), todos na JVM — nenhum emulador necessário.
+
+- **`:domain`** — regras puras: padrões de treino, validações, cargas, UUID v7, normalização de busca,
+  aritmética de tempo do treino (pausas, relógio andando para trás, descanso), volume (com as exclusões
+  que a especificação exige) e a validação da finalização.
+- **`:app`** (Robolectric) — seed do catálogo, busca e filtros no SQLite real, ida e volta do agregado
+  de treino, migrations v1 → v3, ViewModels, o **fluxo completo pela interface** (biblioteca →
+  selecionar exercício → criar treino → editar séries → salvar → reabrir) e o **treino em andamento**
+  (iniciar → registrar série → descanso → pausar → finalizar), incluindo um teste que fecha o banco em
+  arquivo e reabre para provar que um treino sobrevive à morte do processo.
 - **Lint** do Android sem avisos, inclusive sobre o módulo `:domain` contra a API 28.
 
 Com um aparelho conectado (depuração USB ligada) ou um emulador:
@@ -123,8 +144,10 @@ Com um aparelho conectado (depuração USB ligada) ou um emulador:
 
 - **Smoke test** do fluxo principal no SQLite real, com teclado e widgets reais: criar treino →
   adicionar exercício → ajustar o descanso → salvar → excluir (limpa o que criou).
-- **Migration 1 → 2** com o `MigrationTestHelper` do Room, que valida tabelas, colunas, índices e
+- **Migrations** com o `MigrationTestHelper` do Room (v1 → v3), que valida tabelas, colunas, índices e
   chaves estrangeiras contra o schema exportado.
+- **Treino em andamento no aparelho**: o serviço em primeiro plano realmente promovido com o tipo
+  `health`, a notificação com cronômetro, e o treino sobrevivendo a sair do app.
 
 ## Estrutura
 

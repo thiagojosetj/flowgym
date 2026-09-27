@@ -44,10 +44,26 @@ Legenda: ✅ concluído · 🟡 em andamento/parcial · ⬜ não iniciado.
 - ⬜ Grupos de exercícios (supersérie, bi-set, tri-set, giant set) e técnicas de escopo exercício (pirâmides).
 - ⬜ Arquivar/desarquivar.
 
-### Fase 3 — Treino ativo ⬜
-Sessão, snapshots, lista completa em cards, planejado/anterior/atual, sugestões, cronômetro por
-timestamps, pausas, descanso, foreground service `health` + notificação, recuperação após morte do
-processo, finalização com validação.
+### Fase 3 — Treino ativo 🟡
+- ✅ Banco na versão 3: `workout_session`, `session_pause`, `session_exercise`, `set_log`, com
+  migration que só cria tabelas e teste que vai de v1 a v3.
+- ✅ Iniciar do treino salvo, copiando **snapshot** do plano (editar o template depois não muda o
+  histórico) e congelando o ponteiro da sessão anterior.
+- ✅ Tela única com todos os exercícios, cards recolhíveis, uma linha por série com planejado /
+  anterior / atual, adicionar e remover série, técnica por série com ⓘ.
+- ✅ Registro imediato: cada gesto é uma transação; digitação não confirmada é salva ao sair do campo
+  e ao fechar a tela (ADR-0031).
+- ✅ Cronômetro geral por timestamps, pausa/retomada, descanso automático com −15/+15/+30 e pular.
+- ✅ Notificação com cronômetro nativo e ações Pausar/Abrir, em foreground service `health`.
+- ✅ Recuperação: a faixa "você tem um treino em andamento" na Início lê só o banco.
+- ✅ Finalização com validação (PRODUCT_SPEC §8): mostra o que vai acontecer com cada série não
+  confirmada, nada é descartado em silêncio, e o resumo diz quantas séries ficaram fora do volume.
+- ⬜ Registro por lado (E 10 / D 9): as colunas existem e o domínio já calcula; falta o layout.
+- ⬜ Segmentos de drop-set / rest-pause (a coluna `parent_set_id` existe).
+- ⬜ Grupos de exercícios (supersérie) — dependem das tabelas de grupo, ainda não criadas.
+- ⬜ Avaliação 1–5 e observações da sessão (colunas existem, sem interface).
+- ⬜ **Validar no aparelho**: promoção do serviço com tipo `health` na API 34+, som e vibração com a
+  tela apagada, `POST_NOTIFICATIONS` negado, force stop e reboot, teclado real.
 
 ### Fase 4 — Histórico ⬜
 Resumo, calendário, sessão antiga, comparação com anterior.
@@ -85,9 +101,14 @@ Levantadas pela revisão de 22/09/2026 e **não corrigidas às cegas**, porque d
 - **Biblioteca em paisagem / telas baixas:** busca + chips + filtros ocupam um bloco fixo no topo e
   sobra pouco espaço para a lista. Provável solução: recolher o cabeçalho ao rolar (AppBarLayout).
 - Validar em aparelho o teclado, o arrastar e soltar e o contraste real dos dois temas.
+- **Fase 3, nada disso roda em Robolectric:** promoção do foreground service com tipo `health` na
+  API 34+ (um tipo errado ou uma permissão-pré-requisito faltando só falha no aparelho, no momento em
+  que o usuário toca "Iniciar treino"), cronômetro e contagem regressiva da notificação, som e
+  vibração de fim de descanso com a tela apagada, `POST_NOTIFICATIONS` negado, force stop e reboot no
+  meio do treino, e rolagem/foco com o teclado real numa sessão de 20 × 5 séries.
 
 ## Próxima etapa recomendada
-**Fase 3 — treino em andamento**: sessão com snapshots, tela única com todos os exercícios, planejado /
-anterior / atual, cronômetro por timestamps com pausa, descanso automático (usando as preferências de
-som e vibração já existentes), notificação com foreground service `health` e recuperação após morte do
-processo. Os grupos de exercícios (supersérie) podem entrar depois, sem bloquear a Fase 3.
+**Rodar a Fase 3 no aparelho** (`./gradlew :app:connectedDebugAndroidTest` + uso real no S24+): é o
+único jeito de provar a notificação, o serviço em primeiro plano na API 34+, o alerta de descanso com
+a tela apagada e o teclado. Depois disso, **Fase 4 — histórico** (resumo completo, calendário, sessão
+antiga e comparação), que é o que dá sentido ao que a Fase 3 grava.

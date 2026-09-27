@@ -27,13 +27,19 @@ são respondidos aqui quando mudam ou confirmam uma decisão.
 | 0019 | Edição de template com rascunho e "Salvar" explícito | Aceita |
 | 0020 | Idiomas: código em inglês, docs/UI em pt-BR | Aceita |
 | 0021 | Backend com Maven | Aceita |
-| 0022 | Treino ativo: timestamps + foreground service `health` | Aceita (implementação na Fase 3) |
+| 0022 | Treino ativo: timestamps + foreground service `health` | Aceita (implementada, ver 0031–0034) |
 | 0023 | Biblioteca de gráficos | **Pendente** (Fase 5) |
 | 0024 | Android Auto Backup habilitado com regras explícitas | Aceita |
 | 0025 | Kotlin embutido do AGP 9 mantido no padrão | Aceita (revisada) |
 | 0026 | Pacote Java neutro; nome do app provisório | Aceita |
 | 0027 | Testes de UI na JVM com `TestGymApplication` | Aceita |
 | 0028 | Revisão multi-lente com verificação adversarial antes de fechar cada etapa | Aceita |
+| 0029 | Preferências da conta no banco, do aparelho no SharedPreferences | Aceita |
+| 0030 | Técnica por série (não por exercício) | Aceita |
+| 0031 | Treino ativo: escrita imediata por ação, sem rascunho em memória | Aceita |
+| 0032 | Uma sessão ativa garantida pela transação, não por índice | Aceita |
+| 0033 | Pareamento com a sessão anterior é derivado, não armazenado | Aceita |
+| 0034 | Foreground service é projeção, nunca pré-requisito | Aceita |
 
 ---
 
@@ -188,6 +194,17 @@ Tempo sempre derivado de timestamps persistidos; notificação com cronômetro n
 service tipo `health` (+ `HIGH_SAMPLING_RATE_SENSORS`) enquanto houver treino ativo; sem
 `SYSTEM_ALERT_WINDOW`; WorkManager não é usado para o descanso. Detalhes em ARCHITECTURE §6.
 
+**Complementos ao implementar (27/09/2026):**
+- O alerta de fim de descanso é um `Handler.postDelayed` dentro do serviço, sempre re-derivado de
+  `rest_ends_at` e idempotente pelo id da série que já alertou. **Sem** `SCHEDULE_EXACT_ALARM`
+  (restrito a apps de despertador e calendário) e **sem** `WAKE_LOCK` (um foreground service em
+  execução não é congelado).
+- Permissões declaradas: `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_HEALTH`,
+  `HIGH_SAMPLING_RATE_SENSORS` (exigência da plataforma para o tipo `health`; o app não lê sensor
+  nenhum — suprimido no lint com essa justificativa), `POST_NOTIFICATIONS` e `VIBRATE`.
+- A atualização por segundo **não** é um LiveData observado pelo adapter (isso reenviaria a lista
+  inteira a cada segundo), e sim um ticker que alimenta dois TextViews fixos fora da RecyclerView.
+
 ### ADR-0023 — Gráficos (pendente)
 Candidatos avaliados preliminarmente em 21/09/2026:
 - **MPAndroidChart** — Java, Apache 2.0, mas sem release desde 2020 (efetivamente sem manutenção).
@@ -258,3 +275,41 @@ técnica existe e que seu escopo é `SET`; escopos `EXERCISE` e `GROUP` já exis
 disponíveis quando os grupos de exercícios entrarem.
 **Consequências:** o card do treino mostra os badges das técnicas usadas, e cada opção do seletor tem um
 ⓘ com descrição e instruções (o app explica o método em vez de mostrar só uma sigla).
+
+### ADR-0031 — Treino ativo: escrita imediata por ação, sem rascunho em memória
+**Contexto:** a ADR-0019 usa rascunho em memória + "Salvar" no editor de template. O treino ativo é
+outra coisa: 90 minutos, tela apagada, processo morto a qualquer momento, e nenhum botão "salvar".
+**Decisão:** cada gesto do usuário é uma transação (`ActiveSessionRepository`), e o ViewModel não
+guarda nada que possa ser perdido — só o **texto em digitação** e quais cards estão recolhidos. A tela
+observa o banco e renderiza o que está gravado.
+**Consequências:** a série confirmada está no disco quando o método retorna; um kill só pode perder
+digitação não confirmada, que por PRODUCT_SPEC §6.5 ainda não é resultado. Isso é provado pelo
+`SessionRecoveryTest`, que fecha o banco em arquivo e reabre com um container novo.
+Estende (não contradiz) a [[ADR-0019]], cuja última frase já previa persistência progressiva aqui.
+
+### ADR-0032 — Uma sessão ativa por usuário: transação, não índice
+**Contexto:** duas sessões ativas quebrariam o cronômetro, o descanso e a notificação.
+**Decisão:** `countActive()` + inserção dentro de `runInTransaction` na thread única de disco. O
+`observeActive()` ainda usa `LIMIT 1` como cinto de segurança.
+**Por que não um índice único parcial:** o Room não declara `@Index(... WHERE status='ACTIVE')`, e criar
+o índice por fora da declaração faz a validação de esquema do Room falhar ao abrir o banco. Uma tabela
+de "lock" seria pior: criaria uma **segunda definição** de "ativo", que pode divergir de `status`.
+
+### ADR-0033 — O pareamento com a sessão anterior é derivado, não armazenado
+**Contexto:** PRODUCT_SPEC §11 pareia **séries de trabalho** pela posição. A primeira versão do SQL
+pareava por `position` bruta: um aquecimento acrescentado hoje deslocava todo o "anterior" em um.
+**Decisão:** o ordinal entre séries de trabalho é calculado em `:domain` (`WorkingSetPairing`), a
+partir do `counts_as_working_set` da técnica. O SQLite da API 28 não tem funções de janela, então isso
+não dá para fazer na consulta.
+**Por que não uma coluna `working_position`:** exigiria migration e poderia divergir das técnicas.
+Dado derivado se corrige com um release.
+
+### ADR-0034 — O foreground service é projeção, nunca pré-requisito
+**Contexto:** nada do serviço roda em teste de JVM, e as regras de tipo de serviço da API 34+ só
+falham no aparelho — exatamente no momento em que o usuário toca "Iniciar treino".
+**Decisão:** a sessão é gravada **antes** de qualquer tentativa de iniciar o serviço; o start fica em
+try/catch; o serviço não guarda estado, observa o banco e se encerra sozinho quando não há sessão
+`ACTIVE`; `POST_NOTIFICATIONS` negado degrada apenas a notificação.
+**Consequências:** o pior caso é treinar sem notificação, nunca perder uma série. Falta validar em
+aparelho (ROADMAP, pendências).
+
