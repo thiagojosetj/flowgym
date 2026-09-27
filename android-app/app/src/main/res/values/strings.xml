@@ -217,20 +217,21 @@
     <string name="session_pause">Pausar</string>
     <string name="session_resume">Retomar</string>
     <string name="session_finish">Finalizar</string>
-    <string name="session_progress">%1$d de %2$d séries</string>
+    <plurals name="session_progress">
+        <item quantity="one">%1$d de %2$d série</item>
+        <item quantity="other">%1$d de %2$d séries</item>
+    </plurals>
     <string name="session_set_number">%d</string>
     <string name="session_set_warmup_badge">AQ</string>
     <string name="session_planned">Planejado: %s</string>
     <string name="session_previous">Anterior: %s</string>
-    <string name="session_previous_none">Anterior: —</string>
     <string name="session_weight_hint">kg</string>
     <string name="session_weight_hint_per_implement">kg/halter</string>
     <string name="session_reps_hint">reps</string>
     <string name="session_duration_hint">seg</string>
-    <string name="session_confirm_set">Marcar série %d como feita</string>
-    <string name="session_undo_set">Desfazer série %d</string>
+    <string name="session_confirm_set">Série %d: marcar como feita</string>
+    <string name="session_undo_set">Série %d: desfazer</string>
     <string name="session_set_done">feita</string>
-    <string name="session_set_skipped">não feita</string>
     <string name="session_add_set">Adicionar série</string>
     <string name="session_remove_set">Remover série %d</string>
     <string name="session_technique_of_set">Técnica da série %d</string>
@@ -243,7 +244,6 @@
     <string name="session_weight_value">%1$s %2$s</string>
     <string name="session_weight_per_implement_value">%1$s %2$s/halter</string>
     <string name="session_rest_title">Descanso</string>
-    <string name="session_rest_remaining">%s</string>
     <string name="session_rest_minus">−15 s</string>
     <string name="session_rest_plus_15">+15 s</string>
     <string name="session_rest_plus_30">+30 s</string>
@@ -253,7 +253,6 @@
     <string name="session_notification_channel">Treino em andamento</string>
     <string name="session_notification_channel_description">Mostra o cronômetro do treino e o descanso enquanto você treina.</string>
     <string name="session_notification_open">Abrir</string>
-    <string name="session_notification_unavailable">Treino iniciado, mas não foi possível mostrar a notificação.</string>
 
     <!-- Finish -->
     <string name="finish_title">Finalizar treino?</string>

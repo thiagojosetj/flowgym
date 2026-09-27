@@ -1,5 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!--
+        Active workout (ACT-07). The service type is "health", which is what a training session is;
+        the platform requires one sensor-family permission as its prerequisite, and
+        HIGH_SAMPLING_RATE_SENSORS is the only one of the three we can honestly declare (it is a
+        normal permission and grants no data access we do not use). No exact-alarm permission: those
+        are restricted to alarm-clock and calendar apps, and no WAKE_LOCK: a running foreground
+        service is not frozen.
+    -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" />
+    <!-- Declared only because the platform demands one sensor-family permission for the
+         health service type; the app reads no sensor at all. -->
+    <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS"
+        tools:ignore="HighSamplingRate" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <!-- ADR-0024: backup enabled with explicit rules (database + preferences, never cache). -->
     <application
@@ -22,6 +40,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+            Renders the workout in progress; it never owns it. stopWithTask=false so swiping the app
+            away does not silently end a session the user is in the middle of.
+        -->
+        <service
+            android:name=".service.ActiveWorkoutService"
+            android:exported="false"
+            android:foregroundServiceType="health"
+            android:stopWithTask="false" />
     </application>
 
 </manifest>

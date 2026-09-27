@@ -17,6 +17,7 @@ import io.github.thiagojosetj.gym.data.local.entity.SetLogEntity;
 import io.github.thiagojosetj.gym.data.local.entity.WorkoutSessionEntity;
 import io.github.thiagojosetj.gym.data.local.row.ActiveSetRow;
 import io.github.thiagojosetj.gym.data.local.row.PreviousSetRow;
+import io.github.thiagojosetj.gym.data.local.row.SessionHeaderRow;
 
 /**
  * Sessions of the current user. The current user is resolved inside the SQL (ADR-0006), so a query
@@ -81,6 +82,35 @@ public interface SessionDao {
     @Query("SELECT s.* FROM workout_session s WHERE s.id = :sessionId AND " + MINE_SQL)
     WorkoutSessionEntity findSession(String sessionId);
 
+    /**
+     * The session and its pause arithmetic in one row. The paused totals come from the intervals,
+     * never from the cached column, so a header can never claim a paused session is running.
+     */
+    String HEADER_SQL =
+            "SELECT s.id AS id, s.template_id AS templateId, s.name AS name, s.notes AS notes,"
+                    + " s.status AS status, s.started_at AS startedAt, s.ended_at AS endedAt,"
+                    + " (SELECT COALESCE(SUM(p.ended_at - p.started_at), 0) FROM session_pause p"
+                    + "     WHERE p.session_id = s.id AND p.ended_at IS NOT NULL) AS closedPausedMs,"
+                    + " (SELECT p.started_at FROM session_pause p WHERE p.session_id = s.id"
+                    + "     AND p.ended_at IS NULL ORDER BY p.started_at DESC LIMIT 1) AS openPauseStartedAt,"
+                    + " s.rest_set_log_id AS restSetLogId, s.rest_ends_at AS restEndsAt,"
+                    + " s.rest_remaining_ms_when_paused AS restRemainingMsWhenPaused"
+                    + " FROM workout_session s WHERE ";
+
+    @Query(HEADER_SQL + MINE_SQL + " AND s.status = 'ACTIVE' ORDER BY s.started_at DESC LIMIT 1")
+    LiveData<SessionHeaderRow> observeActiveHeader();
+
+    @Nullable
+    @Query(HEADER_SQL + MINE_SQL + " AND s.status = 'ACTIVE' ORDER BY s.started_at DESC LIMIT 1")
+    SessionHeaderRow findActiveHeader();
+
+    @Query(HEADER_SQL + "s.id = :sessionId AND " + MINE_SQL)
+    LiveData<SessionHeaderRow> observeHeader(String sessionId);
+
+    @Nullable
+    @Query(HEADER_SQL + "s.id = :sessionId AND " + MINE_SQL)
+    SessionHeaderRow findHeader(String sessionId);
+
     @Query(ACTIVE_ROWS_SQL)
     LiveData<List<ActiveSetRow>> observeRows(String sessionId);
 
@@ -107,12 +137,6 @@ public interface SessionDao {
 
     @Query(PREVIOUS_SETS_SQL)
     List<PreviousSetRow> findPreviousSets(String sessionId);
-
-    @Query("SELECT * FROM session_pause WHERE session_id = :sessionId ORDER BY started_at")
-    LiveData<List<SessionPauseEntity>> observePauses(String sessionId);
-
-    @Query("SELECT * FROM session_pause WHERE session_id = :sessionId ORDER BY started_at")
-    List<SessionPauseEntity> findPauses(String sessionId);
 
     @Nullable
     @Query("SELECT * FROM session_pause WHERE session_id = :sessionId AND ended_at IS NULL"

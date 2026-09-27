@@ -1,12 +1,18 @@
 package io.github.thiagojosetj.gym.ui;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 
 import androidx.activity.EdgeToEdge;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.IdRes;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -20,8 +26,10 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+import io.github.thiagojosetj.gym.GymApplication;
 import io.github.thiagojosetj.gym.R;
 import io.github.thiagojosetj.gym.databinding.ActivityMainBinding;
+import io.github.thiagojosetj.gym.service.ActiveWorkoutService;
 
 /**
  * The only activity. It owns the app bar and the bottom navigation; every screen is a fragment
@@ -35,6 +43,9 @@ public class MainActivity extends AppCompatActivity implements TabNavigator {
 
     private ActivityMainBinding binding;
     private NavController navController;
+    /** Asked once, when a workout actually starts; a refusal only costs the notification. */
+    private ActivityResultLauncher<String> notificationPermission;
+    private boolean notificationPermissionAsked;
     /** Whether the current screen is a bottom-navigation tab (read by the insets listener). */
     private boolean topLevelDestination = true;
 
@@ -58,6 +69,40 @@ public class MainActivity extends AppCompatActivity implements TabNavigator {
         });
 
         applyWindowInsets();
+
+        notificationPermission = registerForActivityResult(
+                new ActivityResultContracts.RequestPermission(), granted -> {
+                    // Either way the workout keeps logging; only the notification depends on this.
+                });
+        observeActiveWorkout();
+    }
+
+    /**
+     * The foreground service is started and stopped from here, where the app is certainly in the
+     * foreground, and only ever mirrors what the database says. It is never a precondition for
+     * training: if it fails to start, every set still gets logged (ADR-0031).
+     */
+    private void observeActiveWorkout() {
+        ((GymApplication) getApplication()).container().activeSessions.observeActiveHeader()
+                .observe(this, session -> {
+                    if (session == null) {
+                        ActiveWorkoutService.stop(this);
+                        return;
+                    }
+                    askForNotificationPermissionOnce();
+                    ActiveWorkoutService.start(this);
+                });
+    }
+
+    private void askForNotificationPermissionOnce() {
+        if (notificationPermissionAsked || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            return;
+        }
+        notificationPermissionAsked = true;
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS);
+        }
     }
 
     private static boolean isTopLevel(NavDestination destination) {

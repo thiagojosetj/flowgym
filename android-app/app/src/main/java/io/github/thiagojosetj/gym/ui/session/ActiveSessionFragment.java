@@ -138,8 +138,8 @@ public class ActiveSessionFragment extends Fragment implements SessionRowAdapter
             return;
         }
         binding.sessionName.setText(session.header().name());
-        binding.progress.setText(getString(R.string.session_progress, session.completedSets(),
-                session.totalSets()));
+        binding.progress.setText(getResources().getQuantityString(R.plurals.session_progress,
+                session.totalSets(), session.completedSets(), session.totalSets()));
         boolean paused = session.header().isPaused();
         binding.pausedLabel.setVisibility(paused ? View.VISIBLE : View.GONE);
         binding.buttonPause.setText(paused ? R.string.session_resume : R.string.session_pause);

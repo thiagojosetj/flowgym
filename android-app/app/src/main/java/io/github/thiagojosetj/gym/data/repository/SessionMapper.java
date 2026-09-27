@@ -8,18 +8,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.github.thiagojosetj.gym.data.local.entity.SessionPauseEntity;
-import io.github.thiagojosetj.gym.data.local.entity.WorkoutSessionEntity;
 import io.github.thiagojosetj.gym.data.local.row.ActiveSetRow;
 import io.github.thiagojosetj.gym.data.local.row.PreviousSetRow;
+import io.github.thiagojosetj.gym.data.local.row.SessionHeaderRow;
 import io.github.thiagojosetj.gym.domain.model.RepRange;
 import io.github.thiagojosetj.gym.domain.model.Weight;
 import io.github.thiagojosetj.gym.domain.session.ActiveSession;
 import io.github.thiagojosetj.gym.domain.session.LoggedSet;
-import io.github.thiagojosetj.gym.domain.session.PauseInterval;
+import io.github.thiagojosetj.gym.domain.session.SessionClock;
 import io.github.thiagojosetj.gym.domain.session.SessionExercise;
 import io.github.thiagojosetj.gym.domain.session.SessionHeader;
-import io.github.thiagojosetj.gym.domain.session.SessionTiming;
 import io.github.thiagojosetj.gym.domain.session.SetStatus;
 import io.github.thiagojosetj.gym.domain.session.SetValues;
 import io.github.thiagojosetj.gym.domain.session.WorkingSetPairing;
@@ -36,22 +34,16 @@ final class SessionMapper {
     private SessionMapper() {
     }
 
-    static SessionHeader toHeader(WorkoutSessionEntity session, List<SessionPauseEntity> pauses) {
-        List<PauseInterval> intervals = new ArrayList<>(pauses == null ? 0 : pauses.size());
-        if (pauses != null) {
-            for (SessionPauseEntity pause : pauses) {
-                intervals.add(new PauseInterval(pause.startedAt, pause.endedAt));
-            }
-        }
-        SessionTiming timing = new SessionTiming(session.startedAt, session.endedAt, intervals);
-        return new SessionHeader(session.id, session.templateId, session.name, session.notes,
-                session.status, timing.clock(), session.restSetLogId, session.restEndsAt,
-                session.restRemainingMsWhenPaused);
+    static SessionHeader toHeader(SessionHeaderRow row) {
+        SessionClock clock = new SessionClock(row.startedAt, row.endedAt,
+                Math.max(0L, row.closedPausedMs), row.openPauseStartedAt);
+        return new SessionHeader(row.id, row.templateId, row.name, row.notes, row.status, clock,
+                row.restSetLogId, row.restEndsAt, row.restRemainingMsWhenPaused);
     }
 
-    static ActiveSession toSession(WorkoutSessionEntity session, List<SessionPauseEntity> pauses,
-                                   List<ActiveSetRow> rows, List<PreviousSetRow> previousRows) {
-        return new ActiveSession(toHeader(session, pauses), toExercises(rows, previousRows));
+    static ActiveSession toSession(SessionHeaderRow header, List<ActiveSetRow> rows,
+                                  List<PreviousSetRow> previousRows) {
+        return new ActiveSession(toHeader(header), toExercises(rows, previousRows));
     }
 
     static List<SessionExercise> toExercises(List<ActiveSetRow> rows, List<PreviousSetRow> previousRows) {

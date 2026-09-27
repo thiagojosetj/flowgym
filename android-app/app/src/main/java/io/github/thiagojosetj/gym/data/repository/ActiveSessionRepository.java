@@ -7,7 +7,6 @@ import androidx.lifecycle.Transformations;
 
 import java.time.Clock;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -27,6 +26,7 @@ import io.github.thiagojosetj.gym.data.local.entity.WorkoutSessionEntity;
 import io.github.thiagojosetj.gym.data.local.entity.WorkoutTemplateEntity;
 import io.github.thiagojosetj.gym.data.local.row.ActiveSetRow;
 import io.github.thiagojosetj.gym.data.local.row.PreviousSetRow;
+import io.github.thiagojosetj.gym.data.local.row.SessionHeaderRow;
 import io.github.thiagojosetj.gym.data.local.row.TemplateExerciseRow;
 import io.github.thiagojosetj.gym.domain.session.ActiveSession;
 import io.github.thiagojosetj.gym.domain.session.FinishReview;
@@ -95,21 +95,12 @@ public final class ActiveSessionRepository {
      * banner needs: no flag in preferences, no running service (ACT-08).
      */
     public LiveData<SessionHeader> observeActiveHeader() {
-        MediatorLiveData<SessionHeader> result = new MediatorLiveData<>();
-        LiveData<WorkoutSessionEntity> session = dao.observeActive();
-        result.addSource(session, entity -> {
-            if (entity == null) {
-                result.setValue(null);
-            } else {
-                // The pauses of the active session are read on demand; the banner only needs the name.
-                result.setValue(SessionMapper.toHeader(entity, Collections.emptyList()));
-            }
-        });
-        return result;
+        return Transformations.map(dao.observeActiveHeader(),
+                row -> row == null ? null : SessionMapper.toHeader(row));
     }
 
     public LiveData<Boolean> observeHasActiveSession() {
-        return Transformations.map(dao.observeActive(), session -> session != null);
+        return Transformations.map(dao.observeActiveHeader(), row -> row != null);
     }
 
     /**
@@ -119,22 +110,20 @@ public final class ActiveSessionRepository {
      */
     public LiveData<ActiveSession> observeSession(String sessionId) {
         MediatorLiveData<ActiveSession> result = new MediatorLiveData<>();
-        LiveData<WorkoutSessionEntity> sessionSource = dao.observeSession(sessionId);
-        LiveData<List<SessionPauseEntity>> pauseSource = dao.observePauses(sessionId);
+        LiveData<SessionHeaderRow> headerSource = dao.observeHeader(sessionId);
         LiveData<List<ActiveSetRow>> rowSource = dao.observeRows(sessionId);
         LiveData<List<PreviousSetRow>> previousSource = dao.observePreviousSets(sessionId);
 
         Runnable combine = () -> {
-            WorkoutSessionEntity session = sessionSource.getValue();
-            if (session == null) {
+            SessionHeaderRow header = headerSource.getValue();
+            if (header == null) {
                 result.setValue(null);
                 return;
             }
-            result.setValue(SessionMapper.toSession(session, pauseSource.getValue(),
-                    rowSource.getValue(), previousSource.getValue()));
+            result.setValue(SessionMapper.toSession(header, rowSource.getValue(),
+                    previousSource.getValue()));
         };
-        result.addSource(sessionSource, ignored -> combine.run());
-        result.addSource(pauseSource, ignored -> combine.run());
+        result.addSource(headerSource, ignored -> combine.run());
         result.addSource(rowSource, ignored -> combine.run());
         result.addSource(previousSource, ignored -> combine.run());
         return result;
@@ -143,11 +132,11 @@ public final class ActiveSessionRepository {
     /** One-shot read, for the service and for tests. */
     public void loadSession(String sessionId, Consumer<ActiveSession> onResult, Consumer<Throwable> onError) {
         executors.runOnDisk(() -> {
-            WorkoutSessionEntity session = dao.findSession(sessionId);
-            if (session == null) {
+            SessionHeaderRow header = dao.findHeader(sessionId);
+            if (header == null) {
                 throw new SessionNotFoundException(sessionId);
             }
-            return SessionMapper.toSession(session, dao.findPauses(sessionId), dao.findRows(sessionId),
+            return SessionMapper.toSession(header, dao.findRows(sessionId),
                     dao.findPreviousSets(sessionId));
         }, onResult, onError);
     }
@@ -246,7 +235,7 @@ public final class ActiveSessionRepository {
             SessionSummary[] summary = new SessionSummary[1];
             database.runInTransaction(() -> {
                 WorkoutSessionEntity session = requireSession(sessionId);
-                ActiveSession snapshot = SessionMapper.toSession(session, dao.findPauses(sessionId),
+                ActiveSession snapshot = SessionMapper.toSession(requireHeader(sessionId),
                         dao.findRows(sessionId), dao.findPreviousSets(sessionId));
                 FinishReview review = snapshot.finishReview();
                 if (!review.setIdsToComplete().isEmpty()) {
@@ -264,9 +253,8 @@ public final class ActiveSessionRepository {
                 dao.updateSession(session);
 
                 // Re-read so the summary describes what is now in the database, not what was planned.
-                summary[0] = SessionSummary.of(SessionMapper.toSession(requireSession(sessionId),
-                        dao.findPauses(sessionId), dao.findRows(sessionId),
-                        dao.findPreviousSets(sessionId)), now);
+                summary[0] = SessionSummary.of(SessionMapper.toSession(requireHeader(sessionId),
+                        dao.findRows(sessionId), dao.findPreviousSets(sessionId)), now);
             });
             return summary[0];
         }, onFinished, error -> onError.accept(unwrap(error)));
@@ -431,6 +419,14 @@ public final class ActiveSessionRepository {
         }, ignored -> onDone.run(), error -> onError.accept(unwrap(error)));
     }
 
+    private SessionHeaderRow requireHeader(String sessionId) {
+        SessionHeaderRow header = dao.findHeader(sessionId);
+        if (header == null) {
+            throw new IllegalStateException(new SessionNotFoundException(sessionId));
+        }
+        return header;
+    }
+
     private WorkoutSessionEntity requireSession(String sessionId) {
         WorkoutSessionEntity session = dao.findSession(sessionId);
         if (session == null) {
@@ -476,7 +472,8 @@ public final class ActiveSessionRepository {
         session.status = SessionStatus.ACTIVE;
         session.startedAt = now;
         session.timeZone = zone.getId();
-        session.localDate = LocalDate.ofInstant(Instant.ofEpochMilli(now), zone).toString();
+        // Not LocalDate.ofInstant: that overload only exists from API 34 (ADR-0004).
+        session.localDate = Instant.ofEpochMilli(now).atZone(zone).toLocalDate().toString();
         session.createdAt = now;
         session.updatedAt = now;
         session.syncStatus = SyncStatus.PENDING;
