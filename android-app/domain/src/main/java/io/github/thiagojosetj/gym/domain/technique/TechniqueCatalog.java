@@ -30,6 +30,17 @@ public final class TechniqueCatalog {
         return id == null ? null : byId.get(id);
     }
 
+    /** Techniques with a given scope, in catalog order (sets, exercise sequences, groups). */
+    public List<TrainingTechnique> ofScope(TechniqueScope scope) {
+        List<TrainingTechnique> result = new ArrayList<>();
+        for (TrainingTechnique technique : byId.values()) {
+            if (technique.scope() == scope) {
+                result.add(technique);
+            }
+        }
+        return Collections.unmodifiableList(result);
+    }
+
     public List<TrainingTechnique> all() {
         // Not List.copyOf: that is API 30+ on Android (ADR-0004).
         return Collections.unmodifiableList(new ArrayList<>(byId.values()));

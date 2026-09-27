@@ -30,6 +30,7 @@ public final class AppContainer {
     private static final String TAG = "AppContainer";
 
     public final AppExecutors executors;
+    public final Clock clock;
     public final AppDatabase database;
     public final IdGenerator ids;
     public final UiPreferences uiPreferences;
@@ -59,6 +60,7 @@ public final class AppContainer {
                         IdGenerator ids, CatalogSeeder.Source catalogSource, UiPreferences uiPreferences) {
         this.database = database;
         this.executors = executors;
+        this.clock = clock;
         this.ids = ids;
         this.uiPreferences = uiPreferences;
         this.users = new UserRepository(database, clock, ids);

@@ -39,6 +39,7 @@ import io.github.thiagojosetj.gym.domain.template.ExercisePlanUpdate;
 import io.github.thiagojosetj.gym.domain.template.SetSpec;
 import io.github.thiagojosetj.gym.domain.template.TemplateRules;
 import io.github.thiagojosetj.gym.ui.common.NumberInput;
+import io.github.thiagojosetj.gym.ui.common.TechniqueDialogs;
 import io.github.thiagojosetj.gym.ui.common.RepRangeInput;
 
 /**
@@ -136,7 +137,7 @@ public class ExercisePlanSheet extends BottomSheetDialogFragment {
 
         viewModel.techniqueCatalog().observe(getViewLifecycleOwner(), catalog -> {
             techniquesUnavailable = catalog == null;
-            setTechniques = catalog == null ? Collections.emptyList() : setScopedTechniques(catalog);
+            setTechniques = catalog == null ? Collections.emptyList() : catalog.ofScope(TechniqueScope.SET);
             refreshAllRowTechniques();
         });
 
@@ -335,16 +336,6 @@ public class ExercisePlanSheet extends BottomSheetDialogFragment {
             }
         }
         return null;
-    }
-
-    private static List<TrainingTechnique> setScopedTechniques(TechniqueCatalog catalog) {
-        List<TrainingTechnique> result = new ArrayList<>();
-        for (TrainingTechnique technique : catalog.all()) {
-            if (technique.scope() == TechniqueScope.SET) {
-                result.add(technique);
-            }
-        }
-        return result;
     }
 
     /** Shows a check icon on the selected button of a toggle group (not colour alone). */

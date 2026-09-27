@@ -1,0 +1,290 @@
+package io.github.thiagojosetj.gym.ui.session;
+
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.recyclerview.widget.DiffUtil;
+import androidx.recyclerview.widget.ListAdapter;
+import androidx.recyclerview.widget.RecyclerView;
+
+import java.util.Objects;
+
+import io.github.thiagojosetj.gym.R;
+import io.github.thiagojosetj.gym.databinding.ItemSessionAddSetBinding;
+import io.github.thiagojosetj.gym.databinding.ItemSessionExerciseBinding;
+import io.github.thiagojosetj.gym.databinding.ItemSessionSetBinding;
+
+/**
+ * The active-workout list: exercise headers, set rows and an "add set" footer, in one flat adapter.
+ *
+ * <p>The delicate part is the text fields. A gym app rebinds rows while a sweaty thumb is typing, so:
+ * the row never writes into a field that has focus, the TextWatcher is installed once and guarded by
+ * a flag while binding, and change animations are off - they cross-fade a copy of the row and steal
+ * the caret. The typed text itself lives in the ViewModel, never in the view holder.
+ */
+final class SessionRowAdapter extends ListAdapter<SessionRow, RecyclerView.ViewHolder> {
+
+    /** What the screen can do to a row. */
+    interface Callbacks {
+        void onToggleExercise(String sessionExerciseId);
+
+        void onWeightTyped(String setId, String text);
+
+        void onRepsTyped(String setId, String text);
+
+        void onFieldDone(String setId);
+
+        void onConfirm(String setId);
+
+        void onUndo(String setId);
+
+        void onRemove(String sessionExerciseId, String setId);
+
+        void onTechnique(String setId);
+
+        void onAddSet(String sessionExerciseId);
+    }
+
+    private static final int TYPE_HEADER = 0;
+    private static final int TYPE_SET = 1;
+    private static final int TYPE_ADD = 2;
+
+    private final Callbacks callbacks;
+
+    SessionRowAdapter(Callbacks callbacks) {
+        super(DIFF);
+        this.callbacks = callbacks;
+    }
+
+    @Override
+    public int getItemViewType(int position) {
+        SessionRow row = getItem(position);
+        if (row instanceof SessionRow.ExerciseHeader) {
+            return TYPE_HEADER;
+        }
+        return row instanceof SessionRow.SetRow ? TYPE_SET : TYPE_ADD;
+    }
+
+    @NonNull
+    @Override
+    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        LayoutInflater inflater = LayoutInflater.from(parent.getContext());
+        if (viewType == TYPE_HEADER) {
+            return new HeaderHolder(ItemSessionExerciseBinding.inflate(inflater, parent, false));
+        }
+        if (viewType == TYPE_SET) {
+            return new SetHolder(ItemSessionSetBinding.inflate(inflater, parent, false), callbacks);
+        }
+        return new AddHolder(ItemSessionAddSetBinding.inflate(inflater, parent, false));
+    }
+
+    @Override
+    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+        SessionRow row = getItem(position);
+        if (holder instanceof HeaderHolder && row instanceof SessionRow.ExerciseHeader header) {
+            ((HeaderHolder) holder).bind(header, callbacks);
+        } else if (holder instanceof SetHolder && row instanceof SessionRow.SetRow set) {
+            ((SetHolder) holder).bind(set);
+        } else if (holder instanceof AddHolder && row instanceof SessionRow.AddSet add) {
+            ((AddHolder) holder).bind(add, callbacks);
+        }
+    }
+
+    // ------------------------------------------------------------------ holders
+
+    static final class HeaderHolder extends RecyclerView.ViewHolder {
+        private final ItemSessionExerciseBinding views;
+
+        HeaderHolder(ItemSessionExerciseBinding views) {
+            super(views.getRoot());
+            this.views = views;
+        }
+
+        void bind(SessionRow.ExerciseHeader header, Callbacks callbacks) {
+            views.name.setText(header.name());
+            String progress = views.getRoot().getContext().getString(R.string.session_exercise_progress,
+                    header.completedSets(), header.totalSets());
+            String separator = views.getRoot().getContext().getString(R.string.separator_dot);
+            views.meta.setText(header.restLabel() == null
+                    ? progress
+                    : progress + separator + views.getRoot().getContext()
+                    .getString(R.string.session_rest_title) + " " + header.restLabel());
+            views.permanentNotes.setText(header.permanentNotes());
+            views.permanentNotes.setVisibility(header.permanentNotes() == null ? View.GONE : View.VISIBLE);
+            views.collapseIcon.setRotation(header.collapsed() ? 0f : 180f);
+            // The action is spoken, not inferred from an icon rotation.
+            views.header.setContentDescription(views.getRoot().getContext().getString(
+                    header.collapsed() ? R.string.session_expand : R.string.session_collapse,
+                    header.name()));
+            String exerciseId = header.id().substring("header:".length());
+            views.header.setOnClickListener(v -> callbacks.onToggleExercise(exerciseId));
+        }
+    }
+
+    static final class SetHolder extends RecyclerView.ViewHolder {
+        private final ItemSessionSetBinding views;
+        private final Callbacks callbacks;
+        private boolean binding;
+        @Nullable
+        private String setId;
+        @Nullable
+        private String sessionExerciseId;
+
+        SetHolder(ItemSessionSetBinding views, Callbacks callbacks) {
+            super(views.getRoot());
+            this.views = views;
+            this.callbacks = callbacks;
+            // Installed once: a watcher added on every bind would fire for the previous row's text.
+            views.weightInput.addTextChangedListener(new SimpleWatcher(text -> {
+                if (!binding && setId != null) {
+                    callbacks.onWeightTyped(setId, text);
+                }
+            }));
+            views.repsInput.addTextChangedListener(new SimpleWatcher(text -> {
+                if (!binding && setId != null) {
+                    callbacks.onRepsTyped(setId, text);
+                }
+            }));
+            views.weightInput.setOnFocusChangeListener((v, hasFocus) -> {
+                if (!hasFocus && setId != null) {
+                    callbacks.onFieldDone(setId);
+                }
+            });
+            views.repsInput.setOnFocusChangeListener((v, hasFocus) -> {
+                if (!hasFocus && setId != null) {
+                    callbacks.onFieldDone(setId);
+                }
+            });
+            views.buttonDone.setOnClickListener(v -> {
+                if (setId == null) {
+                    return;
+                }
+                if (views.buttonDone.isSelected()) {
+                    callbacks.onUndo(setId);
+                } else {
+                    callbacks.onConfirm(setId);
+                }
+            });
+            views.buttonRemove.setOnClickListener(v -> {
+                if (setId != null && sessionExerciseId != null) {
+                    callbacks.onRemove(sessionExerciseId, setId);
+                }
+            });
+            views.buttonTechnique.setOnClickListener(v -> {
+                if (setId != null) {
+                    callbacks.onTechnique(setId);
+                }
+            });
+        }
+
+        void bind(SessionRow.SetRow row) {
+            binding = true;
+            setId = row.id();
+            sessionExerciseId = row.sessionExerciseId();
+            View root = views.getRoot();
+
+            views.setNumber.setText(row.number() == null
+                    ? root.getContext().getString(R.string.session_set_warmup_badge)
+                    : root.getContext().getString(R.string.session_set_number, row.number()));
+            views.planned.setText(row.plannedText());
+            views.planned.setVisibility(row.plannedText() == null ? View.GONE : View.VISIBLE);
+            views.previous.setText(row.previousText());
+            views.previous.setVisibility(row.previousText() == null ? View.GONE : View.VISIBLE);
+
+            views.weightLayout.setVisibility(row.showWeight() ? View.VISIBLE : View.GONE);
+            views.weightLayout.setHint(row.weightLabel());
+            views.repsLayout.setHint(row.repsLabel());
+            setTextIfIdle(views.weightInput, row.weightText());
+            setTextIfIdle(views.repsInput, row.repsText());
+            // The suggestion is a placeholder: it is visibly not a typed value (PRODUCT_SPEC 6.5).
+            views.weightInput.setHint(row.weightHint());
+            views.repsInput.setHint(row.repsHint());
+
+            views.buttonTechnique.setText(row.badge() == null ? "—" : row.badge());
+            views.buttonTechnique.setContentDescription(root.getContext().getString(
+                    R.string.session_technique_of_set, number(row)));
+
+            boolean done = row.done();
+            views.buttonDone.setSelected(done);
+            views.buttonDone.setContentDescription(root.getContext().getString(
+                    done ? R.string.session_undo_set : R.string.session_confirm_set, number(row)));
+            // State as a word, not only as a colour (accessibility).
+            views.setNumber.setContentDescription(done
+                    ? root.getContext().getString(R.string.session_set_number, number(row)) + ", "
+                    + root.getContext().getString(R.string.session_set_done)
+                    : null);
+
+            views.buttonRemove.setVisibility(row.removable() ? View.VISIBLE : View.GONE);
+            views.buttonRemove.setContentDescription(root.getContext().getString(
+                    R.string.session_remove_set, number(row)));
+            binding = false;
+        }
+
+        private static int number(SessionRow.SetRow row) {
+            return row.number() == null ? 1 : row.number();
+        }
+
+        /** Never writes into a field the user is typing in, and never re-sets the same text. */
+        private static void setTextIfIdle(android.widget.EditText field, @Nullable String text) {
+            String value = text == null ? "" : text;
+            if (field.hasFocus() || value.contentEquals(field.getText())) {
+                return;
+            }
+            field.setText(value);
+        }
+    }
+
+    static final class AddHolder extends RecyclerView.ViewHolder {
+        private final ItemSessionAddSetBinding views;
+
+        AddHolder(ItemSessionAddSetBinding views) {
+            super(views.getRoot());
+            this.views = views;
+        }
+
+        void bind(SessionRow.AddSet row, Callbacks callbacks) {
+            views.buttonAddSet.setContentDescription(views.getRoot().getContext()
+                    .getString(R.string.session_add_set) + ": " + row.exerciseName());
+            views.buttonAddSet.setOnClickListener(v -> callbacks.onAddSet(row.sessionExerciseId()));
+        }
+    }
+
+    /** TextWatcher with only the callback that matters. */
+    private static final class SimpleWatcher implements TextWatcher {
+        private final java.util.function.Consumer<String> onChanged;
+
+        SimpleWatcher(java.util.function.Consumer<String> onChanged) {
+            this.onChanged = onChanged;
+        }
+
+        @Override
+        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+        }
+
+        @Override
+        public void onTextChanged(CharSequence s, int start, int before, int count) {
+        }
+
+        @Override
+        public void afterTextChanged(Editable s) {
+            onChanged.accept(s.toString());
+        }
+    }
+
+    private static final DiffUtil.ItemCallback<SessionRow> DIFF = new DiffUtil.ItemCallback<>() {
+        @Override
+        public boolean areItemsTheSame(@NonNull SessionRow oldItem, @NonNull SessionRow newItem) {
+            return oldItem.id().equals(newItem.id());
+        }
+
+        @Override
+        public boolean areContentsTheSame(@NonNull SessionRow oldItem, @NonNull SessionRow newItem) {
+            return Objects.equals(oldItem, newItem);
+        }
+    };
+}

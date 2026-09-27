@@ -18,6 +18,9 @@
         <action
             android:id="@+id/action_home_to_settings"
             app:destination="@id/settingsFragment" />
+        <action
+            android:id="@+id/action_home_to_session"
+            app:destination="@id/activeSessionFragment" />
     </fragment>
 
     <fragment
@@ -27,6 +30,9 @@
         <action
             android:id="@+id/action_templates_to_editor"
             app:destination="@id/templateEditorFragment" />
+        <action
+            android:id="@+id/action_templates_to_session"
+            app:destination="@id/activeSessionFragment" />
     </fragment>
 
     <fragment
@@ -77,6 +83,16 @@
         <action
             android:id="@+id/action_editor_to_picker"
             app:destination="@id/exercisePickerFragment" />
+    </fragment>
+
+    <!-- The workout in progress. Leaving it does not end it: the session lives in the database. -->
+    <fragment
+        android:id="@+id/activeSessionFragment"
+        android:name="io.github.thiagojosetj.gym.ui.session.ActiveSessionFragment"
+        android:label="@string/session_title">
+        <argument
+            android:name="sessionId"
+            app:argType="string" />
     </fragment>
 
     <fragment

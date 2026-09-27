@@ -1,4 +1,4 @@
-package io.github.thiagojosetj.gym.ui.templates.editor;
+package io.github.thiagojosetj.gym.ui.common;
 
 import android.content.Context;
 import android.view.LayoutInflater;
@@ -24,9 +24,9 @@ import io.github.thiagojosetj.gym.domain.technique.TrainingTechnique;
  * <p>Both methods return the dialog so the caller can dismiss it in {@code onDestroyView}: a plain
  * dialog is not recreated with the fragment and would leak its window on rotation.
  */
-final class TechniqueDialogs {
+public final class TechniqueDialogs {
 
-    interface OnPicked {
+    public interface OnPicked {
         /** @param techniqueId null for a normal working set */
         void onPicked(@Nullable String techniqueId);
     }
@@ -34,7 +34,7 @@ final class TechniqueDialogs {
     private TechniqueDialogs() {
     }
 
-    static AlertDialog showPicker(Context context, List<TrainingTechnique> options,
+    public static AlertDialog showPicker(Context context, List<TrainingTechnique> options,
                                   @Nullable String selectedId, OnPicked callback) {
         LayoutInflater inflater = LayoutInflater.from(context);
         LinearLayout list = new LinearLayout(context);
@@ -89,7 +89,7 @@ final class TechniqueDialogs {
     }
 
     /** The ⓘ content: what the method is and how to record it. */
-    static AlertDialog showExplanation(Context context, TrainingTechnique technique) {
+    public static AlertDialog showExplanation(Context context, TrainingTechnique technique) {
         StringBuilder message = new StringBuilder();
         if (technique.description() != null) {
             message.append(technique.description());

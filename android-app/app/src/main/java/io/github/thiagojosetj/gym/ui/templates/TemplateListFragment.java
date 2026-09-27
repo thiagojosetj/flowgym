@@ -19,6 +19,7 @@ import io.github.thiagojosetj.gym.R;
 import io.github.thiagojosetj.gym.databinding.FragmentTemplateListBinding;
 import io.github.thiagojosetj.gym.domain.template.TemplateSummary;
 import io.github.thiagojosetj.gym.ui.common.SafeNavigation;
+import io.github.thiagojosetj.gym.ui.session.ActiveSessionFragment;
 import io.github.thiagojosetj.gym.ui.common.ViewModelFactories;
 import io.github.thiagojosetj.gym.ui.templates.editor.TemplateEditorFragment;
 
@@ -39,7 +40,8 @@ public class TemplateListFragment extends Fragment implements TemplateAdapter.Li
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         AppContainer app = ViewModelFactories.container(this);
         viewModel = new ViewModelProvider(this, ViewModelFactories.of(TemplateListViewModel.class,
-                () -> new TemplateListViewModel(app.templates))).get(TemplateListViewModel.class);
+                () -> new TemplateListViewModel(app.templates, app.activeSessions)))
+                .get(TemplateListViewModel.class);
 
         TemplateAdapter adapter = new TemplateAdapter(this);
         binding.list.setAdapter(adapter);
@@ -58,8 +60,17 @@ public class TemplateListFragment extends Fragment implements TemplateAdapter.Li
                 case DUPLICATED -> R.string.template_duplicated;
                 case DELETED -> R.string.template_deleted;
                 case FAILED -> R.string.template_operation_failed;
+                case ALREADY_TRAINING -> R.string.session_already_active;
+                case START_FAILED -> R.string.session_start_failed;
             };
             Snackbar.make(binding.getRoot(), text, Snackbar.LENGTH_SHORT).setAnchorView(binding.fabNew).show();
+        });
+        viewModel.startedSession().observe(getViewLifecycleOwner(), event -> {
+            String sessionId = event.consume();
+            if (sessionId != null) {
+                SafeNavigation.navigate(this, R.id.action_templates_to_session,
+                        ActiveSessionFragment.args(sessionId));
+            }
         });
     }
 
@@ -74,7 +85,9 @@ public class TemplateListFragment extends Fragment implements TemplateAdapter.Li
         popup.inflate(R.menu.menu_template_item);
         popup.setOnMenuItemClickListener(item -> {
             int id = item.getItemId();
-            if (id == R.id.action_edit) {
+            if (id == R.id.action_start) {
+                viewModel.startSession(template.id());
+            } else if (id == R.id.action_edit) {
                 openEditor(template.id());
             } else if (id == R.id.action_duplicate) {
                 viewModel.duplicate(template.id(), getString(R.string.template_copy_suffix));
