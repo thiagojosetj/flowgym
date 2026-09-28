@@ -12,8 +12,11 @@ import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.util.concurrent.Executor;
+
 import java.util.Objects;
 
+import io.github.thiagojosetj.gym.ui.common.ListDiffing;
 import io.github.thiagojosetj.gym.R;
 import io.github.thiagojosetj.gym.databinding.ItemSessionAddSetBinding;
 import io.github.thiagojosetj.gym.databinding.ItemSessionExerciseBinding;
@@ -56,8 +59,8 @@ final class SessionRowAdapter extends ListAdapter<SessionRow, RecyclerView.ViewH
 
     private final Callbacks callbacks;
 
-    SessionRowAdapter(Callbacks callbacks) {
-        super(DIFF);
+    SessionRowAdapter(Callbacks callbacks, Executor diffExecutor) {
+        super(ListDiffing.config(DIFF, diffExecutor));
         this.callbacks = callbacks;
     }
 
@@ -201,9 +204,11 @@ final class SessionRowAdapter extends ListAdapter<SessionRow, RecyclerView.ViewH
             views.repsLayout.setHint(row.repsLabel());
             setTextIfIdle(views.weightInput, row.weightText());
             setTextIfIdle(views.repsInput, row.repsText());
-            // The suggestion is a placeholder: it is visibly not a typed value (PRODUCT_SPEC 6.5).
-            views.weightInput.setHint(row.weightHint());
-            views.repsInput.setHint(row.repsHint());
+            // The suggestion is a PLACEHOLDER on the layout, not a hint on the field: the layout
+            // already draws "kg" in that exact spot, so two hints were painted on top of each other
+            // and neither was readable (found in review).
+            views.weightLayout.setPlaceholderText(row.weightHint());
+            views.repsLayout.setPlaceholderText(row.repsHint());
 
             views.buttonTechnique.setText(row.badge() == null ? "—" : row.badge());
             views.buttonTechnique.setContentDescription(root.getContext().getString(

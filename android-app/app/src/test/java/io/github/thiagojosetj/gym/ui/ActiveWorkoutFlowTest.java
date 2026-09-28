@@ -153,6 +153,30 @@ public class ActiveWorkoutFlowTest {
     }
 
     @Test
+    public void aValueStillBeingTypedAndAZeroAreBothRecordedAsTyped() {
+        // Regressions (review 2026-09-28): "42," made the check button fail with a generic error,
+        // and a typed 0 was silently replaced by last session's suggestion.
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            createTemplate("Push A", "Supino reto com barra");
+            startWorkout();
+
+            // The comma is what a pt-BR keyboard offers, and the button does not take the focus.
+            onView(setRow(0, R.id.weight_input)).perform(replaceText("42,"));
+            onView(setRow(0, R.id.reps_input)).perform(replaceText("10"));
+            onView(setRow(0, R.id.button_done)).perform(click());
+            onView(withId(R.id.progress)).check(matches(withText("1 de 3 séries")));
+            onView(setRow(0, R.id.done_label)).check(matches(isDisplayed()));
+            onView(setRow(0, R.id.weight_input)).check(matches(withText("42")));
+
+            // A deliberate zero stays a zero.
+            onView(setRow(1, R.id.weight_input)).perform(replaceText("0"));
+            onView(setRow(1, R.id.reps_input)).perform(replaceText("12"));
+            onView(setRow(1, R.id.button_done)).perform(click());
+            onView(setRow(1, R.id.weight_input)).check(matches(withText("0")));
+        }
+    }
+
+    @Test
     public void whatWasTypedAndNotConfirmedSurvivesARotation() {
         try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
             createTemplate("Push A", "Supino reto com barra");

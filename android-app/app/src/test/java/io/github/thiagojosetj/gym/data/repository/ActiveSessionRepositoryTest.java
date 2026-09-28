@@ -341,6 +341,58 @@ public class ActiveSessionRepositoryTest {
     }
 
     @Test
+    public void aClockCorrectedBackwardsStillLetsTheWorkoutBeFinished() throws Exception {
+        // Regression (review 2026-09-28): the device clock moving back past the start made finish()
+        // throw, so the session stayed ACTIVE - and with one active session allowed, the user could
+        // not start another workout either. The only way out was discarding the session.
+        String sessionId = start(createTemplate("Push A", "Supino reto com barra"));
+        LoggedSet set = loadSession(sessionId).exercises().get(0).sets().get(0);
+        clock.advanceMinutes(10);
+        confirm(sessionId, set.id(), new SetValues(kg(40), 10, null, null, null));
+
+        // The network corrects an RTC that was 15 minutes ahead.
+        clock.set(clock.instant().minusSeconds(15 * 60));
+        SessionSummary summary = finish(sessionId);
+
+        assertEquals(0L, summary.totalMs());
+        assertEquals(0L, summary.effectiveMs());
+        assertEquals(1, summary.performedSets());
+        assertEquals(SessionStatus.COMPLETED, loadSession(sessionId).header().status());
+        // And a new workout can start right away.
+        assertNotNull(start(createTemplate("Pull A", "Rosca martelo")));
+    }
+
+    @Test
+    public void aFinishedSessionCannotBeChangedAnyMore() throws Exception {
+        // Regression (review 2026-09-28): a screen left open on a finished session could still
+        // confirm sets, rewriting history that the user had already been shown.
+        String sessionId = start(createTemplate("Push A", "Supino reto com barra"));
+        List<LoggedSet> sets = loadSession(sessionId).exercises().get(0).sets();
+        confirm(sessionId, sets.get(0).id(), new SetValues(kg(40), 10, null, null, null));
+        finish(sessionId);
+
+        confirm(sessionId, sets.get(1).id(), new SetValues(kg(40), 8, null, null, null));
+        addSet(sessionId, loadSession(sessionId).exercises().get(0).id());
+        setTechnique(sessionId, sets.get(0).id(), warmUpTechniqueId());
+
+        ActiveSession after = loadSession(sessionId);
+        assertEquals(1, after.completedSets());
+        assertEquals(3, after.exercises().get(0).sets().size());
+        assertNull(after.exercises().get(0).sets().get(0).techniqueId());
+    }
+
+    @Test
+    public void theSessionRecordsTheTimeZoneItWasPerformedIn() throws Exception {
+        // The app can stay in memory across a flight, so the zone is read per session.
+        String sessionId = start(createTemplate("Push A", "Supino reto com barra"));
+
+        assertEquals("Z", count("SELECT time_zone FROM workout_session WHERE id = '" + sessionId + "'",
+                String.class));
+        assertEquals("2026-09-27", count("SELECT local_date FROM workout_session WHERE id = '"
+                + sessionId + "'", String.class));
+    }
+
+    @Test
     public void discardingKeepsTheRowSoTheDiscardCanBeSynced() throws Exception {
         String sessionId = start(createTemplate("Push A", "Supino reto com barra"));
 
@@ -542,6 +594,13 @@ public class ActiveSessionRepositoryTest {
 
     private static Weight kg(double value) {
         return Weight.of(value, WeightUnit.KILOGRAM);
+    }
+
+    private String count(String sql, Class<String> asText) {
+        try (Cursor cursor = database.getOpenHelper().getReadableDatabase().query(sql)) {
+            assertTrue(cursor.moveToFirst());
+            return cursor.getString(0);
+        }
     }
 
     private long count(String sql) {

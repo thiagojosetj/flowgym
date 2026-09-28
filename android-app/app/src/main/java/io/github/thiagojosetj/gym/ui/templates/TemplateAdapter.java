@@ -10,6 +10,9 @@ import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.util.concurrent.Executor;
+
+import io.github.thiagojosetj.gym.ui.common.ListDiffing;
 import io.github.thiagojosetj.gym.R;
 import io.github.thiagojosetj.gym.databinding.ItemTemplateBinding;
 import io.github.thiagojosetj.gym.domain.template.TemplateSummary;
@@ -37,8 +40,8 @@ final class TemplateAdapter extends ListAdapter<TemplateSummary, TemplateAdapter
 
     private final Listener listener;
 
-    TemplateAdapter(Listener listener) {
-        super(DIFF);
+    TemplateAdapter(Listener listener, Executor diffExecutor) {
+        super(ListDiffing.config(DIFF, diffExecutor));
         this.listener = listener;
     }
 

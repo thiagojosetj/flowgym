@@ -164,8 +164,8 @@ final class SessionRowBuilder {
 
     private String weightOf(SetValues values) {
         Weight weight = values.weight();
-        if (weight == null || weight.grams() == 0) {
-            return null;
+        if (weight == null) {
+            return null; // zero IS a value and is shown as "0"
         }
         return NumberInput.formatDecimal(Math.abs(weight.in(unit)), locale());
     }

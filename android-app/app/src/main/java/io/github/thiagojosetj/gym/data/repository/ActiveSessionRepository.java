@@ -8,6 +8,7 @@ import androidx.lifecycle.Transformations;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.function.Supplier;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -73,11 +74,16 @@ public final class ActiveSessionRepository {
     private final UserRepository users;
     private final AppExecutors executors;
     private final Clock clock;
-    private final ZoneId zone;
+    private final Supplier<ZoneId> zone;
     private final IdGenerator ids;
 
+    /**
+     * @param zone resolved per session, not once per process: the app can stay in memory across a
+     *             flight or a manual time-zone change, and {@code time_zone} must record the zone the
+     *             workout was actually performed in.
+     */
     public ActiveSessionRepository(AppDatabase database, UserRepository users, AppExecutors executors,
-                                   Clock clock, ZoneId zone, IdGenerator ids) {
+                                   Clock clock, Supplier<ZoneId> zone, IdGenerator ids) {
         this.database = database;
         this.dao = database.sessionDao();
         this.templates = database.templateDao();
@@ -263,7 +269,11 @@ public final class ActiveSessionRepository {
                 }
                 dao.closeOpenPauses(sessionId, now);
                 session.totalPausedMs = dao.sumClosedPausedMs(sessionId);
-                session.endedAt = now;
+                // Never before the start: a clock corrected backwards would otherwise store an
+                // impossible session, and reading it back threw - which made the workout
+                // unfinishable and, since only one may be active, blocked the next one too
+                // (found in review, 28/09/2026).
+                session.endedAt = Math.max(session.startedAt, now);
                 session.status = SessionStatus.COMPLETED;
                 clearRest(session);
                 touch(session, now);
@@ -285,7 +295,7 @@ public final class ActiveSessionRepository {
             }
             dao.closeOpenPauses(sessionId, now);
             session.totalPausedMs = dao.sumClosedPausedMs(sessionId);
-            session.endedAt = now;
+            session.endedAt = Math.max(session.startedAt, now);
             session.status = SessionStatus.DISCARDED;
             clearRest(session);
         }, onDone, onError);
@@ -449,6 +459,11 @@ public final class ActiveSessionRepository {
             database.runInTransaction(() -> {
                 try {
                     WorkoutSessionEntity session = requireSession(sessionId);
+                    if (session.status != SessionStatus.ACTIVE) {
+                        // Finished or discarded means history: no set, note, rest or pause may be
+                        // written to it, whatever screen is still open on top of it.
+                        return;
+                    }
                     action.apply(session, now);
                     touch(session, now);
                     dao.updateSession(session);
@@ -512,9 +527,10 @@ public final class ActiveSessionRepository {
         session.name = template.name;
         session.status = SessionStatus.ACTIVE;
         session.startedAt = now;
-        session.timeZone = zone.getId();
+        ZoneId current = zone.get();
+        session.timeZone = current.getId();
         // Not LocalDate.ofInstant: that overload only exists from API 34 (ADR-0004).
-        session.localDate = Instant.ofEpochMilli(now).atZone(zone).toLocalDate().toString();
+        session.localDate = Instant.ofEpochMilli(now).atZone(current).toLocalDate().toString();
         session.createdAt = now;
         session.updatedAt = now;
         session.syncStatus = SyncStatus.PENDING;

@@ -15,6 +15,8 @@ import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.util.concurrent.Executor;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -22,6 +24,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import io.github.thiagojosetj.gym.ui.common.ListDiffing;
 import io.github.thiagojosetj.gym.R;
 import io.github.thiagojosetj.gym.databinding.ItemExerciseBinding;
 import io.github.thiagojosetj.gym.domain.library.ExerciseSummary;
@@ -53,8 +56,8 @@ final class ExerciseAdapter extends ListAdapter<ExerciseSummary, ExerciseAdapter
     private final Listener listener;
     private Set<String> selected = Collections.emptySet();
 
-    ExerciseAdapter(boolean selectMode, Listener listener) {
-        super(DIFF);
+    ExerciseAdapter(boolean selectMode, Listener listener, Executor diffExecutor) {
+        super(ListDiffing.config(DIFF, diffExecutor));
         this.selectMode = selectMode;
         this.listener = listener;
     }

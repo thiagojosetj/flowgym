@@ -76,7 +76,7 @@ public class ActiveSessionFragment extends Fragment implements SessionRowAdapter
                 () -> new ActiveSessionViewModel(app.activeSessions, app.techniques, app.clock,
                         getResources(), sessionId))).get(ActiveSessionViewModel.class);
 
-        adapter = new SessionRowAdapter(this);
+        adapter = new SessionRowAdapter(this, app.executors.diskIO());
         binding.list.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.list.setAdapter(adapter);
         // A change animation cross-fades a copy of the row and steals the caret from a field.

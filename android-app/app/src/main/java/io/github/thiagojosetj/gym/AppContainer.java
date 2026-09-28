@@ -68,7 +68,9 @@ public final class AppContainer {
         this.templates = new TemplateRepository(database, users, executors, clock, ids);
         this.techniques = new TechniqueRepository(database.techniqueDao(), executors);
         this.settings = new SettingsRepository(database.userSettingDao(), users, executors, clock);
-        this.activeSessions = new ActiveSessionRepository(database, users, executors, clock, zone, ids);
+        // The zone is resolved per session (see the repository): the process can outlive a change.
+        this.activeSessions = new ActiveSessionRepository(database, users, executors, clock,
+                () -> zone, ids);
         this.catalogSeeder = new CatalogSeeder(database, catalogSource, clock);
     }
 

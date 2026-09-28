@@ -35,7 +35,12 @@ final class SessionMapper {
     }
 
     static SessionHeader toHeader(SessionHeaderRow row) {
-        SessionClock clock = new SessionClock(row.startedAt, row.endedAt,
+        // A row where the session "ends before it starts" is possible: the device clock can move
+        // backwards mid-workout. Reading it must show a zero-length session, never throw - otherwise
+        // the session becomes unfinishable and, since only one may be active, the user cannot train
+        // again either (found in review, 28/09/2026).
+        Long endedAt = row.endedAt == null ? null : Math.max(row.startedAt, row.endedAt);
+        SessionClock clock = new SessionClock(row.startedAt, endedAt,
                 Math.max(0L, row.closedPausedMs), row.openPauseStartedAt);
         return new SessionHeader(row.id, row.templateId, row.name, row.notes, row.status, clock,
                 row.restSetLogId, row.restEndsAt, row.restRemainingMsWhenPaused);

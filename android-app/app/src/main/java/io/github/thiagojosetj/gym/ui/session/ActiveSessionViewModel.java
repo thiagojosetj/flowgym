@@ -142,9 +142,11 @@ public final class ActiveSessionViewModel extends ViewModel {
     /** Called when a field loses focus and when the screen stops: keeps typing across a restart. */
     public void flushDraft(String setId) {
         SetDraft draft = drafts.get(setId);
-        if (draft == null || draft.isEmpty()) {
-            return;
+        if (draft == null) {
+            return; // nothing was typed at all
         }
+        // A draft that is deliberately BLANK is still a value: the user erased a number and expects
+        // it to stay erased, even if the process dies (found in review).
         ActiveSession current = session.getValue();
         if (current == null) {
             return;
@@ -275,8 +277,10 @@ public final class ActiveSessionViewModel extends ViewModel {
         if (draft != null) {
             try {
                 if (draft.weightText() != null) {
-                    Double value = NumberInput.parseDecimal(draft.weightText());
-                    weight = value == null || value == 0 ? null : Weight.of(value, UNIT);
+                    // A typed 0 is a result (an unloaded or assisted set), not an empty field:
+                    // collapsing it to null let withSuggestion replace it with last time's load.
+                    Double value = NumberInput.parseDecimal(trimSeparator(draft.weightText()));
+                    weight = value == null ? null : Weight.of(value, UNIT);
                 }
                 if (draft.repsText() != null) {
                     Integer value = NumberInput.parseWholeNumber(draft.repsText());
@@ -292,6 +296,19 @@ public final class ActiveSessionViewModel extends ViewModel {
         }
         return new SetValues(weight, timed ? null : reps, set.values().repsLeft(),
                 set.values().repsRight(), timed ? duration : set.values().durationSeconds());
+    }
+
+    /**
+     * "42," is a valid moment of typing (SetDraft says so), and the user can tap the check without
+     * leaving the field, because a button does not take focus in touch mode. Dropping the dangling
+     * separator confirms the set instead of failing with a generic error.
+     */
+    private static String trimSeparator(String text) {
+        String trimmed = text == null ? "" : text.trim();
+        if (trimmed.endsWith(",") || trimmed.endsWith(".")) {
+            return trimmed.substring(0, trimmed.length() - 1);
+        }
+        return trimmed;
     }
 
     /** Empty fields adopt the suggestion the user was looking at when they confirmed the set. */

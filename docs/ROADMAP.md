@@ -65,6 +65,13 @@ Legenda: ✅ concluído · 🟡 em andamento/parcial · ⬜ não iniciado.
 - ⬜ **Validar no aparelho**: promoção do serviço com tipo `health` na API 34+, som e vibração com a
   tela apagada, `POST_NOTIFICATIONS` negado, force stop e reboot, teclado real.
 
+**Revisão de 28/09/2026 (adversarial, ADR-0028):** encontrou 13 defeitos no código da Fase 3, todos
+corrigidos com teste de regressão quando era possível testar na JVM. Três só apareciam **fora** do
+Robolectric, porque os testes usam executores sincronizados: o serviço se matava logo após iniciar, a
+tela do treino voltava sozinha para a Início antes de carregar, e um descanso que terminava continuava
+na tela e na notificação. Lição registrada: um teste que depende de executor sincronizado **não prova**
+comportamento de corrida — por isso a lista de pendências de aparelho acima não é opcional.
+
 ### Fase 4 — Histórico ⬜
 Resumo, calendário, sessão antiga, comparação com anterior.
 

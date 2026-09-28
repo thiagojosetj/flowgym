@@ -83,7 +83,7 @@ public class ExerciseLibraryFragment extends Fragment implements ExerciseAdapter
         viewModel = new ViewModelProvider(this, ViewModelFactories.of(ExerciseLibraryViewModel.class,
                 () -> new ExerciseLibraryViewModel(app.exercises))).get(ExerciseLibraryViewModel.class);
 
-        adapter = new ExerciseAdapter(selectMode, this);
+        adapter = new ExerciseAdapter(selectMode, this, app.executors.diskIO());
         binding.list.setAdapter(adapter);
         binding.list.setHasFixedSize(true);
 

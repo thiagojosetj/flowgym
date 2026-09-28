@@ -201,7 +201,13 @@ service tipo `health` (+ `HIGH_SAMPLING_RATE_SENSORS`) enquanto houver treino at
   execução não é congelado).
 - Permissões declaradas: `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_HEALTH`,
   `HIGH_SAMPLING_RATE_SENSORS` (exigência da plataforma para o tipo `health`; o app não lê sensor
-  nenhum — suprimido no lint com essa justificativa), `POST_NOTIFICATIONS` e `VIBRATE`.
+  nenhum — suprimido no lint com essa justificativa), `POST_NOTIFICATIONS`, `VIBRATE` e `WAKE_LOCK`.
+- **Correção de 28/09/2026 (revisão):** esta ADR dizia "sem `WAKE_LOCK`, porque um foreground service
+  em execução não é congelado". Isso confundia duas coisas: o processo não é congelado, mas a fila de
+  mensagens é movida por `SystemClock.uptimeMillis()`, que **não avança enquanto o aparelho está
+  suspenso**. Com o celular no bolso, um descanso de 90 s podia tocar minutos depois. O serviço agora
+  segura um `PARTIAL_WAKE_LOCK` **com timeout**, apenas enquanto um descanso está correndo. Alarme
+  exato continua descartado (permissão restrita a despertador e calendário).
 - A atualização por segundo **não** é um LiveData observado pelo adapter (isso reenviaria a lista
   inteira a cada segundo), e sim um ticker que alimenta dois TextViews fixos fora da RecyclerView.
 

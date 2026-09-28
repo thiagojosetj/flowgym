@@ -43,7 +43,7 @@ public class TemplateListFragment extends Fragment implements TemplateAdapter.Li
                 () -> new TemplateListViewModel(app.templates, app.activeSessions)))
                 .get(TemplateListViewModel.class);
 
-        TemplateAdapter adapter = new TemplateAdapter(this);
+        TemplateAdapter adapter = new TemplateAdapter(this, app.executors.diskIO());
         binding.list.setAdapter(adapter);
         binding.fabNew.setOnClickListener(v -> openEditor(null));
 
