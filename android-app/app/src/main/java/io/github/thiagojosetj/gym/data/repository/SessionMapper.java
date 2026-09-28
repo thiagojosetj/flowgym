@@ -35,15 +35,27 @@ final class SessionMapper {
     }
 
     static SessionHeader toHeader(SessionHeaderRow row) {
-        // A row where the session "ends before it starts" is possible: the device clock can move
-        // backwards mid-workout. Reading it must show a zero-length session, never throw - otherwise
-        // the session becomes unfinishable and, since only one may be active, the user cannot train
-        // again either (found in review, 28/09/2026).
-        Long endedAt = row.endedAt == null ? null : Math.max(row.startedAt, row.endedAt);
-        SessionClock clock = new SessionClock(row.startedAt, endedAt,
-                Math.max(0L, row.closedPausedMs), row.openPauseStartedAt);
+        SessionClock clock = toClock(row.startedAt, row.endedAt, row.closedPausedMs,
+                row.openPauseStartedAt);
         return new SessionHeader(row.id, row.templateId, row.name, row.notes, row.status, clock,
                 row.restSetLogId, row.restEndsAt, row.restRemainingMsWhenPaused);
+    }
+
+    /**
+     * Builds the clock every session reading goes through, including the history list.
+     *
+     * <p>A row where the session "ends before it starts" is possible: the device clock can move
+     * backwards mid-workout. Reading it must show a zero-length session, never throw - otherwise the
+     * session becomes unfinishable and, since only one may be active, the user cannot train again
+     * either (found in review, 28/09/2026). The stored instants are never rewritten to hide it.
+     *
+     * <p>This is one method rather than two because a second copy of the clamp would eventually be
+     * the one that is missing it.
+     */
+    static SessionClock toClock(long startedAt, @Nullable Long endedAt, long closedPausedMs,
+                                @Nullable Long openPauseStartedAt) {
+        Long end = endedAt == null ? null : Math.max(startedAt, endedAt);
+        return new SessionClock(startedAt, end, Math.max(0L, closedPausedMs), openPauseStartedAt);
     }
 
     static ActiveSession toSession(SessionHeaderRow header, List<ActiveSetRow> rows,

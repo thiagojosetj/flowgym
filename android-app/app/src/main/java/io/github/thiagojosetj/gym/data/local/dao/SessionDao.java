@@ -18,6 +18,7 @@ import io.github.thiagojosetj.gym.data.local.entity.WorkoutSessionEntity;
 import io.github.thiagojosetj.gym.data.local.row.ActiveSetRow;
 import io.github.thiagojosetj.gym.data.local.row.PreviousSetRow;
 import io.github.thiagojosetj.gym.data.local.row.SessionHeaderRow;
+import io.github.thiagojosetj.gym.data.local.row.SessionHistoryRow;
 
 /**
  * Sessions of the current user. The current user is resolved inside the SQL (ADR-0006), so a query
@@ -164,6 +165,55 @@ public interface SessionDao {
             + " WHERE se.exercise_id = :exerciseId AND " + MINE_SQL + " AND s.status = 'COMPLETED'"
             + " ORDER BY s.started_at DESC LIMIT 1")
     String findPreviousSessionExerciseId(String exerciseId);
+
+    // ------------------------------------------------------------------ history (PRODUCT_SPEC HIS-03)
+
+    /**
+     * One finished session per row, with the pauses already summed and the exercises and performed
+     * sets already counted. Ends in "WHERE " so a caller appends its own predicate.
+     *
+     * <p>{@code parent_set_id IS NULL} is not optional in the set count: drop-set and rest-pause
+     * segments will be child rows of the set they belong to, and counting them would silently
+     * inflate every past session the day that screen ships.
+     */
+    String HISTORY_SQL =
+            "SELECT s.id AS id, s.template_id AS templateId, s.name AS name,"
+                    + " s.started_at AS startedAt, s.ended_at AS endedAt,"
+                    + " s.local_date AS localDate, s.time_zone AS timeZone, s.rating AS rating,"
+                    + " (SELECT COALESCE(SUM(p.ended_at - p.started_at), 0) FROM session_pause p"
+                    + "     WHERE p.session_id = s.id AND p.ended_at IS NOT NULL) AS closedPausedMs,"
+                    + " (SELECT COUNT(*) FROM session_exercise se WHERE se.session_id = s.id)"
+                    + "     AS exerciseCount,"
+                    + " (SELECT COUNT(*) FROM set_log sl"
+                    + "     JOIN session_exercise se2 ON se2.id = sl.session_exercise_id"
+                    + "     WHERE se2.session_id = s.id AND sl.parent_set_id IS NULL"
+                    + "     AND sl.status = 'COMPLETED') AS performedSetCount"
+                    + " FROM workout_session s WHERE ";
+
+    /**
+     * The history list. {@code status = 'COMPLETED'} is explicit because a discarded session also
+     * carries an {@code ended_at}: "it ended" is not the same as "it happened".
+     */
+    @Query(HISTORY_SQL + MINE_SQL + " AND s.status = 'COMPLETED' ORDER BY s.started_at DESC")
+    LiveData<List<SessionHistoryRow>> observeCompletedSessions();
+
+    @Query(HISTORY_SQL + MINE_SQL + " AND s.status = 'COMPLETED' ORDER BY s.started_at DESC")
+    List<SessionHistoryRow> findCompletedSessions();
+
+    /**
+     * The previous time this same workout was performed, for the comparison in PRODUCT_SPEC
+     * section 11.
+     *
+     * <p>This is a different question from {@link #findPreviousSessionExerciseId(String)}, which
+     * answers "the last time I did this exercise, in any workout" and is frozen per set when the
+     * session starts (ADR-0033). Here the template has to match and the session has to be strictly
+     * older, which is also what keeps a session from comparing itself with itself.
+     */
+    @Nullable
+    @Query("SELECT s.id FROM workout_session s WHERE " + MINE_SQL
+            + " AND s.status = 'COMPLETED' AND s.template_id = :templateId"
+            + " AND s.started_at < :startedAt ORDER BY s.started_at DESC LIMIT 1")
+    String findPreviousSessionOfTemplate(String templateId, long startedAt);
 
     // ------------------------------------------------------------------ writes
 

@@ -11,6 +11,7 @@ import io.github.thiagojosetj.gym.data.local.AppDatabase;
 import io.github.thiagojosetj.gym.data.prefs.UiPreferences;
 import io.github.thiagojosetj.gym.data.repository.ActiveSessionRepository;
 import io.github.thiagojosetj.gym.data.repository.ExerciseRepository;
+import io.github.thiagojosetj.gym.data.repository.HistoryRepository;
 import io.github.thiagojosetj.gym.data.repository.SettingsRepository;
 import io.github.thiagojosetj.gym.data.repository.TechniqueRepository;
 import io.github.thiagojosetj.gym.data.repository.TemplateRepository;
@@ -40,6 +41,7 @@ public final class AppContainer {
     public final TechniqueRepository techniques;
     public final SettingsRepository settings;
     public final ActiveSessionRepository activeSessions;
+    public final HistoryRepository history;
     private final CatalogSeeder catalogSeeder;
 
     /** Production wiring. */
@@ -71,6 +73,7 @@ public final class AppContainer {
         // The zone is resolved per session (see the repository): the process can outlive a change.
         this.activeSessions = new ActiveSessionRepository(database, users, executors, clock,
                 () -> zone, ids);
+        this.history = new HistoryRepository(database, executors);
         this.catalogSeeder = new CatalogSeeder(database, catalogSource, clock);
     }
 

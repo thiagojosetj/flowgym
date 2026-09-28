@@ -41,6 +41,7 @@ são respondidos aqui quando mudam ou confirmam uma decisão.
 | 0033 | Pareamento com a sessão anterior é derivado, não armazenado | Aceita |
 | 0034 | Foreground service é projeção, nunca pré-requisito | Aceita |
 | 0035 | CI no GitHub Actions; o job falha em qualquer achado de lint | Aceita |
+| 0036 | Sessão do histórico é carregada uma vez, não observada | Aceita |
 
 ---
 
@@ -339,3 +340,21 @@ CI que reprova. Se o caminho ou o formato do relatório mudar numa versão futur
 com "relatório não encontrado" — ruidoso de propósito, porque o jeito errado de falhar é passar.
 `assembleRelease` fica no job para que uma regra de *keep* faltando no R8 apareça aqui, e não na
 véspera de publicar.
+
+### ADR-0036 — Uma sessão do histórico é **carregada uma vez**, não observada
+**Contexto:** todo o resto do app observa o banco por LiveData, e foi o certo em toda tela até aqui.
+Mas as três piores falhas da Fase 3 foram da mesma família: uma tela montada a partir de **duas ou
+três** consultas renderizava com o que respondesse primeiro (o `MediatorLiveData` de `observeSession`
+ainda emite uma sessão com a lista de exercícios vazia se o cabeçalho chega antes das linhas). Os
+testes não pegam isso, porque usam executores síncronos — nenhuma consulta chega "depois".
+**Decisão:** a tela de uma sessão concluída usa `loadDetail(...)`, uma leitura única na thread de
+disco que devolve tudo pronto. A **lista** continua observada, porque ela muda de verdade: um treino
+finalizado em outra tela precisa aparecer nela — mas é **uma** consulta e um `map`, nunca fontes
+combinadas.
+**Por que isto não é inconsistência com a ADR-0006:** LiveData existe para refletir dado que muda.
+Uma sessão concluída **não muda** — o histórico é imutável (PRODUCT_SPEC §2.3). Observá-la seria
+esperar por uma segunda emissão que nunca vem, e pagar por isso com um estado intermediário que pode
+ser desenhado. Carregar uma vez elimina a classe de bug inteira em vez de testá-la.
+**Consequências:** rotacionar não relê o banco (o ViewModel sobrevive, como em `ExerciseDetailViewModel`).
+Se algum dia o histórico ganhar edição (avaliação 1–5, observação da sessão), esta ADR precisa ser
+revista — aí passa a haver o que observar, e a escolha certa muda junto.

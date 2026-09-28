@@ -204,6 +204,36 @@ por **ordinal entre as séries de trabalho**, calculado em Java (`WorkingSetPair
 da API 28 não tem funções de janela — e porque dado derivado se corrige com um release, enquanto uma
 coluna exigiria migration (ADR-0033).
 
+### Leituras do histórico (Fase 4) — **sem mudança de esquema**
+
+A Fase 4 não criou nem alterou nenhuma tabela: o banco continua na **versão 3**. Tudo o que o
+histórico mostra já estava gravado desde a v3 — inclusive `local_date`, `time_zone` e `rating`, que
+existiam sem ninguém ler. O que entrou foram consultas novas em `SessionDao`:
+
+| Consulta | O que responde |
+|---|---|
+| `observeCompletedSessions()` / `findCompletedSessions()` | a lista, uma linha por sessão, com as pausas já somadas e os exercícios e séries feitas já contados em SQL |
+| `findPreviousSessionOfTemplate(templateId, startedAt)` | a sessão anterior **do mesmo template**, para a comparação do §11 |
+
+Três detalhes que não são opcionais:
+
+- **`status = 'COMPLETED'` é explícito.** Uma sessão descartada também tem `ended_at`: "terminou" não
+  é "aconteceu". Filtrar por `ended_at IS NOT NULL` traria o lixo de volta.
+- **`parent_set_id IS NULL` na contagem de séries.** Hoje não existe nenhuma linha filha, mas os
+  segmentos de drop-set/rest-pause vão ser exatamente isso — sem o filtro, o dia em que aquela tela
+  entrar todas as sessões passadas passam a contar séries a mais, silenciosamente.
+- **As pausas são somadas de `session_pause`, não lidas de `total_paused_ms`**, que é só cache (§2).
+
+O **volume** continua fora do SQL, e de propósito: as regras do PRODUCT_SPEC §9 (carga por implemento
+multiplicada, reps por lado somadas, peso corporal e séries por tempo fora) vivem em `SessionVolume`,
+no `:domain`. Reimplementá-las em SQL daria à lista e à tela da sessão duas chances de discordar — e
+a "N séries não incluídas no volume" tem de significar a mesma coisa nos dois lugares.
+
+**Índices:** nenhum foi criado. `workout_session` tem índice em `owner_user_id`, e a ordenação por
+`started_at` e a busca por `template_id` são varredura em cima disso. No volume de dados de uma pessoa
+(centenas de sessões) isso não se mede; quando medir, um índice é uma migration v5 com teste, não um
+ajuste solto.
+
 ## 3. Tabelas planejadas (próximas migrations)
 
 ### Fase 1 — mídia
