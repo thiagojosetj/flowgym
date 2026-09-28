@@ -40,6 +40,7 @@ são respondidos aqui quando mudam ou confirmam uma decisão.
 | 0032 | Uma sessão ativa garantida pela transação, não por índice | Aceita |
 | 0033 | Pareamento com a sessão anterior é derivado, não armazenado | Aceita |
 | 0034 | Foreground service é projeção, nunca pré-requisito | Aceita |
+| 0035 | CI no GitHub Actions; o job falha em qualquer achado de lint | Aceita |
 
 ---
 
@@ -319,3 +320,22 @@ try/catch; o serviço não guarda estado, observa o banco e se encerra sozinho q
 **Consequências:** o pior caso é treinar sem notificação, nunca perder uma série. Falta validar em
 aparelho (ROADMAP, pendências).
 
+### ADR-0035 — CI no GitHub Actions, e o job falha em **qualquer** achado de lint
+**Contexto:** o portão verde (`:domain:test`, `:app:testDebugUnitTest`, `:app:lintDebug` e
+`assembleRelease`) só existia na máquina de quem desenvolve; o repositório é público e não havia como
+provar que o `main` compila. A régua do projeto é **zero** achado de lint, mas `abortOnError = true`
+só derruba o build em achados de severidade *erro*: um *warning* novo entraria sem ninguém ver.
+**Decisão:** um workflow em `push` e `pull_request` roda as quatro tarefas na ordem em que dão
+retorno mais rápido, e um passo seguinte lê `app/build/reports/lint-results-debug.xml` e falha se
+houver **qualquer** `<issue>`. Esse passo também falha quando o relatório **não existe** — um passo
+que não acha o que conferir não pode passar em silêncio. A plataforma `android-37.0` é instalada
+explicitamente (`packages:`), em vez de confiar no que a imagem do runner traz naquele mês.
+**Por que não `lint { warningsAsErrors = true }`:** seria uma linha em vez de um passo, mas mudaria
+também o build local e o de release — uma regra nova de lint numa versão futura do AGP passaria a
+quebrar o trabalho do dia em vez de aparecer como falha de CI. A régua de zero achado é do
+repositório, não do compilador de quem está codando; o lugar de cobrá-la é o job.
+**Consequências:** quem roda o portão localmente continua vendo *warnings* de lint sem falhar, e é o
+CI que reprova. Se o caminho ou o formato do relatório mudar numa versão futura do AGP, o passo falha
+com "relatório não encontrado" — ruidoso de propósito, porque o jeito errado de falhar é passar.
+`assembleRelease` fica no job para que uma regra de *keep* faltando no R8 apareça aqui, e não na
+véspera de publicar.

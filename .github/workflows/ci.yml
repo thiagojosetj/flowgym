@@ -1,0 +1,97 @@
+# Continuous integration: the same gate that has to be green before every commit.
+#
+# Why these four tasks, in this order:
+#   :domain:test            - pure Java rules; fastest feedback, no Android at all.
+#   :app:testDebugUnitTest  - Robolectric + Room on the JVM (no device needed).
+#   :app:lintDebug          - checkDependencies = true, so it also analyses :domain,
+#                             which is the only lint coverage that module gets.
+#   assembleRelease         - proves R8 (minify + shrink) still builds a shippable APK;
+#                             a missing keep rule only shows up here, never in debug.
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+# Read-only token: this workflow never writes to the repository.
+permissions:
+  contents: read
+
+# A new push to the same ref makes the previous run pointless.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: android-app
+
+jobs:
+  gate:
+    name: tests + lint + release build
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      - name: Set up the JDK
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          # The Gradle JDK is 21; the modules still compile against the Java 17 API
+          # (options.release = 17), so this does not widen what the app can call.
+          java-version: "21"
+
+      - name: Install the Android SDK packages this project compiles against
+        uses: android-actions/setup-android@v4
+        with:
+          # compileSdk = release(37) resolves to the versioned platform directory
+          # android-37.0. The hosted runner does not ship it, so install it explicitly
+          # instead of relying on whatever the image happens to contain.
+          packages: "platforms;android-37.0 build-tools;37.0.0"
+
+      - name: Set up Gradle (with dependency and build cache)
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          build-root-directory: android-app
+          # Only the default branch refreshes the shared cache; branches read it.
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+          # Also verifies the checksum of gradle-wrapper.jar (supply-chain check).
+          validate-wrappers: true
+
+      - name: Run the gate
+        run: ./gradlew --no-daemon :domain:test :app:testDebugUnitTest :app:lintDebug assembleRelease
+
+      # abortOnError only fails the build on lint *errors*. The project's bar is zero
+      # findings of any severity, so the job asserts that itself instead of turning
+      # warnings into errors globally (which would also change local builds).
+      - name: Fail if lint reported anything at all
+        run: |
+          set -euo pipefail
+          report=app/build/reports/lint-results-debug.xml
+          if [ ! -f "$report" ]; then
+            echo "::error::lint report not found at android-app/$report - the lint task did not produce one"
+            exit 1
+          fi
+          count=$(grep -c '<issue ' "$report" || true)
+          if [ "$count" -ne 0 ]; then
+            echo "::error::lint reported $count finding(s); the bar for this repository is zero"
+            grep -o 'id="[^"]*"[^>]*severity="[^"]*"' "$report" | sort | uniq -c | sort -rn
+            exit 1
+          fi
+          echo "lint: 0 findings"
+
+      - name: Upload test and lint reports
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: reports
+          if-no-files-found: ignore
+          path: |
+            android-app/app/build/reports/
+            android-app/app/build/test-results/
+            android-app/domain/build/reports/
+            android-app/domain/build/test-results/

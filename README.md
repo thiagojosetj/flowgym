@@ -1,5 +1,7 @@
 # FlowGym
 
+[![CI](https://github.com/thiagojosetj/flowgym/actions/workflows/ci.yml/badge.svg)](https://github.com/thiagojosetj/flowgym/actions/workflows/ci.yml)
+
 > **Nome provisório.** Aplicativo de acompanhamento de musculação **offline-first**, feito em **Java**
 > para Android, com backend Spring Boot e app iOS planejados.
 

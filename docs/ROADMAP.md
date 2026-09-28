@@ -22,7 +22,10 @@ Legenda: ✅ concluído · 🟡 em andamento/parcial · ⬜ não iniciado.
 - ✅ Navegação (single-activity + bottom navigation) e design system (Material 3, paleta própria, claro/escuro).
 - ✅ Seletor de tema nas configurações.
 - ✅ Build de release com R8 (minify + shrink) validado.
-- ⬜ CI (GitHub Actions: build + testes + lint) — quando o repositório for publicado.
+- ✅ CI (GitHub Actions): `push` e `pull_request` rodam `:domain:test`, `:app:testDebugUnitTest`,
+  `:app:lintDebug` e `assembleRelease`, com cache do Gradle e a plataforma `android-37.0` instalada
+  explicitamente. O job **reprova em qualquer achado de lint**, não só em erro (ADR-0035). Badge no
+  README. Ainda não observado rodando no GitHub — ver pendências.
 - ✅ Testes instrumentados (`androidTest`): smoke test do fluxo principal e migration 1 → 2 com o
   `MigrationTestHelper` — escritos, aguardando a primeira execução em aparelho.
 
@@ -100,6 +103,11 @@ Link, código, deep link e QR; importação como cópia; revogação.
 Métricas flexíveis sobre o modelo de medições da Fase 5.
 
 ## Pendências conhecidas (precisam de aparelho/emulador para validar)
+
+- **CI ainda não foi visto rodando no GitHub.** O workflow foi validado com `actionlint` e o portão que
+  ele executa roda verde aqui (192 testes, 0 achados de lint, `assembleRelease` com R8), mas o job em si
+  só prova que funciona no primeiro `push` — a instalação de `platforms;android-37.0` no runner e o cache
+  do Gradle são as partes que este ambiente não consegue exercitar.
 
 Levantadas pela revisão de 22/09/2026 e **não corrigidas às cegas**, porque dependem de ver a tela:
 
