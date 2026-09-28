@@ -42,6 +42,7 @@ são respondidos aqui quando mudam ou confirmam uma decisão.
 | 0034 | Foreground service é projeção, nunca pré-requisito | Aceita |
 | 0035 | CI no GitHub Actions; o job falha em qualquer achado de lint | Aceita |
 | 0036 | Sessão do histórico é carregada uma vez, não observada | Aceita |
+| 0037 | Segmento de drop-set soma volume, mas conta como uma série só | Aceita |
 
 ---
 
@@ -358,3 +359,24 @@ ser desenhado. Carregar uma vez elimina a classe de bug inteira em vez de testá
 **Consequências:** rotacionar não relê o banco (o ViewModel sobrevive, como em `ExerciseDetailViewModel`).
 Se algum dia o histórico ganhar edição (avaliação 1–5, observação da sessão), esta ADR precisa ser
 revista — aí passa a haver o que observar, e a escolha certa muda junto.
+
+### ADR-0037 — Um segmento soma no volume, mas o drop-set inteiro conta como **uma** série
+**Contexto:** `set_log.parent_set_id` existe desde a v3 e nunca foi escrito. Antes de escrever a
+primeira linha era preciso decidir o que cada etapa de um drop-set (`40×10 → 30×8 → 20×6`) faz com os
+números, porque a escolha muda o valor em toda tela que mostra volume — e mudar depois reescreveria
+sessões passadas.
+**Decisão:** volume e repetições **somam todos os segmentos**; a contagem de **séries** conta **uma**.
+**Por que não contar 3 séries:** "séries feitas" viraria uma métrica inflada, e as estatísticas de
+séries por grupo muscular por semana (Fase 5) — que é métrica de treino de verdade, usada para
+programar volume semanal — passariam a contar um drop-set como o triplo de um exercício feito em
+séries normais. Duas pessoas com o mesmo treino teriam números incomparáveis por causa da técnica
+escolhida.
+**Por que não contar só a carga do topo no volume:** descartaria as 8 repetições a 30 kg e as 6 a
+20 kg, que foram executadas. O §9 já proíbe descartar em silêncio; somar os segmentos é a mesma regra
+de sempre aplicada a cada etapa, não uma regra nova.
+**Consequências:** a linha "N séries não incluídas no volume" passa a contar **séries-pai**, senão um
+drop-set com um segmento sem carga apareceria dentro e fora do volume ao mesmo tempo. Nenhuma
+consulta que conta séries muda: todas já filtram `parent_set_id IS NULL`, e a primeira etapa **é** a
+série-pai. Sem mudança de esquema — o banco continua na v3.
+**Em aberto (Fase 5):** para recordes, o segmento de maior carga é o que vale para "maior carga".
+Anotado no PRODUCT_SPEC §9.1; não implementado aqui.

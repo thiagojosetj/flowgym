@@ -257,6 +257,23 @@ Volume de carga de uma série elegível = **carga efetiva × repetições totais
 - **Transparência:** totais exibem "N séries não incluídas no volume" quando houver exclusões.
 - Cálculo interno em gramas; exibição em kg ou lb.
 
+### 9.1 Segmentos (drop-set, rest-pause) — decidido em 28/09/2026, antes do código
+
+Um drop-set é `40 kg × 10 → 30 kg × 8 → 20 kg × 6`. A pergunta é o que cada etapa faz com os
+números. Decisão:
+
+| Métrica | Regra | Por quê |
+|---|---|---|
+| **Volume** | **Soma de todos os segmentos** (40×10 + 30×8 + 20×6 = 760 kg) | As repetições a 30 kg e a 20 kg **aconteceram**. Contar só a carga do topo descartaria trabalho real, e §9 já proíbe descartar em silêncio. Não é decisão nova: é a regra do §9 aplicada a cada etapa. |
+| **Séries** | **Uma.** O drop-set inteiro conta como **1 série** | Um drop-set é uma série levada além da falha em quedas, não três séries. Contar três infla "séries feitas" e estragaria as séries por grupo muscular por semana (Fase 5), que é métrica de treino de verdade. O banco já diz isso: `parent_set_id` faz do segmento um **filho** da série, não um irmão. |
+| **Repetições** | **Soma de todos os segmentos** (24) | Foram executadas. |
+| **"N séries não incluídas no volume"** | Conta **séries-pai**. Uma série só entra na linha quando o conjunto inteiro (pai + segmentos) deu volume zero | Senão um drop-set com um segmento sem carga apareceria **dentro e fora** do volume ao mesmo tempo. |
+| **Recordes (Fase 5)** | O segmento de **maior carga** é o que vale para "maior carga" | Anotado agora para o dia em que os PRs entrarem; não implementado aqui. |
+
+A primeira etapa **é** a própria série (a linha com `parent_set_id IS NULL`); as etapas seguintes são
+filhas dela. Por isso toda consulta que conta séries continua filtrando `parent_set_id IS NULL` e
+continua certa sem mudança — e por isso isto **não precisa de migration**: a coluna existe desde a v3.
+
 ## 10. Recordes pessoais (PRs)
 
 Por exercício, considerando apenas séries elegíveis (§9, exceto que peso corporal conta para PRs de

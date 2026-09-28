@@ -201,7 +201,8 @@ public class SessionDetailTest {
 
     private static LoggedSet set(String id, SetValues values, SetStatus status) {
         return new LoggedSet(id, 0, 1, null, null, true, RepRange.exactly(10), null, null, 90,
-                values, status, status == SetStatus.COMPLETED ? 1L : null, null, null);
+                values, status, status == SetStatus.COMPLETED ? 1L : null, null, null,
+                Collections.emptyList());
     }
 
     private static SessionExercise bench(LoggedSet... sets) {

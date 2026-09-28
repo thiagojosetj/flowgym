@@ -64,6 +64,14 @@ public class ActiveSetRow {
     @Nullable
     public Integer setPosition;
 
+    /**
+     * Null for a set; the owning set's id for a drop-set or rest-pause segment (ADR-0037). The
+     * mapper nests the segments into their set - they are never rows of their own on screen, and
+     * they must never reach the working-set numbering, which counts sets.
+     */
+    @Nullable
+    public String parentSetId;
+
     @Nullable
     public String techniqueId;
 

@@ -89,6 +89,21 @@ final class SessionMapper {
                 ? Collections.emptyList()
                 : previousByExercise.getOrDefault(first.previousSessionExerciseId, Collections.emptyList());
 
+        // Segments are nested into their set, never listed beside it. Splitting them off BEFORE
+        // anything else matters: the working-set numbering and the pairing with the previous
+        // session both count SETS (ADR-0033), so letting a drop through here would renumber every
+        // set after it and shift the whole "anterior" column by one.
+        List<ActiveSetRow> parents = new ArrayList<>(rows.size());
+        Map<String, List<ActiveSetRow>> segmentsByParent = new HashMap<>();
+        for (ActiveSetRow row : rows) {
+            if (row.setId == null || row.parentSetId == null) {
+                parents.add(row);
+            } else {
+                segmentsByParent.computeIfAbsent(row.parentSetId, key -> new ArrayList<>()).add(row);
+            }
+        }
+        rows = parents;
+
         List<Boolean> currentWorking = new ArrayList<>(rows.size());
         for (ActiveSetRow row : rows) {
             currentWorking.add(isWorkingSet(row.techniqueId, row.techniqueCountsAsWorkingSet));
@@ -131,7 +146,8 @@ final class SessionMapper {
                     row.status == null ? SetStatus.PENDING : row.status,
                     row.completedAt,
                     row.setNotes,
-                    previousValues));
+                    previousValues,
+                    toSegments(segmentsByParent.get(row.setId))));
         }
         return new SessionExercise(first.sessionExerciseId, first.exerciseId, first.exercisePosition,
                 first.exerciseName, first.trackingType, first.loadBasis, first.implementCount,
@@ -155,6 +171,40 @@ final class SessionMapper {
     }
 
     /** No technique means a normal working set; a technique decides through its catalog flag. */
+    /**
+     * The later drops of a drop-set or rest-pause, as sets nested inside their own set
+     * (PRODUCT_SPEC section 9.1). A segment carries no planned values and no "previous": it is a
+     * drop off the set above it, not something the template asked for on its own.
+     */
+    private static List<LoggedSet> toSegments(@Nullable List<ActiveSetRow> rows) {
+        if (rows == null || rows.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<LoggedSet> segments = new ArrayList<>(rows.size());
+        for (int i = 0; i < rows.size(); i++) {
+            ActiveSetRow row = rows.get(i);
+            segments.add(new LoggedSet(
+                    row.setId,
+                    row.setPosition == null ? i : row.setPosition,
+                    null,
+                    row.techniqueId,
+                    row.techniqueCode,
+                    isWorkingSet(row.techniqueId, row.techniqueCountsAsWorkingSet),
+                    null,
+                    null,
+                    null,
+                    0,
+                    new SetValues(weight(row.weightGrams), row.reps, row.repsLeft, row.repsRight,
+                            row.durationSeconds),
+                    row.status == null ? SetStatus.PENDING : row.status,
+                    row.completedAt,
+                    row.setNotes,
+                    null,
+                    Collections.emptyList()));
+        }
+        return segments;
+    }
+
     private static boolean isWorkingSet(@Nullable String techniqueId, @Nullable Integer countsFlag) {
         if (countsFlag != null) {
             return countsFlag != 0;

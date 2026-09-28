@@ -45,7 +45,8 @@ public interface SessionDao {
                     + " (SELECT q.code FROM exercise_equipment ee JOIN equipment q ON q.id = ee.equipment_id"
                     + "     WHERE ee.exercise_id = se.exercise_id"
                     + "     ORDER BY ee.is_primary DESC, q.sort_order LIMIT 1) AS primaryEquipmentCode,"
-                    + " sl.id AS setId, sl.position AS setPosition, sl.technique_id AS techniqueId,"
+                    + " sl.id AS setId, sl.position AS setPosition,"
+                    + " sl.parent_set_id AS parentSetId, sl.technique_id AS techniqueId,"
                     + " t.code AS techniqueCode, t.counts_as_working_set AS techniqueCountsAsWorkingSet,"
                     + " sl.planned_reps_min AS plannedRepsMin, sl.planned_reps_max AS plannedRepsMax,"
                     + " sl.planned_weight_g AS plannedWeightGrams,"
@@ -56,10 +57,15 @@ public interface SessionDao {
                     + " sl.status AS status, sl.completed_at AS completedAt, sl.notes AS setNotes,"
                     + " se.previous_session_exercise_id AS previousSessionExerciseId"
                     + " FROM session_exercise se"
-                    + " LEFT JOIN set_log sl ON sl.session_exercise_id = se.id AND sl.parent_set_id IS NULL"
+                    + " LEFT JOIN set_log sl ON sl.session_exercise_id = se.id"
+                    + " LEFT JOIN set_log p ON p.id = sl.parent_set_id"
                     + " LEFT JOIN training_technique t ON t.id = sl.technique_id"
                     + " WHERE se.session_id = :sessionId"
-                    + " ORDER BY se.position, sl.position";
+                    // Segments follow the set they belong to: sort by the SET's position
+                    // (the parent's, for a segment), then the set before its segments, then
+                    // the segments among themselves.
+                    + " ORDER BY se.position, COALESCE(p.position, sl.position),"
+                    + " (sl.parent_set_id IS NOT NULL), sl.position";
 
     // ------------------------------------------------------------------ reads
 
