@@ -229,6 +229,12 @@
     <string name="session_weight_hint">kg</string>
     <string name="session_weight_hint_per_implement">kg/halter</string>
     <string name="session_reps_hint">reps</string>
+    <!-- Per-side logging: short labels, because two fields share the row with the weight. -->
+    <string name="session_reps_left_hint">E</string>
+    <string name="session_reps_right_hint">D</string>
+    <string name="session_reps_left_description">Repetições do lado esquerdo</string>
+    <string name="session_reps_right_description">Repetições do lado direito</string>
+    <string name="session_per_side_incomplete">Preencha os dois lados para concluir a série.</string>
     <string name="session_duration_hint">seg</string>
     <string name="session_confirm_set">Série %d: marcar como feita</string>
     <string name="session_undo_set">Série %d: desfazer</string>

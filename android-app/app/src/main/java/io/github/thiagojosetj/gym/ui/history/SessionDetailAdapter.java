@@ -19,16 +19,12 @@ import io.github.thiagojosetj.gym.databinding.ItemHistorySetBinding;
 import io.github.thiagojosetj.gym.databinding.ItemHistorySummaryBinding;
 import io.github.thiagojosetj.gym.ui.common.ListDiffing;
 
-/**
- * Rows of the finished-session detail (PRODUCT_SPEC HIS-01, HIS-03, HIS-04): the summary, then each
- * exercise header followed by its sets, in one flat adapter.
- *
- * <p>Nothing here decides what to say. Every row arrives with its text already written, and a line
- * that has nothing to say is hidden rather than left blank: a blank line would read as a value
- * nobody entered.
- */
+/** Rows of the finished-session detail (PRODUCT_SPEC HIS-01, HIS-03, HIS-04), in one flat list. */
 final class SessionDetailAdapter extends ListAdapter<DetailRow, RecyclerView.ViewHolder> {
 
+    // Nothing here decides what to say. Every row arrives with its text already written, and a
+    // line that has nothing to say is hidden rather than left blank: a blank line would read as a
+    // value nobody entered.
     private static final int TYPE_SUMMARY = 0;
     private static final int TYPE_EXERCISE = 1;
     private static final int TYPE_SET = 2;
@@ -138,7 +134,6 @@ final class SessionDetailAdapter extends ListAdapter<DetailRow, RecyclerView.Vie
             views.setNumber.setText(row.number());
             views.performed.setText(row.performed());
             setOptional(views.planned, row.planned());
-            setOptional(views.previous, row.previous());
         }
     }
 

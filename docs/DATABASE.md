@@ -229,6 +229,27 @@ multiplicada, reps por lado somadas, peso corporal e séries por tempo fora) viv
 no `:domain`. Reimplementá-las em SQL daria à lista e à tela da sessão duas chances de discordar — e
 a "N séries não incluídas no volume" tem de significar a mesma coisa nos dois lugares.
 
+#### Invariante: `counts_as_working_set` **nunca muda** para um `technique_id` já publicado
+
+Levantado na revisão adversarial de 28/09/2026 (ADR-0028) e **confirmado**: se uma série é aquecimento
+não está gravado em `set_log`. A consulta faz `LEFT JOIN training_technique` e lê
+`counts_as_working_set` **na hora da leitura**, então virar esse booleano numa técnica já existente
+reescreveria o volume e a linha "N séries não incluídas no volume" de sessões **passadas**.
+
+É dívida de modelagem **anterior** à Fase 4 (a coluna e o JOIN existem desde a v2/v3; o histórico só
+foi a primeira tela onde isso ficaria visível) e **não é alcançável hoje**: `TechniqueDao` é somente
+leitura, o único escritor é o `CatalogSeeder`, e ele só roda quando uma **nova versão do app** sobe o
+`BUNDLED_VERSION`. Ou seja, só um release deliberado dispara isso.
+
+**Regra, então:** mudar se um método conta como série de trabalho exige um **`technique_id` novo**,
+nunca virar o booleano de um id já publicado. Uma técnica aposentada continua correta sozinha —
+`deactivateSystemTechniques` só marca `is_active = 0` e o JOIN não filtra por isso, então sessões
+antigas continuam lendo a definição que valia no dia.
+
+Se um dia isso precisar ser **estruturalmente impossível** em vez de acordado: snapshot de
+`counts_as_working_set` em `set_log`, o que é migration v4 + `4.json` + teste de migration. Não é
+urgente e não bloqueou a Fase 4.
+
 **Índices:** nenhum foi criado. `workout_session` tem índice em `owner_user_id`, e a ordenação por
 `started_at` e a busca por `template_id` são varredura em cima disso. No volume de dados de uma pessoa
 (centenas de sessões) isso não se mede; quando medir, um índice é uma migration v5 com teste, não um

@@ -66,9 +66,8 @@ public interface DetailRow {
      * @param number    working-set number, or the warm-up badge
      * @param performed what was done ("10 reps - 40 kg"), or that the set was not done
      * @param planned   what the session's snapshot planned, or null when it planned nothing
-     * @param previous  what the paired set did last time, or null when there is nothing to show
      */
-    record SetRow(String id, String number, String performed, String planned, String previous)
+    record SetRow(String id, String number, String performed, String planned)
             implements DetailRow {
     }
 }

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    A finished session (PRODUCT_SPEC HIS-01, HIS-03, HIS-04): summary, comparison and every set in ONE
-    RecyclerView. Nothing here changes after it is drawn, so no view sits outside the list, and there
-    is no spinner: the load is a single local query.
+    A finished session (PRODUCT_SPEC HIS-01, HIS-03, HIS-04): summary, comparison and every set in
+    ONE RecyclerView. Nothing here changes after it is drawn, so no view sits outside the list, and
+    there is no spinner: the load is a single local query.
 -->
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"

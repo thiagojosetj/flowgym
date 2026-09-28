@@ -84,6 +84,13 @@ final class HistoryAdapter extends ListAdapter<SessionHistoryEntry, HistoryAdapt
                     Durations.clock(entry.totalMs()),
                     res.getString(R.string.history_effective_time,
                             Durations.clock(entry.effectiveMs()))));
+            // Digits for the eye, words for TalkBack. "58:12" is announced as "cinquenta e oito
+            // dois pontos doze", which is not a duration anybody can parse by ear - Durations
+            // exists to say so, and the detail screen already does this for the same number.
+            String spokenDuration = String.join(res.getString(R.string.separator_dot),
+                    Durations.spoken(entry.totalMs()),
+                    res.getString(R.string.history_effective_time,
+                            Durations.spoken(entry.effectiveMs())));
             String exercises = res.getQuantityString(R.plurals.template_exercise_count,
                     entry.exercises(), entry.exercises());
             String sets = res.getQuantityString(R.plurals.template_set_count,
@@ -97,7 +104,7 @@ final class HistoryAdapter extends ListAdapter<SessionHistoryEntry, HistoryAdapt
                     res.getString(R.string.separator_dot),
                     res.getString(R.string.history_open_session, entry.name()),
                     date,
-                    binding.duration.getText().toString(),
+                    spokenDuration,
                     binding.summary.getText().toString()));
             binding.getRoot().setOnClickListener(v -> listener.onOpen(entry));
         }

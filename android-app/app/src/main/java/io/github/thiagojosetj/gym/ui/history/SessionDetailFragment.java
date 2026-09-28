@@ -271,7 +271,7 @@ public class SessionDetailFragment extends Fragment {
                 ? performedText(exercise, set.values())
                 : getString(R.string.history_set_skipped);
         return new DetailRow.SetRow("set:" + set.id(), number, performed,
-                plannedText(exercise, set), previousText(exercise, set));
+                plannedText(exercise, set));
     }
 
     /** What was actually done, slot by slot: a slot nobody filled in is a dash, never a zero. */
@@ -309,34 +309,6 @@ public class SessionDetailFragment extends Fragment {
             parts.add(weightText(exercise, set.plannedWeight()));
         }
         return parts.isEmpty() ? null : getString(R.string.history_set_planned, joined(parts));
-    }
-
-    /**
-     * What the paired set did last time, from the pointer frozen when this session started
-     * (ADR-0033), or null when there is nothing comparable. Only what was informed is listed:
-     * nothing is invented.
-     */
-    @Nullable
-    private String previousText(SessionExercise exercise, LoggedSet set) {
-        SetValues previous = set.previous();
-        if (previous == null || previous.isEmpty()) {
-            return null;
-        }
-        TrackingType tracking = exercise.trackingType();
-        boolean timed = tracking.usesDuration() && !tracking.usesReps();
-        List<String> parts = new ArrayList<>();
-        if (timed && previous.durationSeconds() != null) {
-            parts.add(getString(R.string.session_duration_value, previous.durationSeconds()));
-        } else {
-            String reps = repsText(previous);
-            if (reps != null) {
-                parts.add(reps);
-            }
-        }
-        if (previous.weight() != null && tracking.usesWeight()) {
-            parts.add(weightText(exercise, previous.weight()));
-        }
-        return parts.isEmpty() ? null : getString(R.string.session_previous, joined(parts));
     }
 
     /** "10 reps", "E 10 / D 9" when each side was logged, or null when no reps were informed. */
