@@ -18,6 +18,9 @@
         tools:ignore="HighSamplingRate" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Held only while a rest counts down, and with a timeout: the message queue stops
+         advancing while the device is suspended, so without it a 90 s rest could ring late. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <!-- ADR-0024: backup enabled with explicit rules (database + preferences, never cache). -->
     <application

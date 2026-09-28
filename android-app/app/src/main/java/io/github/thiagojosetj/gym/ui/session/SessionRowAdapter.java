@@ -213,11 +213,19 @@ final class SessionRowAdapter extends ListAdapter<SessionRow, RecyclerView.ViewH
             views.buttonDone.setSelected(done);
             views.buttonDone.setContentDescription(root.getContext().getString(
                     done ? R.string.session_undo_set : R.string.session_confirm_set, number(row)));
-            // State as a word, not only as a colour (accessibility).
+            // "feita" as a WORD, because setSelected() alone changes nothing the user can see: the
+            // stock icon button reacts to enabled/disabled, not to selected (found in review).
+            views.doneLabel.setVisibility(done ? View.VISIBLE : View.GONE);
             views.setNumber.setContentDescription(done
                     ? root.getContext().getString(R.string.session_set_number, number(row)) + ", "
                     + root.getContext().getString(R.string.session_set_done)
                     : null);
+            // A confirmed set is not editable: typing into it used to show a number that was never
+            // written to disk. Undo first, then correct it.
+            views.weightInput.setEnabled(!done);
+            views.repsInput.setEnabled(!done);
+            views.weightLayout.setHelperText(done
+                    ? root.getContext().getString(R.string.session_set_done_hint) : null);
 
             views.buttonRemove.setVisibility(row.removable() ? View.VISIBLE : View.GONE);
             views.buttonRemove.setContentDescription(root.getContext().getString(

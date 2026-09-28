@@ -232,6 +232,7 @@
     <string name="session_confirm_set">Série %d: marcar como feita</string>
     <string name="session_undo_set">Série %d: desfazer</string>
     <string name="session_set_done">feita</string>
+    <string name="session_set_done_hint">Desmarque para corrigir os valores</string>
     <string name="session_add_set">Adicionar série</string>
     <string name="session_remove_set">Remover série %d</string>
     <string name="session_technique_of_set">Técnica da série %d</string>
@@ -268,6 +269,10 @@
     <plurals name="finish_will_skip_empty">
         <item quantity="one">%d série vazia ficará como não feita.</item>
         <item quantity="other">%d séries vazias ficarão como não feitas.</item>
+    </plurals>
+    <plurals name="finish_already_done">
+        <item quantity="one">%d série registrada entra no histórico.</item>
+        <item quantity="other">%d séries registradas entram no histórico.</item>
     </plurals>
     <string name="finish_confirm">Finalizar</string>
     <string name="finish_back">Voltar</string>

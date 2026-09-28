@@ -61,6 +61,8 @@ public final class ActiveSessionViewModel extends ViewModel {
 
     @Nullable
     private SessionSummary summary;
+    /** True once the summary has been shown, so a rotation does not pop it up again forever. */
+    private boolean summaryShown;
 
     public ActiveSessionViewModel(ActiveSessionRepository sessions, TechniqueRepository techniqueRepository,
                                   Clock clock, Resources resources, String sessionId) {
@@ -104,6 +106,15 @@ public final class ActiveSessionViewModel extends ViewModel {
     @Nullable
     public SessionSummary summary() {
         return summary;
+    }
+
+    /** The summary survives a rotation: it is state, not a one-shot event. */
+    public boolean hasUnshownSummary() {
+        return summary != null && !summaryShown;
+    }
+
+    public void onSummaryShown() {
+        summaryShown = true;
     }
 
     public long now() {

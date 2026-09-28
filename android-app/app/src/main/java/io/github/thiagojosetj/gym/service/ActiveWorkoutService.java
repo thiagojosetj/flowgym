@@ -8,6 +8,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.PowerManager;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
@@ -48,6 +49,11 @@ public class ActiveWorkoutService extends Service {
     private final Handler handler = new Handler(Looper.getMainLooper());
     @Nullable
     private Runnable pendingAlert;
+    /** Held only while a rest counts down: postDelayed does not advance while the CPU is suspended. */
+    @Nullable
+    private PowerManager.WakeLock restWakeLock;
+    /** True once the database has actually answered; before that, "no session" means "not yet". */
+    private boolean headerDelivered;
     /** Set whose rest alert already fired, so a re-render cannot fire it twice. */
     @Nullable
     private String alertedSetLogId;
@@ -84,7 +90,13 @@ public class ActiveWorkoutService extends Service {
         settings = app.settings;
         WorkoutNotifications.createChannel(this);
         header = sessions.observeActiveHeader();
-        observer = this::render;
+        observer = session -> {
+            // The observer only runs once the query has answered, so a null HERE really means "no
+            // workout" - unlike a null read from getValue() during onStartCommand, which usually just
+            // means Room has not replied yet.
+            headerDelivered = true;
+            render(session);
+        };
         header.observeForever(observer);
     }
 
@@ -95,27 +107,35 @@ public class ActiveWorkoutService extends Service {
 
         String action = intent == null ? null : intent.getAction();
         if (ACTION_PAUSE.equals(action) || ACTION_RESUME.equals(action)) {
-            SessionHeader current = header.getValue();
-            if (current != null) {
+            SessionHeader tapped = header.getValue();
+            if (tapped != null) {
                 if (ACTION_PAUSE.equals(action)) {
-                    sessions.pause(current.id(), () -> {
+                    sessions.pause(tapped.id(), () -> {
                     }, error -> Log.w(TAG, "Pause from the notification failed", error));
                 } else {
-                    sessions.resume(current.id(), () -> {
+                    sessions.resume(tapped.id(), () -> {
                     }, error -> Log.w(TAG, "Resume from the notification failed", error));
                 }
             }
         }
-        // START_STICKY plus the null-intent branch below: after being killed the service comes back
-        // and asks the database whether there is still a workout.
-        render(header.getValue());
+        // START_STICKY: after being killed the service comes back and the observer asks the database
+        // whether there is still a workout. It deliberately does NOT stop on a null value here: Room
+        // answers on its own executor, so at this point the value is usually still missing, and
+        // treating that as "no workout" killed the service right after every start. It never failed
+        // under Robolectric, where the query is synchronous (found in review, 28/09/2026).
+        SessionHeader current = header.getValue();
+        if (current != null) {
+            render(current);
+        }
         return START_STICKY;
     }
 
-    /** Draws the current state, or stops when there is no workout to show. */
+    /** Draws the current state, or stops once the database has said there is no workout. */
     private void render(@Nullable SessionHeader session) {
         if (session == null) {
-            stopForegroundAndSelf();
+            if (headerDelivered) {
+                stopForegroundAndSelf();
+            }
             return;
         }
         promote(WorkoutNotifications.of(this, session, now()));
@@ -134,19 +154,69 @@ public class ActiveWorkoutService extends Service {
         String restSetId = session.restSetLogId();
         if (restSetId == null) {
             alertedSetLogId = null; // the rest was cleared: the next one may alert again
+            releaseWakeLock();
             return;
         }
         if (restSetId.equals(alertedSetLogId) || session.isPaused()) {
+            releaseWakeLock();
             return;
         }
-        long remaining = session.restRemainingMs(now());
+        long remaining = Math.max(0L, session.restRemainingMs(now()));
+        String sessionId = session.id();
         pendingAlert = () -> {
             pendingAlert = null;
             alertedSetLogId = restSetId;
+            releaseWakeLock();
             settings.loadSettings(values -> RestAlert.fire(this, values),
                     error -> Log.w(TAG, "Could not read the alert settings", error));
+            // Clearing the finished rest is what makes the bar disappear and stops the notification
+            // counting past zero: a rest running out is an instant passing, not a write, so without
+            // this nothing would re-emit.
+            sessions.restFinished(sessionId, restSetId, () -> {
+            }, error -> Log.w(TAG, "Could not clear the finished rest", error));
         };
-        handler.postDelayed(pendingAlert, Math.max(0L, remaining));
+        holdCpuUntilRestEnds(remaining);
+        handler.postDelayed(pendingAlert, remaining);
+    }
+
+    /**
+     * The message queue is driven by uptimeMillis, which stops while the device is suspended, so a
+     * 90 s rest could ring minutes late with the phone in a pocket. A short wake lock for exactly the
+     * remaining rest is the honest fix: exact alarms are restricted to alarm-clock apps, and every
+     * other number in this feature already comes from wall-clock timestamps.
+     */
+    private void holdCpuUntilRestEnds(long remainingMs) {
+        releaseWakeLock();
+        if (remainingMs <= 0) {
+            return;
+        }
+        PowerManager power = ContextCompat.getSystemService(this, PowerManager.class);
+        if (power == null) {
+            return;
+        }
+        try {
+            restWakeLock = power.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "FlowGym:rest");
+            restWakeLock.setReferenceCounted(false);
+            // With a timeout: a leaked lock would drain the battery all day.
+            restWakeLock.acquire(remainingMs + 2_000L);
+        } catch (RuntimeException e) {
+            restWakeLock = null;
+            Log.w(TAG, "Could not hold the CPU for the rest countdown", e);
+        }
+    }
+
+    private void releaseWakeLock() {
+        if (restWakeLock == null) {
+            return;
+        }
+        try {
+            if (restWakeLock.isHeld()) {
+                restWakeLock.release();
+            }
+        } catch (RuntimeException e) {
+            Log.w(TAG, "Could not release the rest wake lock", e);
+        }
+        restWakeLock = null;
     }
 
     private void promote(android.app.Notification notification) {
@@ -159,8 +229,13 @@ public class ActiveWorkoutService extends Service {
             }
             foregroundStarted = true;
         } catch (RuntimeException e) {
-            // A denied POST_NOTIFICATIONS or a type prerequisite the device refuses: log and carry on.
-            Log.w(TAG, "Could not show the workout notification", e);
+            // A denied POST_NOTIFICATIONS, or a foreground-service type the device refuses. The
+            // platform armed a watchdog when start() was called and kills the app if the service
+            // never promotes itself, so the only safe move is to stop: the workout then carries on
+            // without a notification, which is exactly what ADR-0034 promises.
+            Log.w(TAG, "Could not show the workout notification; stopping the service", e);
+            foregroundStarted = false;
+            stopSelf();
         }
     }
 
@@ -182,6 +257,7 @@ public class ActiveWorkoutService extends Service {
             handler.removeCallbacks(pendingAlert);
             pendingAlert = null;
         }
+        releaseWakeLock();
         if (header != null && observer != null) {
             header.removeObserver(observer);
         }

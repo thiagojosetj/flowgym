@@ -289,6 +289,58 @@ public class ActiveSessionRepositoryTest {
     }
 
     @Test
+    public void finishingAnAlreadyFinishedSessionDoesNotMoveItsDuration() throws Exception {
+        // Regression (review 2026-09-28): the screen kept offering "Finalizar" on a closed session,
+        // and a second tap rewrote ended_at - a 45-minute workout became 65 minutes.
+        String sessionId = start(createTemplate("Push A", "Supino reto com barra"));
+        List<LoggedSet> sets = loadSession(sessionId).exercises().get(0).sets();
+        confirm(sessionId, sets.get(0).id(), new SetValues(kg(40), 10, null, null, null));
+        clock.advanceMinutes(45);
+        SessionSummary first = finish(sessionId);
+
+        clock.advanceMinutes(20);
+        SessionSummary second = finish(sessionId);
+
+        assertEquals(45 * MINUTE, first.totalMs());
+        assertEquals(45 * MINUTE, second.totalMs());
+        assertEquals(first.performedSets(), second.performedSets());
+        assertEquals(45 * MINUTE, count("SELECT ended_at - started_at FROM workout_session WHERE id = '"
+                + sessionId + "'"));
+    }
+
+    @Test
+    public void aRestThatRanOutIsClearedSoNothingKeepsCountingPastZero() throws Exception {
+        // Regression (review 2026-09-28): a rest expiring is an instant passing, not a write, so
+        // nothing re-emitted: the bar sat at zero and the notification counted past it.
+        String sessionId = start(createTemplate("Push A", "Supino reto com barra"));
+        LoggedSet set = loadSession(sessionId).exercises().get(0).sets().get(0);
+        confirm(sessionId, set.id(), new SetValues(kg(40), 10, null, null, null));
+
+        // Not over yet: the call must do nothing.
+        clock.advanceSeconds(30);
+        restFinished(sessionId, set.id());
+        assertEquals(set.id(), loadSession(sessionId).header().restSetLogId());
+
+        clock.advanceSeconds(60);
+        restFinished(sessionId, set.id());
+        assertNull(loadSession(sessionId).header().restSetLogId());
+    }
+
+    @Test
+    public void aStretchedRestIsNotClearedByALateAlert() throws Exception {
+        String sessionId = start(createTemplate("Push A", "Supino reto com barra"));
+        LoggedSet set = loadSession(sessionId).exercises().get(0).sets().get(0);
+        confirm(sessionId, set.id(), new SetValues(kg(40), 10, null, null, null));
+        clock.advanceSeconds(85);
+        adjustRest(sessionId, 30); // the user asked for more time just before the alert fired
+
+        restFinished(sessionId, set.id());
+
+        assertEquals(set.id(), loadSession(sessionId).header().restSetLogId());
+        assertEquals(35_000L, loadSession(sessionId).header().restRemainingMs(clock.millis()));
+    }
+
+    @Test
     public void discardingKeepsTheRowSoTheDiscardCanBeSynced() throws Exception {
         String sessionId = start(createTemplate("Push A", "Supino reto com barra"));
 
@@ -414,6 +466,12 @@ public class ActiveSessionRepositoryTest {
     private void adjustRest(String sessionId, int deltaSeconds) {
         AtomicReference<Boolean> done = new AtomicReference<>(false);
         app.activeSessions.adjustRest(sessionId, deltaSeconds, () -> done.set(true), this::fail);
+        assertTrue(done.get());
+    }
+
+    private void restFinished(String sessionId, String setId) {
+        AtomicReference<Boolean> done = new AtomicReference<>(false);
+        app.activeSessions.restFinished(sessionId, setId, () -> done.set(true), this::fail);
         assertTrue(done.get());
     }
 

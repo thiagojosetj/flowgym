@@ -32,13 +32,20 @@ import io.github.thiagojosetj.gym.ui.common.NumberInput;
 final class SessionRowBuilder {
 
     private final Resources res;
-    private final Locale locale;
     private final WeightUnit unit;
 
     SessionRowBuilder(Resources res, WeightUnit unit) {
         this.res = res;
-        this.locale = res.getConfiguration().getLocales().get(0);
         this.unit = unit;
+    }
+
+    /**
+     * Read per call, never cached: the ViewModel survives a configuration change, so a locale
+     * captured in the constructor would keep formatting "42,5" after the user switches the phone to
+     * English while the strings around it had already switched.
+     */
+    private Locale locale() {
+        return res.getConfiguration().getLocales().get(0);
     }
 
     List<SessionRow> build(ActiveSession session, Set<String> collapsed, Map<String, SetDraft> drafts) {
@@ -70,11 +77,14 @@ final class SessionRowBuilder {
         SetValues suggestion = set.suggestion();
         String number = set.workingNumber() == null ? null : String.valueOf(set.workingNumber());
 
-        String weightText = draft != null && draft.weightText() != null
-                ? draft.weightText()
+        // A confirmed set shows what is stored, never a draft: the row must not display a number
+        // the database refused to keep.
+        SetDraft pending = set.isCompleted() ? null : draft;
+        String weightText = pending != null && pending.weightText() != null
+                ? pending.weightText()
                 : weightOf(set.values());
-        String repsText = draft != null && draft.repsText() != null
-                ? draft.repsText()
+        String repsText = pending != null && pending.repsText() != null
+                ? pending.repsText()
                 : timed ? intOf(set.values().durationSeconds()) : intOf(set.values().reps());
 
         return new SessionRow.SetRow(
@@ -145,7 +155,7 @@ final class SessionRowBuilder {
 
     /** The number as typed, per implement for dumbbells (PRODUCT_SPEC section 6.4). */
     private String weightWithUnit(Weight weight, SessionExercise exercise) {
-        String value = NumberInput.formatDecimal(Math.abs(weight.in(unit)), locale);
+        String value = NumberInput.formatDecimal(Math.abs(weight.in(unit)), locale());
         if (exercise.loadBasis() == LoadBasis.PER_IMPLEMENT) {
             return res.getString(R.string.session_weight_per_implement_value, value, unit.symbol());
         }
@@ -157,7 +167,7 @@ final class SessionRowBuilder {
         if (weight == null || weight.grams() == 0) {
             return null;
         }
-        return NumberInput.formatDecimal(Math.abs(weight.in(unit)), locale);
+        return NumberInput.formatDecimal(Math.abs(weight.in(unit)), locale());
     }
 
     private static String intOf(@Nullable Integer value) {

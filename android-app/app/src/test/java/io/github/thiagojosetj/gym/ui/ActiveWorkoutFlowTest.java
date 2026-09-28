@@ -13,7 +13,9 @@ import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withParent;
 import static androidx.test.espresso.matcher.ViewMatchers.withParentIndex;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
+import static androidx.test.espresso.matcher.ViewMatchers.isEnabled;
 import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.containsString;
 import static org.robolectric.Shadows.shadowOf;
 
@@ -21,6 +23,7 @@ import android.os.Looper;
 import android.view.View;
 
 import androidx.test.core.app.ActivityScenario;
+import androidx.test.espresso.contrib.RecyclerViewActions;
 import androidx.test.espresso.matcher.ViewMatchers.Visibility;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
@@ -94,6 +97,56 @@ public class ActiveWorkoutFlowTest {
             onView(withText(containsString("Séries feitas: 1"))).inRoot(isDialog())
                     .check(matches(isDisplayed()));
             onView(withText(containsString("425 kg"))).inRoot(isDialog()).check(matches(isDisplayed()));
+            onView(withText(R.string.summary_close)).inRoot(isDialog()).perform(click());
+            onView(withText("Push A")).check(matches(isDisplayed()));
+        }
+    }
+
+    @Test
+    public void aConfirmedSetSaysSoAndCannotBeEditedByAccident() {
+        // Regression (review 2026-09-28): the only sign of "done" was setSelected(), which the stock
+        // icon button does not draw, and the fields stayed editable while the value typed into them
+        // was silently refused by the database.
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            createTemplate("Push A", "Supino reto com barra");
+            startWorkout();
+
+            onView(setRow(0, R.id.done_label)).check(matches(withEffectiveVisibility(Visibility.GONE)));
+            onView(setRow(0, R.id.weight_input)).perform(replaceText("40"));
+            onView(setRow(0, R.id.reps_input)).perform(replaceText("10"));
+            onView(setRow(0, R.id.button_done)).perform(click());
+
+            onView(setRow(0, R.id.done_label)).check(matches(isDisplayed()));
+            onView(setRow(0, R.id.weight_input)).check(matches(not(isEnabled())));
+            onView(setRow(0, R.id.reps_input)).check(matches(not(isEnabled())));
+
+            // Undo makes it editable again, and the values typed are still there.
+            onView(setRow(0, R.id.button_done)).perform(click());
+            onView(setRow(0, R.id.done_label)).check(matches(withEffectiveVisibility(Visibility.GONE)));
+            onView(setRow(0, R.id.weight_input)).check(matches(isEnabled()));
+            onView(setRow(0, R.id.weight_input)).check(matches(withText("40")));
+        }
+    }
+
+    @Test
+    public void withEverythingConfirmedFinishingDoesNotOpenAnEmptyDialog() {
+        // Regression (review 2026-09-28): the tidy path showed a dialog with a blank body.
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            createTemplate("Push A", "Supino reto com barra");
+            startWorkout();
+            for (int i = 0; i < 3; i++) {
+                scrollToRow(i);
+                onView(setRow(i, R.id.weight_input)).perform(replaceText("40"));
+                onView(setRow(i, R.id.reps_input)).perform(replaceText("10"));
+                onView(setRow(i, R.id.button_done)).perform(click());
+            }
+
+            onView(withId(R.id.button_finish)).perform(click());
+
+            // Straight to the summary: there was nothing to warn about.
+            onView(withText(R.string.summary_title)).inRoot(isDialog()).check(matches(isDisplayed()));
+            onView(withText(containsString("Séries feitas: 3"))).inRoot(isDialog())
+                    .check(matches(isDisplayed()));
             onView(withText(R.string.summary_close)).inRoot(isDialog()).perform(click());
             onView(withText("Push A")).check(matches(isDisplayed()));
         }
@@ -178,6 +231,11 @@ public class ActiveWorkoutFlowTest {
         onView(withId(R.id.templateListFragment)).perform(click());
         onView(withId(R.id.button_more)).perform(click());
         onView(withText(R.string.session_start)).perform(click());
+    }
+
+    /** Brings a set row into view: the third one is below the fold on a phone-sized screen. */
+    private static void scrollToRow(int index) {
+        onView(withId(R.id.list)).perform(RecyclerViewActions.scrollToPosition(index + 1));
     }
 
     /** Targets a view inside the Nth set row of the workout list. */

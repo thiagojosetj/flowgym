@@ -114,16 +114,25 @@ public final class ActiveSessionRepository {
         LiveData<List<ActiveSetRow>> rowSource = dao.observeRows(sessionId);
         LiveData<List<PreviousSetRow>> previousSource = dao.observePreviousSets(sessionId);
 
+        // The three queries run on Room's own executor and can land in any order, so a missing
+        // header must mean "not loaded yet" until it has actually delivered once. Publishing null
+        // too early made the screen navigate away from a perfectly healthy session.
+        boolean[] headerDelivered = {false};
         Runnable combine = () -> {
             SessionHeaderRow header = headerSource.getValue();
             if (header == null) {
-                result.setValue(null);
+                if (headerDelivered[0]) {
+                    result.setValue(null); // the session really is gone
+                }
                 return;
             }
             result.setValue(SessionMapper.toSession(header, rowSource.getValue(),
                     previousSource.getValue()));
         };
-        result.addSource(headerSource, ignored -> combine.run());
+        result.addSource(headerSource, ignored -> {
+            headerDelivered[0] = true;
+            combine.run();
+        });
         result.addSource(rowSource, ignored -> combine.run());
         result.addSource(previousSource, ignored -> combine.run());
         return result;
@@ -235,6 +244,14 @@ public final class ActiveSessionRepository {
             SessionSummary[] summary = new SessionSummary[1];
             database.runInTransaction(() -> {
                 WorkoutSessionEntity session = requireSession(sessionId);
+                if (session.status != SessionStatus.ACTIVE) {
+                    // Already finished or discarded: re-finishing would move ended_at and inflate
+                    // the duration. The summary is rebuilt from what is stored instead.
+                    summary[0] = SessionSummary.of(SessionMapper.toSession(requireHeader(sessionId),
+                            dao.findRows(sessionId), dao.findPreviousSets(sessionId)),
+                            session.endedAt == null ? now : session.endedAt);
+                    return;
+                }
                 ActiveSession snapshot = SessionMapper.toSession(requireHeader(sessionId),
                         dao.findRows(sessionId), dao.findPreviousSets(sessionId));
                 FinishReview review = snapshot.finishReview();
@@ -263,6 +280,9 @@ public final class ActiveSessionRepository {
     /** Throws the session away on purpose. The row stays so the discard can be synced. */
     public void discard(String sessionId, Runnable onDone, Consumer<Throwable> onError) {
         write(sessionId, (session, now) -> {
+            if (session.status != SessionStatus.ACTIVE) {
+                return;
+            }
             dao.closeOpenPauses(sessionId, now);
             session.totalPausedMs = dao.sumClosedPausedMs(sessionId);
             session.endedAt = now;
@@ -393,6 +413,27 @@ public final class ActiveSessionRepository {
     /** Ends the rest now, without waiting for it to run out. */
     public void skipRest(String sessionId, Runnable onDone, Consumer<Throwable> onError) {
         write(sessionId, (session, now) -> clearRest(session), onDone, onError);
+    }
+
+    /**
+     * Clears a rest that has run out. A rest expiring is the passing of an instant, not a write, so
+     * without this nothing would re-emit: the bar would sit at zero and the notification would keep
+     * counting down past it.
+     *
+     * @param setLogId the set the caller believes is resting; ignored if the rest has moved on
+     */
+    public void restFinished(String sessionId, String setLogId, Runnable onDone,
+                             Consumer<Throwable> onError) {
+        write(sessionId, (session, now) -> {
+            if (!setLogId.equals(session.restSetLogId)) {
+                return; // another set is resting now
+            }
+            if (session.restRemainingMsWhenPaused != null
+                    || RestTimer.remainingMs(session.restEndsAt, now) > 0) {
+                return; // frozen by a pause, or stretched with +30 s in the meantime
+            }
+            clearRest(session);
+        }, onDone, onError);
     }
 
     // ------------------------------------------------------------------ internals

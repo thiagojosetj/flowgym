@@ -51,6 +51,17 @@
                 tools:visibility="visible" />
         </LinearLayout>
 
+        <TextView
+            android:id="@+id/done_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="@dimen/space_s"
+            android:text="@string/session_set_done"
+            android:textAppearance="?attr/textAppearanceLabelLarge"
+            android:textColor="?attr/colorPrimary"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/button_technique"
             style="?attr/materialButtonOutlinedStyle"

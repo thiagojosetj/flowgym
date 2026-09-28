@@ -31,6 +31,7 @@ import io.github.thiagojosetj.gym.domain.technique.TechniqueScope;
 import io.github.thiagojosetj.gym.domain.technique.TrainingTechnique;
 import io.github.thiagojosetj.gym.ui.common.Durations;
 import io.github.thiagojosetj.gym.ui.common.NumberInput;
+import io.github.thiagojosetj.gym.ui.common.SafeNavigation;
 import io.github.thiagojosetj.gym.ui.common.TechniqueDialogs;
 import io.github.thiagojosetj.gym.ui.common.ViewModelFactories;
 
@@ -133,10 +134,25 @@ public class ActiveSessionFragment extends Fragment implements SessionRowAdapter
             return;
         }
         if (session == null) {
-            // The session was finished or discarded elsewhere (the notification, another screen).
-            NavHostFragment.findNavController(this).popBackStack();
+            // Really gone (deleted, or discarded from somewhere else). The repository never reports
+            // null while the query is still loading, so this is not a race any more.
+            leave();
             return;
         }
+        if (!session.header().isActive()) {
+            // Finished or discarded: show the summary once, then get out. Without this the screen
+            // kept offering Finalizar on a closed session, which rewrote its duration.
+            binding.buttonPause.setEnabled(false);
+            binding.buttonFinish.setEnabled(false);
+            if (viewModel.hasUnshownSummary()) {
+                showSummary(viewModel.summary());
+            } else if (openDialog == null || !openDialog.isShowing()) {
+                leave();
+            }
+            return;
+        }
+        binding.buttonPause.setEnabled(true);
+        binding.buttonFinish.setEnabled(true);
         binding.sessionName.setText(session.header().name());
         binding.progress.setText(getResources().getQuantityString(R.plurals.session_progress,
                 session.totalSets(), session.completedSets(), session.totalSets()));
@@ -159,20 +175,29 @@ public class ActiveSessionFragment extends Fragment implements SessionRowAdapter
                 + Durations.spoken(elapsed));
 
         long restMs = session.header().restRemainingMs(now);
-        boolean resting = session.header().restSetLogId() != null && restMs > 0;
-        binding.restContainer.setVisibility(resting ? View.VISIBLE : View.GONE);
-        if (!resting) {
+        boolean hasRest = session.header().restSetLogId() != null;
+        int seconds = (int) ((restMs + 999L) / 1000L);
+        if (!hasRest) {
+            binding.restContainer.setVisibility(View.GONE);
             lastAnnouncedSecond = -1;
             return;
         }
-        int seconds = (int) ((restMs + 999L) / 1000L);
+        binding.restContainer.setVisibility(View.VISIBLE);
+        if (restMs == 0) {
+            // The bar stays until the service clears the rest, so the end can actually be announced;
+            // treating zero as "not resting" made the "Descanso terminado" message dead code.
+            announceRest(0);
+        }
         binding.restRemaining.setText(Durations.clock(restMs));
         binding.restRemaining.setContentDescription(
                 getString(R.string.session_rest_spoken, Durations.spoken(restMs)));
         announceRest(seconds);
     }
 
-    /** TalkBack hears the milestones only: a live region would speak every single second. */
+    /**
+     * Milestones only: announcing every second would be unusable with TalkBack. Anchored above the
+     * rest bar, because a Snackbar over it would swallow the taps on +30 s.
+     */
     private void announceRest(int seconds) {
         for (int milestone : ANNOUNCE_AT_SECONDS) {
             if (seconds == milestone && lastAnnouncedSecond != milestone) {
@@ -180,7 +205,7 @@ public class ActiveSessionFragment extends Fragment implements SessionRowAdapter
                 Snackbar.make(binding.getRoot(), milestone == 0
                                 ? getString(R.string.session_rest_over)
                                 : getString(R.string.session_rest_spoken, Durations.spoken(seconds * 1000L)),
-                        Snackbar.LENGTH_SHORT).show();
+                        Snackbar.LENGTH_SHORT).setAnchorView(binding.restContainer).show();
                 return;
             }
         }
@@ -188,7 +213,10 @@ public class ActiveSessionFragment extends Fragment implements SessionRowAdapter
 
     private void onEvent(ActiveSessionViewModel.SessionEvent event) {
         switch (event) {
-            case FINISHED -> showSummary(viewModel.summary());
+            case FINISHED -> {
+                // The session row is now COMPLETED, so render() shows the summary; nothing to do
+                // here beyond letting that happen.
+            }
             case DISCARDED -> NavHostFragment.findNavController(this).popBackStack();
             case ACTION_FAILED -> snackbar(getString(R.string.session_action_failed));
             case FINISH_FAILED -> snackbar(getString(R.string.finish_failed));
@@ -265,9 +293,18 @@ public class ActiveSessionFragment extends Fragment implements SessionRowAdapter
         if (review == null) {
             return;
         }
+        if (!review.needsConfirmation()) {
+            // Everything is confirmed: there is nothing to warn about, so do not open a dialog with
+            // an empty body - just finish.
+            viewModel.finish();
+            return;
+        }
         List<String> lines = new ArrayList<>();
         if (review.wouldRecordNothing()) {
             lines.add(getString(R.string.finish_nothing_recorded));
+        } else if (review.alreadyCompleted() > 0) {
+            lines.add(getResources().getQuantityString(R.plurals.finish_already_done,
+                    review.alreadyCompleted(), review.alreadyCompleted()));
         }
         if (!review.readyToComplete().isEmpty()) {
             lines.add(getResources().getQuantityString(R.plurals.finish_will_complete,
@@ -304,9 +341,10 @@ public class ActiveSessionFragment extends Fragment implements SessionRowAdapter
 
     private void showSummary(@Nullable SessionSummary summary) {
         if (summary == null) {
-            NavHostFragment.findNavController(this).popBackStack();
+            leave();
             return;
         }
+        viewModel.onSummaryShown();
         List<String> lines = new ArrayList<>();
         lines.add(getString(R.string.summary_duration, Durations.clock(summary.totalMs()),
                 Durations.clock(summary.effectiveMs())));
@@ -326,9 +364,18 @@ public class ActiveSessionFragment extends Fragment implements SessionRowAdapter
         openDialog = new MaterialAlertDialogBuilder(requireContext())
                 .setTitle(R.string.summary_title)
                 .setMessage(String.join("\n", lines))
-                .setPositiveButton(R.string.summary_close,
-                        (dialog, which) -> NavHostFragment.findNavController(this).popBackStack())
+                .setPositiveButton(R.string.summary_close, null)
+                // Dismissing it with back leaves too: staying on a finished session is what let the
+                // user finish it twice.
+                .setOnDismissListener(dialog -> leave())
                 .show();
+    }
+
+    /** Leaves the workout screen, if it is still the one on screen. */
+    private void leave() {
+        if (isAdded()) {
+            SafeNavigation.popFrom(this, R.id.activeSessionFragment);
+        }
     }
 
     private void snackbar(String message) {

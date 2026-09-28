@@ -31,4 +31,17 @@ public final class SafeNavigation {
     public static void navigate(Fragment fragment, @IdRes int actionId) {
         navigate(fragment, actionId, null);
     }
+
+    /**
+     * Leaves {@code destinationId}, and only if that is still the screen on top. A screen can be
+     * asked to leave from more than one place at once (a dialog dismissed, a database row
+     * disappearing); without this check the second request would pop somebody else's screen.
+     */
+    public static void popFrom(Fragment fragment, @IdRes int destinationId) {
+        NavController controller = NavHostFragment.findNavController(fragment);
+        NavDestination current = controller.getCurrentDestination();
+        if (current != null && current.getId() == destinationId) {
+            controller.popBackStack();
+        }
+    }
 }
