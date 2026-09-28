@@ -15,6 +15,7 @@ package io.github.thiagojosetj.gym.domain.session;
 public record SessionComparison(
         String previousSessionId,
         long previousStartedAt,
+        String previousTimeZone,
         MetricChange volumeGrams,
         MetricChange performedSets,
         MetricChange totalReps,
@@ -26,16 +27,22 @@ public record SessionComparison(
      *                          screen says so rather than comparing against zero
      * @param previousStartedAt when that earlier session started, so the screen can name the day it
      *                          is comparing with
+     * @param previousTimeZone  the zone THAT session was performed in. It travels with the instant
+     *                          because it is the only thing that can turn it back into the right
+     *                          day: naming it in the zone of the session being viewed is how the
+     *                          summary ends up claiming a day on which the workout did not happen,
+     *                          and disagreeing with the history list about the very same session
      * @return null when there is no previous session
      */
     public static SessionComparison between(SessionSummary current, SessionSummary previous,
-                                            long previousStartedAt) {
+                                            long previousStartedAt, String previousTimeZone) {
         if (current == null || previous == null) {
             return null;
         }
         return new SessionComparison(
                 previous.sessionId(),
                 previousStartedAt,
+                previousTimeZone,
                 new MetricChange(current.volumeGrams(), previous.volumeGrams()),
                 new MetricChange(current.performedSets(), previous.performedSets()),
                 new MetricChange(current.totalReps(), previous.totalReps()),

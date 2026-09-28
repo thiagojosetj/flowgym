@@ -160,7 +160,10 @@ public class SessionDetailFragment extends Fragment {
 
     private DetailRow.Comparison comparisonOf(SessionDetail detail) {
         SessionComparison comparison = detail.comparison();
-        String previousDay = SessionDates.day(comparison.previousStartedAt(), detail.timeZone());
+        // The previous session's zone, not this one's: the same workout either side of a flight
+        // belongs to the day it was performed on, and the history list already names it that way.
+        String previousDay = SessionDates.day(comparison.previousStartedAt(),
+                comparison.previousTimeZone());
         return new DetailRow.Comparison(
                 getString(R.string.history_comparison_subtitle, previousDay),
                 metricLine(R.string.history_comparison_volume, comparison.volumeGrams(),

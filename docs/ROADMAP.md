@@ -125,6 +125,23 @@ Métricas flexíveis sobre o modelo de medições da Fase 5.
 
 ## Pendências conhecidas (precisam de aparelho/emulador para validar)
 
+- **Ordem do histórico depende do relógio do aparelho, e fica assim de propósito.** `started_at` é
+  gravado sem trava de monotonicidade (`finish()` trava `ended_at`, o início não). Se alguém **acertar
+  o relógio para trás manualmente** por mais tempo do que o intervalo entre dois treinos iguais, a
+  lista inverte e a comparação pode pegar uma sessão posterior. Levantado e **verificado** na revisão
+  de 28/09/2026; a decisão é **não corrigir agora**, porque as duas correções óbvias não funcionam:
+  `ended_at` vem do mesmo relógio destravado, e o desempate por `id` também — o UUID v7 é construído
+  a partir de `System.currentTimeMillis()`. A correção real seria travar `started_at` na criação, o
+  que exige uma consulta extra dentro da transação de início e **gravar um instante que o aparelho
+  nunca viu**, contra a política de nunca reescrever instantes (`SessionMapper.toClock`). Sync NTP
+  comum não alcança isso: só uma sessão ativa por vez, então dois treinos do mesmo template estão a
+  dias de distância.
+- **Datas e números seguem o idioma do aparelho, mas os textos são pt-BR fixos.** Num aparelho em
+  inglês o histórico mostra "Histórico"/"Hoje" ao lado de "Sep 28, 2026". A parte dos **números** já
+  era assim antes da Fase 4 (`ExercisePlanSheet` e `Durations` já usavam `Locale.getDefault()`); as
+  **datas** são novas porque esta é a primeira tela que mostra uma. O bilhete certo é "publicar um
+  segundo idioma (`values-en`) ou fixar pt-BR explicitamente", não desinternacionalizar os
+  formatadores.
 - **CI ainda não foi visto rodando no GitHub.** O workflow foi validado com `actionlint` e o portão que
   ele executa roda verde aqui (192 testes, 0 achados de lint, `assembleRelease` com R8), mas o job em si
   só prova que funciona no primeiro `push` — a instalação de `platforms;android-37.0` no runner e o cache

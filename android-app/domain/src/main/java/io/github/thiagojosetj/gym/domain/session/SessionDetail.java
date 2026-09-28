@@ -38,9 +38,14 @@ public record SessionDetail(
     /**
      * @param previous          summary of the previous session of the same workout, or null
      * @param previousStartedAt when that session started; ignored when {@code previous} is null
+     * @param previousTimeZone  the zone THAT session was performed in, which is not necessarily
+     *                          this one's: the same person can perform the same workout either side
+     *                          of a flight, and the day each one belongs to is decided where it
+     *                          happened
      */
     public static SessionDetail of(ActiveSession session, String localDate, String timeZone,
-                                   Integer rating, SessionSummary previous, long previousStartedAt) {
+                                   Integer rating, SessionSummary previous, long previousStartedAt,
+                                   String previousTimeZone) {
         SessionClock clock = session.header().clock();
         // A finished session's clock ignores "now" entirely; passing the end instant keeps the call
         // honest if this is ever handed a session that is somehow still running.
@@ -51,7 +56,7 @@ public record SessionDetail(
             rollups.add(SessionExerciseSummary.of(exercise));
         }
         return new SessionDetail(session, summary, localDate, timeZone, rating, rollups,
-                SessionComparison.between(summary, previous, previousStartedAt));
+                SessionComparison.between(summary, previous, previousStartedAt, previousTimeZone));
     }
 
     public boolean hasComparison() {

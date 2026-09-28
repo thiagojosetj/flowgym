@@ -75,13 +75,15 @@ public final class HistoryRepository {
 
         SessionSummary previousSummary = null;
         long previousStartedAt = 0L;
+        String previousTimeZone = entity.timeZone;
         // A session started from a template that was deleted since keeps its templateId, so the
         // comparison still works; a session with no template has nothing to compare against.
         if (entity.templateId != null) {
             String previousId = dao.findPreviousSessionOfTemplate(entity.templateId, entity.startedAt);
             if (previousId != null) {
                 SessionHeaderRow previousHeader = dao.findHeader(previousId);
-                if (previousHeader != null) {
+                WorkoutSessionEntity previousEntity = dao.findSession(previousId);
+                if (previousHeader != null && previousEntity != null) {
                     // The previous session's own sets, not this one's: volume depends on that
                     // session's snapshot of load basis and laterality, which may have differed.
                     ActiveSession previous = SessionMapper.toSession(previousHeader,
@@ -90,11 +92,16 @@ public final class HistoryRepository {
                     long end = clock.endedAt() == null ? clock.startedAt() : clock.endedAt();
                     previousSummary = SessionSummary.of(previous, end);
                     previousStartedAt = previousHeader.startedAt;
+                    // That session's OWN zone. Naming its day in this session's zone is how the
+                    // summary ends up claiming a day the workout did not happen on - and
+                    // contradicting the history list, which gets this right per row. It costs one
+                    // extra query rather than a column on the row the active screen also reads.
+                    previousTimeZone = previousEntity.timeZone;
                 }
             }
         }
         return SessionDetail.of(session, entity.localDate, entity.timeZone, entity.rating,
-                previousSummary, previousStartedAt);
+                previousSummary, previousStartedAt, previousTimeZone);
     }
 
     private static List<SessionHistoryEntry> toEntries(List<SessionHistoryRow> rows) {
