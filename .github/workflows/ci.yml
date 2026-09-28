@@ -76,13 +76,28 @@ jobs:
             echo "::error::lint report not found at android-app/$report - the lint task did not produce one"
             exit 1
           fi
-          count=$(grep -c '<issue ' "$report" || true)
-          if [ "$count" -ne 0 ]; then
-            echo "::error::lint reported $count finding(s); the bar for this repository is zero"
-            grep -o 'id="[^"]*"[^>]*severity="[^"]*"' "$report" | sort | uniq -c | sort -rn
-            exit 1
-          fi
-          echo "lint: 0 findings"
+          # Parsed as XML, not grepped. Lint writes "<issue" followed by a newline with the
+          # attributes on the lines below, so a pattern like '<issue ' matches nothing and a
+          # pattern like '<issue' also matches the "<issues>" root element. The first version of
+          # this step used the former and would have reported zero findings for ever - a gate that
+          # cannot fail is worse than no gate, because it is believed.
+          python3 - "$report" <<'PY'
+          import sys, xml.etree.ElementTree as ET
+          # AndroidGradlePluginVersion asks a remote version list whether something newer exists,
+          # so it goes red on its own schedule with no change to this repository. It is advice
+          # about the toolchain, not a defect in the code under review, and a gate that fails for
+          # reasons no commit can fix is a gate people learn to ignore. Every other check counts.
+          ADVISORY = {"AndroidGradlePluginVersion"}
+          issues = ET.parse(sys.argv[1]).getroot().findall("issue")
+          blocking = [i for i in issues if i.get("id") not in ADVISORY]
+          for i in issues:
+              mark = "advisory" if i.get("id") in ADVISORY else "BLOCKING"
+              print(f"[{mark}] {i.get('id')} ({i.get('severity')}): {i.get('message')}")
+          if blocking:
+              print(f"::error::lint reported {len(blocking)} finding(s); the bar here is zero")
+              sys.exit(1)
+          print(f"lint: 0 blocking findings ({len(issues) - len(blocking)} advisory)")
+          PY
 
       - name: Upload test and lint reports
         if: failure()
