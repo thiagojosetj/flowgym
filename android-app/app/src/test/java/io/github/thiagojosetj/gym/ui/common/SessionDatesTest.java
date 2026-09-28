@@ -3,6 +3,9 @@ package io.github.thiagojosetj.gym.ui.common;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
+import android.content.res.Resources;
+
+import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import org.junit.Test;
@@ -56,6 +59,45 @@ public class SessionDatesTest {
     }
 
     @Test
+    public void aSessionFromEarlierTodayReadsHoje() {
+        long twoHoursLater = EVENING_IN_BRAZIL + 2L * 60L * 60L * 1000L;
+
+        assertEquals("Hoje", SessionDates.relativeDay(resources(), EVENING_IN_BRAZIL,
+                "America/Sao_Paulo", twoHoursLater));
+    }
+
+    @Test
+    public void aSessionFromTheDayBeforeReadsOntem() {
+        long nextMorningInBrazil = Instant.parse("2026-09-29T13:00:00Z").toEpochMilli();
+
+        assertEquals("Ontem", SessionDates.relativeDay(resources(), EVENING_IN_BRAZIL,
+                "America/Sao_Paulo", nextMorningInBrazil));
+    }
+
+    @Test
+    public void anOlderSessionFallsBackToItsDate() {
+        long aWeekLater = EVENING_IN_BRAZIL + 7L * 24L * 60L * 60L * 1000L;
+
+        String label = SessionDates.relativeDay(resources(), EVENING_IN_BRAZIL,
+                "America/Sao_Paulo", aWeekLater);
+
+        assertNotEquals("Hoje", label);
+        assertNotEquals("Ontem", label);
+        assertEquals(SessionDates.day(EVENING_IN_BRAZIL, "America/Sao_Paulo"), label);
+    }
+
+    @Test
+    public void theRelativeLabelAgreesWithTheTimeShownBesideIt() {
+        // The bug this guards: resolving "today" in the device zone while the time beside it is
+        // resolved in the session zone. 22:30 UTC is still Monday evening in Sao Paulo, so a
+        // reader at 02:00 UTC on Tuesday - still Monday 23:00 there - must see "Hoje", not "Ontem".
+        long justBeforeMidnightInBrazil = Instant.parse("2026-09-29T02:00:00Z").toEpochMilli();
+
+        assertEquals("Hoje", SessionDates.relativeDay(resources(), EVENING_IN_BRAZIL,
+                "America/Sao_Paulo", justBeforeMidnightInBrazil));
+    }
+
+    @Test
     public void bothTheDayAndTheTimeProduceText() {
         // Note for whoever tidies this later: the implementation must keep using
         // Instant.atZone(...). LocalDate.ofInstant compiles fine and throws NoSuchMethodError on
@@ -63,5 +105,11 @@ public class SessionDatesTest {
         // catch it; lint's NewApi check is what enforces it, and the gate runs lint.
         assertNotEquals("", SessionDates.day(EVENING_IN_BRAZIL, "America/Sao_Paulo"));
         assertNotEquals("", SessionDates.timeOfDay(EVENING_IN_BRAZIL, "America/Sao_Paulo"));
+    }
+
+    // ------------------------------------------------------------------ helpers
+
+    private static Resources resources() {
+        return ApplicationProvider.getApplicationContext().getResources();
     }
 }

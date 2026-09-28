@@ -75,8 +75,26 @@ tela do treino voltava sozinha para a Início antes de carregar, e um descanso q
 na tela e na notificação. Lição registrada: um teste que depende de executor sincronizado **não prova**
 comportamento de corrida — por isso a lista de pendências de aparelho acima não é opcional.
 
-### Fase 4 — Histórico ⬜
-Resumo, calendário, sessão antiga, comparação com anterior.
+### Fase 4 — Histórico 🟡
+- ✅ Aba **Histórico** com a lista de sessões concluídas, mais recentes primeiro. Sessões **ativas** e
+  **descartadas** não entram: "terminou" não é "aconteceu".
+- ✅ Detalhe de uma sessão antiga montado **só dos snapshots** gravados por ela — editar ou renomear o
+  treino depois não muda o que está lá.
+- ✅ Resumo (HIS-01, menos recordes e medalhas): duração total e efetiva, séries, repetições, volume e
+  a linha "N séries não incluídas no volume", calculados pelo mesmo `SessionVolume` que a tela de
+  finalização usa.
+- ✅ Comparação com a **sessão anterior do mesmo treino** (§11): volume, séries, repetições e tempo
+  efetivo, com ↑ ↓ = e percentual **só** quando o valor anterior é maior que zero — `percent()` lança
+  exceção se ninguém checou `hasPercent()`, então esquecer quebra um teste, não a honestidade da tela.
+- ✅ Sem mudança de esquema: o banco continua na **versão 3**. `local_date`, `time_zone` e `rating` já
+  existiam desde a v3 e só agora são lidos.
+- ⬜ **HIS-02 — calendário** de dias treinados (`local_date` já está indexado para isso).
+- ⬜ Comparação **por exercício** expansível série a série (a parte da HIS-04 que falta; o "anterior"
+  de cada série já aparece, vindo do ponteiro congelado).
+- ⬜ Avaliação 1–5 e observação da sessão (as colunas existem; o resumo já exibe a avaliação quando
+  houver, mas ainda não há como registrá-la).
+- ⬜ Excluir uma sessão do histórico (não existe caminho de exclusão; `deleted_at` nunca é escrito).
+- ⬜ **Validar no aparelho**: a lista com muitas sessões e a rolagem do detalhe de uma sessão longa.
 
 ### Fase 5 — Progresso ⬜
 Gráficos (biblioteca a decidir — ADR pendente), PRs, estatísticas semanais/mensais e por grupo

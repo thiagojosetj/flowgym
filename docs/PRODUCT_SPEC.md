@@ -99,6 +99,22 @@ notificação, o serviço em primeiro plano e o alerta com a tela apagada.
 - **HIS-03** Sessão antiga em detalhe, a partir dos snapshots (nunca do template atual).
 - **HIS-04** Tabela de comparação Exercício | Anterior | Atual | Variação (↑ ↓ =), expansível série a série.
 
+**Implementado (28/09/2026):** HIS-01 (menos recordes e medalhas, que dependem das Fases 5 e 7),
+HIS-03 e a comparação de sessão do HIS-04. **HIS-02 (calendário) não foi feito.**
+
+A comparação do resumo é com a **sessão anterior do mesmo template**; a comparação série a série
+continua sendo a do ponteiro congelado no início da sessão (a última sessão concluída que tem aquele
+exercício, de qualquer treino — ADR-0033). São perguntas diferentes e ficam separadas de propósito.
+
+O percentual só aparece quando o valor anterior é **maior que zero**: `MetricChange.hasPercent()`
+responde isso e `MetricChange.percent()` **lança exceção** se ninguém perguntou. Uma tela que
+esquecer quebra um teste, em vez de imprimir um número que o usuário acreditaria.
+
+A lista **não mostra volume de carga**, e isso é decisão de produto, não esquecimento: calcular
+volume com honestidade exige aplicar as regras do §9 série a série, ou seja, ler o histórico inteiro
+para desenhar uma tela. O volume fica na tela da sessão, calculado pelo mesmo código que o calculou
+quando o treino foi finalizado.
+
 ### 4.5 Progresso (Fase 5)
 - **PRG-01** Gráficos de carga, volume e repetições por exercício e do treino.
 - **PRG-02** Filtros: últimas 5, 10, 30 sessões, período personalizado, todo o histórico.

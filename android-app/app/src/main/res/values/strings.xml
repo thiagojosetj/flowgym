@@ -8,6 +8,7 @@
     <string name="nav_home">Início</string>
     <string name="nav_templates">Treinos</string>
     <string name="nav_library">Exercícios</string>
+    <string name="nav_history">Histórico</string>
     <string name="title_exercise_detail">Exercício</string>
     <string name="title_template_new">Novo treino</string>
     <string name="title_template_edit">Editar treino</string>
@@ -289,6 +290,47 @@
         <item quantity="other">%d séries não incluídas no volume</item>
     </plurals>
     <string name="summary_close">Fechar</string>
+
+    <!-- History (PRODUCT_SPEC HIS-01, HIS-03, HIS-04) -->
+    <string name="history_empty_title">Nenhum treino no histórico</string>
+    <string name="history_empty_body">Quando você finalizar um treino, ele aparece aqui com duração, exercícios e séries.</string>
+    <string name="history_day_today">Hoje</string>
+    <string name="history_day_yesterday">Ontem</string>
+    <string name="history_detail_title">Sessão</string>
+    <string name="history_session_date">%1$s · %2$s</string>
+    <string name="history_open_session">Abrir a sessão de %1$s</string>
+    <string name="history_effective_time">%s efetivos</string>
+    <string name="history_time_under_tension">Tempo sob tensão: %s</string>
+    <string name="history_no_volume">Sem volume de carga nesta sessão</string>
+    <string name="history_exercises_title">Exercícios</string>
+    <string name="history_exercise_no_volume">Sem volume de carga</string>
+    <string name="history_set_planned">Planejado: %s</string>
+    <string name="history_set_skipped">Não feita</string>
+    <string name="history_set_no_value">—</string>
+    <string name="history_rating">Avaliação: %1$d de 5</string>
+    <string name="history_load_failed">Não foi possível abrir esta sessão.</string>
+
+    <!-- Comparison with the previous session of the same workout (PRODUCT_SPEC §11) -->
+    <string name="history_comparison_title">Comparação com a sessão anterior</string>
+    <string name="history_comparison_subtitle">Anterior: %s</string>
+    <string name="history_comparison_none">Primeira vez que você fez este treino: não há sessão anterior para comparar.</string>
+    <string name="history_comparison_volume">Volume</string>
+    <string name="history_comparison_sets">Séries</string>
+    <string name="history_comparison_reps">Repetições</string>
+    <string name="history_comparison_time">Tempo efetivo</string>
+    <!-- Metric line: label, current value, arrow + variation. -->
+    <string name="history_comparison_line">%1$s: %2$s (%3$s)</string>
+    <string name="history_comparison_up">↑</string>
+    <string name="history_comparison_down">↓</string>
+    <string name="history_comparison_same">=</string>
+    <!-- Percentage only when the previous value was above zero (PRODUCT_SPEC §11). -->
+    <string name="history_comparison_change_percent">%1$s %2$s · %3$s</string>
+    <string name="history_comparison_change_absolute">%1$s %2$s</string>
+    <string name="history_comparison_percent_value">%s%%</string>
+    <string name="history_comparison_unchanged">igual</string>
+    <string name="history_comparison_direction_up">aumentou</string>
+    <string name="history_comparison_direction_down">diminuiu</string>
+    <string name="history_comparison_direction_same">sem mudança</string>
 
     <!-- Settings -->
     <string name="settings_workout">Treino</string>

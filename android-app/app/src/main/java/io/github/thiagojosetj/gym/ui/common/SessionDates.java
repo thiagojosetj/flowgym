@@ -1,15 +1,18 @@
 package io.github.thiagojosetj.gym.ui.common;
 
-import android.content.Context;
-import android.text.format.DateUtils;
+import android.content.res.Resources;
 
 import java.time.DateTimeException;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
+import java.time.temporal.ChronoUnit;
 import java.util.Locale;
+
+import io.github.thiagojosetj.gym.R;
 
 /**
  * Formats the day and time of a finished session, in the zone the workout was performed in.
@@ -62,14 +65,32 @@ public final class SessionDates {
     }
 
     /**
-     * "hoje", "ontem" or the date, for the history list, where the recent days are the ones being
-     * scanned. Uses the platform helper so the wording follows the system language.
+     * "Hoje", "Ontem", or the date, for the history list where the recent days are the ones being
+     * scanned.
+     *
+     * <p>Both days are resolved in the <b>session's</b> zone, not the device's. That keeps the label
+     * consistent with the date and time shown beside it: a workout logged late on Sunday in Sao
+     * Paulo reads "Ontem · 22:40" on Monday, instead of the label and the clock disagreeing because
+     * one of them silently used the phone's current zone.
+     *
+     * <p>{@code android.text.format.DateUtils} is deliberately not used here. Its relative helpers
+     * work in the device zone and cannot be told otherwise, which is exactly the mix-up above, and
+     * they read the system clock directly, which makes the result untestable.
+     *
+     * @param nowMillis the current instant, passed in rather than read here so the result is
+     *                  deterministic in a test
      */
-    public static String relativeDay(Context context, long epochMillis, String timeZoneId) {
-        long now = System.currentTimeMillis();
-        long dayMillis = DateUtils.DAY_IN_MILLIS;
-        if (Math.abs(now - epochMillis) < 2L * dayMillis) {
-            return DateUtils.getRelativeTimeSpanString(context, epochMillis, false).toString();
+    public static String relativeDay(Resources res, long epochMillis, String timeZoneId,
+                                     long nowMillis) {
+        ZoneId zone = zoneOf(timeZoneId);
+        LocalDate day = Instant.ofEpochMilli(epochMillis).atZone(zone).toLocalDate();
+        LocalDate today = Instant.ofEpochMilli(nowMillis).atZone(zone).toLocalDate();
+        long daysAgo = ChronoUnit.DAYS.between(day, today);
+        if (daysAgo == 0L) {
+            return res.getString(R.string.history_day_today);
+        }
+        if (daysAgo == 1L) {
+            return res.getString(R.string.history_day_yesterday);
         }
         return day(epochMillis, timeZoneId);
     }
