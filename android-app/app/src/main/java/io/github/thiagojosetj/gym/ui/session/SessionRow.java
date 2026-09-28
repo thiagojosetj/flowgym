@@ -33,6 +33,9 @@ public interface SessionRow {
      * @param previousText what the same set did last time, or null when there is nothing to show
      * @param weightText   text to put in the field: what the user typed, or the confirmed value
      * @param weightHint   suggestion shown as a hint - a hint is never mistaken for a result
+     * @param perSide      the exercise is logged one side at a time, so the single reps field is
+     *                     replaced by two (PRODUCT_SPEC 6.4). Repetitions are always counted per
+     *                     side; logging them apart records 10 and 9 instead of averaging them away
      */
     record SetRow(
             String id,
@@ -49,6 +52,11 @@ public interface SessionRow {
             String repsHint,
             String weightLabel,
             String repsLabel,
+            boolean perSide,
+            String repsLeftText,
+            String repsRightText,
+            String repsLeftHint,
+            String repsRightHint,
             boolean done,
             boolean removable) implements SessionRow {
     }

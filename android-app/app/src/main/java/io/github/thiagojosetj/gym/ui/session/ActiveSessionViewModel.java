@@ -19,6 +19,7 @@ import java.util.Set;
 import io.github.thiagojosetj.gym.core.Event;
 import io.github.thiagojosetj.gym.data.repository.ActiveSessionRepository;
 import io.github.thiagojosetj.gym.data.repository.TechniqueRepository;
+import io.github.thiagojosetj.gym.domain.model.SideMode;
 import io.github.thiagojosetj.gym.domain.model.Weight;
 import io.github.thiagojosetj.gym.domain.model.WeightUnit;
 import io.github.thiagojosetj.gym.domain.session.ActiveSession;
@@ -38,7 +39,11 @@ import io.github.thiagojosetj.gym.ui.common.NumberInput;
 public final class ActiveSessionViewModel extends ViewModel {
 
     /** One-shot outcomes for the screen. */
-    public enum SessionEvent { FINISHED, DISCARDED, ACTION_FAILED, FINISH_FAILED }
+    public enum SessionEvent {
+        FINISHED, DISCARDED, ACTION_FAILED, FINISH_FAILED,
+        /** A per-side set was confirmed with one side blank: half a result is not a result. */
+        PER_SIDE_INCOMPLETE
+    }
 
     /** Units are kg for now; lb support is planned (docs/ROADMAP.md). */
     private static final WeightUnit UNIT = WeightUnit.KILOGRAM;
@@ -139,6 +144,14 @@ public final class ActiveSessionViewModel extends ViewModel {
         drafts.put(setId, draftOf(setId).withReps(text));
     }
 
+    public void onRepsLeftTyped(String setId, String text) {
+        drafts.put(setId, draftOf(setId).withRepsLeft(text));
+    }
+
+    public void onRepsRightTyped(String setId, String text) {
+        drafts.put(setId, draftOf(setId).withRepsRight(text));
+    }
+
     /** Called when a field loses focus and when the screen stops: keeps typing across a restart. */
     public void flushDraft(String setId) {
         SetDraft draft = drafts.get(setId);
@@ -190,6 +203,20 @@ public final class ActiveSessionViewModel extends ViewModel {
             return;
         }
         SetValues values = withSuggestion(typed, set.suggestion(), exercise);
+        // PRODUCT_SPEC section 8: nothing half-filled becomes a result. A per-side set with one
+        // side blank is exactly what FinishReview calls "partial", so confirming it here would
+        // make the two screens disagree about the same set - and the total would be half of what
+        // was actually performed.
+        //
+        // Deliberately scoped to per-side. Whether a combined set with no repetitions should also
+        // be refused is a real question, but it is a different one: today it can be confirmed, the
+        // flow tests pin that, and changing it here would be a silent behaviour change riding on
+        // an unrelated feature.
+        if (exercise.sideMode() == SideMode.PER_SIDE && exercise.isUnilateral()
+                && !values.isComplete(exercise.trackingType(), exercise.sideMode())) {
+            events.setValue(new Event<>(SessionEvent.PER_SIDE_INCOMPLETE));
+            return;
+        }
         drafts.remove(setId);
         sessions.confirmSet(sessionId, setId, values, this::noop, this::onActionFailed);
     }
@@ -271,8 +298,12 @@ public final class ActiveSessionViewModel extends ViewModel {
     @Nullable
     private SetValues parse(SessionExercise exercise, LoggedSet set, @Nullable SetDraft draft) {
         boolean timed = exercise.trackingType().usesDuration() && !exercise.trackingType().usesReps();
+        boolean perSide = !timed && exercise.isUnilateral()
+                && exercise.sideMode() == SideMode.PER_SIDE;
         Weight weight = set.values().weight();
         Integer reps = set.values().reps();
+        Integer repsLeft = set.values().repsLeft();
+        Integer repsRight = set.values().repsRight();
         Integer duration = set.values().durationSeconds();
         if (draft != null) {
             try {
@@ -290,12 +321,30 @@ public final class ActiveSessionViewModel extends ViewModel {
                         reps = value;
                     }
                 }
+                if (draft.repsLeftText() != null) {
+                    repsLeft = NumberInput.parseWholeNumber(draft.repsLeftText());
+                }
+                if (draft.repsRightText() != null) {
+                    repsRight = NumberInput.parseWholeNumber(draft.repsRightText());
+                }
             } catch (IllegalArgumentException e) {
                 return null;
             }
         }
-        return new SetValues(weight, timed ? null : reps, set.values().repsLeft(),
-                set.values().repsRight(), timed ? duration : set.values().durationSeconds());
+        // The two shapes are mutually exclusive going forward: a per-side set must not also keep a
+        // combined `reps`, because SessionExercise.totalRepsOf takes the per-side branch whenever a
+        // side is present, so the combined number would silently stop counting.
+        //
+        // The other direction only PRESERVES. A non-per-side set keeps whatever sides are already
+        // stored instead of having them overwritten with null - normally they are null anyway, and
+        // if they are not, they are somebody's recorded repetitions. Nothing gets discarded here
+        // just because this screen did not expect to find it (PRODUCT_SPEC section 8).
+        return new SetValues(
+                weight,
+                timed || perSide ? null : reps,
+                perSide ? repsLeft : set.values().repsLeft(),
+                perSide ? repsRight : set.values().repsRight(),
+                timed ? duration : set.values().durationSeconds());
     }
 
     /**
@@ -314,6 +363,8 @@ public final class ActiveSessionViewModel extends ViewModel {
     /** Empty fields adopt the suggestion the user was looking at when they confirmed the set. */
     private static SetValues withSuggestion(SetValues typed, SetValues suggestion, SessionExercise exercise) {
         boolean timed = exercise.trackingType().usesDuration() && !exercise.trackingType().usesReps();
+        boolean perSide = !timed && exercise.isUnilateral()
+                && exercise.sideMode() == SideMode.PER_SIDE;
         Weight weight = typed.weight() != null ? typed.weight() : suggestion.weight();
         Integer reps = typed.reps() != null ? typed.reps() : suggestion.reps();
         Integer duration = typed.durationSeconds() != null
@@ -321,10 +372,24 @@ public final class ActiveSessionViewModel extends ViewModel {
                 : suggestion.durationSeconds();
         return new SetValues(
                 exercise.trackingType().usesWeight() ? weight : null,
-                timed ? null : reps,
-                typed.repsLeft(),
-                typed.repsRight(),
+                timed || perSide ? null : reps,
+                perSide ? sideOrSuggestion(typed.repsLeft(), suggestion.repsLeft(), suggestion) : null,
+                perSide ? sideOrSuggestion(typed.repsRight(), suggestion.repsRight(), suggestion) : null,
                 timed ? duration : null);
+    }
+
+    /**
+     * One side's repetitions: what was typed, else that side of the suggestion, else the combined
+     * suggestion - on a unilateral exercise "10 reps" has always meant 10 per side
+     * (PRODUCT_SPEC 6.4), so offering it for each side repeats a number the user is looking at
+     * rather than inventing one.
+     */
+    private static Integer sideOrSuggestion(Integer typed, Integer suggestedSide,
+                                            SetValues suggestion) {
+        if (typed != null) {
+            return typed;
+        }
+        return suggestedSide != null ? suggestedSide : suggestion.reps();
     }
 
     private void onActionFailed(Throwable error) {

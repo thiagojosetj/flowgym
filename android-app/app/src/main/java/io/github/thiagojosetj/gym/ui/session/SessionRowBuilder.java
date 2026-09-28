@@ -86,6 +86,15 @@ final class SessionRowBuilder {
         String repsText = pending != null && pending.repsText() != null
                 ? pending.repsText()
                 : timed ? intOf(set.values().durationSeconds()) : intOf(set.values().reps());
+        // Per-side only makes sense for a unilateral exercise measured in repetitions: there is no
+        // left and right of a plank, and the domain rejects PER_SIDE on a bilateral exercise.
+        boolean perSide = !timed && exercise.isUnilateral() && isPerSide(exercise);
+        String repsLeftText = pending != null && pending.repsLeftText() != null
+                ? pending.repsLeftText()
+                : intOf(set.values().repsLeft());
+        String repsRightText = pending != null && pending.repsRightText() != null
+                ? pending.repsRightText()
+                : intOf(set.values().repsRight());
 
         return new SessionRow.SetRow(
                 set.id(),
@@ -102,6 +111,11 @@ final class SessionRowBuilder {
                 timed ? intOf(suggestion.durationSeconds()) : intOf(suggestion.reps()),
                 weightLabel(exercise),
                 res.getString(timed ? R.string.session_duration_hint : R.string.session_reps_hint),
+                perSide,
+                repsLeftText,
+                repsRightText,
+                sideSuggestion(suggestion, suggestion.repsLeft()),
+                sideSuggestion(suggestion, suggestion.repsRight()),
                 set.isCompleted(),
                 exercise.sets().size() > 1);
     }
@@ -189,8 +203,16 @@ final class SessionRowBuilder {
         return text == null || text.trim().isEmpty() ? null : text;
     }
 
-    /** Per-side logging is not editable in this slice; the flag decides what the row explains. */
     static boolean isPerSide(SessionExercise exercise) {
         return exercise.sideMode() == SideMode.PER_SIDE;
+    }
+
+    /**
+     * The hint for one side. When the suggestion already has that side (the last session was also
+     * logged per side) it is used as it is; otherwise the combined suggestion is shown, because on
+     * a unilateral exercise "10 reps" has always meant 10 per side (PRODUCT_SPEC 6.4).
+     */
+    private static String sideSuggestion(SetValues suggestion, Integer side) {
+        return intOf(side != null ? side : suggestion.reps());
     }
 }

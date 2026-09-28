@@ -61,7 +61,10 @@ Legenda: ✅ concluído · 🟡 em andamento/parcial · ⬜ não iniciado.
 - ✅ Recuperação: a faixa "você tem um treino em andamento" na Início lê só o banco.
 - ✅ Finalização com validação (PRODUCT_SPEC §8): mostra o que vai acontecer com cada série não
   confirmada, nada é descartado em silêncio, e o resumo diz quantas séries ficaram fora do volume.
-- ⬜ Registro por lado (E 10 / D 9): as colunas existem e o domínio já calcula; falta o layout.
+- ✅ Registro por lado (E 10 / D 9): dois campos no lugar do campo único quando o treino marca o
+  exercício como "por lado", com os dois lados obrigatórios para concluir a série. Fechou de quebra
+  um erro real: dava para marcar "por lado" e registrar no campo combinado, e aí o domínio não
+  dobrava as repetições — metade das reps e metade do volume.
 - ⬜ Segmentos de drop-set / rest-pause (a coluna `parent_set_id` existe).
 - ⬜ Grupos de exercícios (supersérie) — dependem das tabelas de grupo, ainda não criadas.
 - ⬜ Avaliação 1–5 e observações da sessão (colunas existem, sem interface).

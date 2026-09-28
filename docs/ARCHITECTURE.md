@@ -209,7 +209,9 @@ rotinas sempre que o cronograma muda.
 - Uma `RecyclerView` com `ListAdapter` + `DiffUtil`, sem `NestedScrollView` com listas dentro.
 - Itens estáveis (IDs = UUID) → animações e atualizações parciais; editar o peso de uma série
   atualiza **um item**, não a lista inteira.
-- Escritas por série debounced (~300 ms) no executor de disco; a UI nunca espera o disco.
+- Escritas por série no executor de disco; a UI nunca espera o disco. **Não há debounce**: cada
+  gesto é gravado na hora, e o que está sendo digitado é gravado ao sair do campo e ao fechar a
+  tela (ADR-0031). A linha anterior aqui falava de um debounce de ~300 ms que o código não tem.
 - Cronômetros redesenham só os `TextView`s de tempo (1×/s), não a lista.
 - Observações de banco sem loops: a UI não escreve em resposta direta à própria emissão do LiveData.
 

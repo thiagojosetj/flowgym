@@ -87,7 +87,8 @@ Os IDs abaixo são usados no ROADMAP, nos commits e nos testes. Estado atualizad
 - **ACT-08** Recuperação: "Você possui um treino em andamento. [CONTINUAR]".
 - **ACT-09** Finalizar: validar séries parcialmente preenchidas (nunca descartar silenciosamente) e mostrar resumo.
 
-**Implementado (27/09/2026):** ACT-01, ACT-02, ACT-04 (exceto registro por lado e segmentos), ACT-05,
+**Implementado (27/09/2026, registro por lado em 28/09):** ACT-01, ACT-02, ACT-04 (exceto
+segmentos de drop-set), ACT-05,
 ACT-06, ACT-07, ACT-08 e ACT-09. O pré-preenchimento (ACT-03) existe e vem da sessão anterior, mas
 ainda **não é configurável**; uma faixa planejada (8–10) de propósito **não** pré-preenche as
 repetições — escolher 8 pelo usuário seria inventar um resultado. Falta validar em aparelho a
@@ -184,6 +185,17 @@ rodada do grupo.
   nunca exibe 24 kg como se fosse a carga da série.
 - **Unilateral:** registro conjunto ("10 reps por lado") ou por lado (E 10 / D 9). A opção só
   aparece em exercícios unilaterais. Repetições são sempre contadas **por lado**.
+
+  **Implementado (28/09/2026).** Quando o treino marca o exercício como "por lado", a série mostra
+  dois campos (E e D) no lugar do campo único, e **os dois são obrigatórios para concluir a série**:
+  meia série não é resultado (§8), e o `FinishReview` já chamava de "parcial" exatamente esse caso —
+  as duas telas passariam a discordar sobre a mesma série. O campo combinado e os campos por lado
+  nunca aparecem juntos, e uma série gravada por lado não guarda `reps` combinado: o total viria do
+  ramo por lado e o número combinado deixaria de ser contado, em silêncio.
+
+  **Corrige um erro que já estava no app:** dava para marcar "por lado" no treino e registrar no
+  campo combinado. O valor ia para `reps`, e como `sideMode` era `PER_SIDE` o domínio **não**
+  dobrava — um exercício unilateral contava metade das repetições e metade do volume.
 - **Peso corporal:** exercício com rastreamento "peso corporal" aceita carga **adicional** (+10 kg)
   ou **assistência** (−25 kg) como valor com sinal. Sem valor = peso corporal puro. Nenhum número é
   inventado para o peso corporal.

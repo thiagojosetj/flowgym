@@ -119,6 +119,53 @@
                 android:minHeight="@dimen/touch_target_min" />
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!--
+            Per-side logging (PRODUCT_SPEC 6.4). These replace the single reps field for a
+            unilateral exercise set to "por lado": both sides are recorded as they happened
+            (E 10 / D 9) instead of being averaged into one number nobody performed.
+        -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/reps_left_layout"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.Dense"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/space_s"
+            android:layout_weight="1"
+            android:hint="@string/session_reps_left_hint"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/reps_left_input"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:imeOptions="actionNext"
+                android:inputType="number"
+                android:maxLength="4"
+                android:minHeight="@dimen/touch_target_min" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/reps_right_layout"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.Dense"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/space_s"
+            android:layout_weight="1"
+            android:hint="@string/session_reps_right_hint"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/reps_right_input"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:imeOptions="actionDone"
+                android:inputType="number"
+                android:maxLength="4"
+                android:minHeight="@dimen/touch_target_min" />
+        </com.google.android.material.textfield.TextInputLayout>
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/button_done"
             style="@style/Widget.Material3.Button.IconButton.Filled"

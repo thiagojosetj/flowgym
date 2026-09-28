@@ -220,6 +220,8 @@ public class ActiveSessionFragment extends Fragment implements SessionRowAdapter
             case DISCARDED -> NavHostFragment.findNavController(this).popBackStack();
             case ACTION_FAILED -> snackbar(getString(R.string.session_action_failed));
             case FINISH_FAILED -> snackbar(getString(R.string.finish_failed));
+            case PER_SIDE_INCOMPLETE ->
+                    snackbar(getString(R.string.session_per_side_incomplete));
         }
     }
 
@@ -238,6 +240,16 @@ public class ActiveSessionFragment extends Fragment implements SessionRowAdapter
     @Override
     public void onRepsTyped(String setId, String text) {
         viewModel.onRepsTyped(setId, text);
+    }
+
+    @Override
+    public void onRepsLeftTyped(String setId, String text) {
+        viewModel.onRepsLeftTyped(setId, text);
+    }
+
+    @Override
+    public void onRepsRightTyped(String setId, String text) {
+        viewModel.onRepsRightTyped(setId, text);
     }
 
     @Override

@@ -40,6 +40,10 @@ final class SessionRowAdapter extends ListAdapter<SessionRow, RecyclerView.ViewH
 
         void onRepsTyped(String setId, String text);
 
+        void onRepsLeftTyped(String setId, String text);
+
+        void onRepsRightTyped(String setId, String text);
+
         void onFieldDone(String setId);
 
         void onConfirm(String setId);
@@ -163,6 +167,26 @@ final class SessionRowAdapter extends ListAdapter<SessionRow, RecyclerView.ViewH
                     callbacks.onFieldDone(setId);
                 }
             });
+            views.repsLeftInput.addTextChangedListener(new SimpleWatcher(text -> {
+                if (!binding && setId != null) {
+                    callbacks.onRepsLeftTyped(setId, text);
+                }
+            }));
+            views.repsRightInput.addTextChangedListener(new SimpleWatcher(text -> {
+                if (!binding && setId != null) {
+                    callbacks.onRepsRightTyped(setId, text);
+                }
+            }));
+            views.repsLeftInput.setOnFocusChangeListener((v, hasFocus) -> {
+                if (!hasFocus && setId != null) {
+                    callbacks.onFieldDone(setId);
+                }
+            });
+            views.repsRightInput.setOnFocusChangeListener((v, hasFocus) -> {
+                if (!hasFocus && setId != null) {
+                    callbacks.onFieldDone(setId);
+                }
+            });
             views.buttonDone.setOnClickListener(v -> {
                 if (setId == null) {
                     return;
@@ -210,6 +234,23 @@ final class SessionRowAdapter extends ListAdapter<SessionRow, RecyclerView.ViewH
             views.weightLayout.setPlaceholderText(row.weightHint());
             views.repsLayout.setPlaceholderText(row.repsHint());
 
+            // One reps field or two, never both: showing a combined field beside per-side ones
+            // would let the same set be recorded twice in two different meanings.
+            views.repsLayout.setVisibility(row.perSide() ? View.GONE : View.VISIBLE);
+            views.repsLeftLayout.setVisibility(row.perSide() ? View.VISIBLE : View.GONE);
+            views.repsRightLayout.setVisibility(row.perSide() ? View.VISIBLE : View.GONE);
+            if (row.perSide()) {
+                setTextIfIdle(views.repsLeftInput, row.repsLeftText());
+                setTextIfIdle(views.repsRightInput, row.repsRightText());
+                views.repsLeftLayout.setPlaceholderText(row.repsLeftHint());
+                views.repsRightLayout.setPlaceholderText(row.repsRightHint());
+                // "E" and "D" are readable but not speakable; TalkBack gets the whole word.
+                views.repsLeftInput.setContentDescription(
+                        root.getContext().getString(R.string.session_reps_left_description));
+                views.repsRightInput.setContentDescription(
+                        root.getContext().getString(R.string.session_reps_right_description));
+            }
+
             views.buttonTechnique.setText(row.badge() == null ? "—" : row.badge());
             views.buttonTechnique.setContentDescription(root.getContext().getString(
                     R.string.session_technique_of_set, number(row)));
@@ -229,6 +270,8 @@ final class SessionRowAdapter extends ListAdapter<SessionRow, RecyclerView.ViewH
             // written to disk. Undo first, then correct it.
             views.weightInput.setEnabled(!done);
             views.repsInput.setEnabled(!done);
+            views.repsLeftInput.setEnabled(!done);
+            views.repsRightInput.setEnabled(!done);
             views.weightLayout.setHelperText(done
                     ? root.getContext().getString(R.string.session_set_done_hint) : null);
 
