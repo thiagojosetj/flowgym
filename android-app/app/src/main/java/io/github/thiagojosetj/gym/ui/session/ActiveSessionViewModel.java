@@ -202,21 +202,26 @@ public final class ActiveSessionViewModel extends ViewModel {
             events.setValue(new Event<>(SessionEvent.ACTION_FAILED));
             return;
         }
-        SetValues values = withSuggestion(typed, set.suggestion(), exercise);
-        // PRODUCT_SPEC section 8: nothing half-filled becomes a result. A per-side set with one
-        // side blank is exactly what FinishReview calls "partial", so confirming it here would
-        // make the two screens disagree about the same set - and the total would be half of what
-        // was actually performed.
+        // Checked on what the user actually entered, BEFORE any suggestion is adopted. Checking it
+        // afterwards is useless: withSuggestion has already filled the blank side by then, so the
+        // guard could only ever fire when there happened to be nothing to adopt - which made the
+        // same visible state (E typed, D blank) complete or refuse depending on whether the draft
+        // had been flushed to the database yet. Found by a test written against the documented
+        // behaviour, which the code did not have.
         //
-        // Deliberately scoped to per-side. Whether a combined set with no repetitions should also
-        // be refused is a real question, but it is a different one: today it can be confirmed, the
-        // flow tests pin that, and changing it here would be a silent behaviour change riding on
-        // an unrelated feature.
+        // Half entered is refused, because per-side exists precisely for sides that DIFFER: filling
+        // D from the plan when the user typed E records a number they did not perform, and
+        // FinishReview would call that same set "partial" (PRODUCT_SPEC section 8).
+        //
+        // Neither side entered is allowed through to the suggestion, which then fills both. That is
+        // the same "I did what was planned" the single combined field already means when it is
+        // confirmed empty, so the two modes stay consistent with each other.
         if (exercise.sideMode() == SideMode.PER_SIDE && exercise.isUnilateral()
-                && !values.isComplete(exercise.trackingType(), exercise.sideMode())) {
+                && (typed.repsLeft() == null) != (typed.repsRight() == null)) {
             events.setValue(new Event<>(SessionEvent.PER_SIDE_INCOMPLETE));
             return;
         }
+        SetValues values = withSuggestion(typed, set.suggestion(), exercise);
         drafts.remove(setId);
         sessions.confirmSet(sessionId, setId, values, this::noop, this::onActionFailed);
     }

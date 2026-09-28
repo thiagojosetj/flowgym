@@ -187,11 +187,24 @@ rodada do grupo.
   aparece em exercícios unilaterais. Repetições são sempre contadas **por lado**.
 
   **Implementado (28/09/2026).** Quando o treino marca o exercício como "por lado", a série mostra
-  dois campos (E e D) no lugar do campo único, e **os dois são obrigatórios para concluir a série**:
-  meia série não é resultado (§8), e o `FinishReview` já chamava de "parcial" exatamente esse caso —
-  as duas telas passariam a discordar sobre a mesma série. O campo combinado e os campos por lado
-  nunca aparecem juntos, e uma série gravada por lado não guarda `reps` combinado: o total viria do
-  ramo por lado e o número combinado deixaria de ser contado, em silêncio.
+  dois campos (E e D) no lugar do campo único. A regra de confirmação é sobre **o que foi digitado**,
+  antes de qualquer sugestão entrar:
+
+  | O que o usuário digitou | O que acontece ao tocar ✓ |
+  |---|---|
+  | Os dois lados | Grava os dois. |
+  | **Só um lado** | **Recusa**, com aviso. Por lado existe justamente para lados **diferentes**: preencher D com o plano quando o usuário digitou E grava um número que ele não fez, e o `FinishReview` chamaria essa mesma série de "parcial" (§8). |
+  | Nenhum lado | A sugestão preenche os dois — é o mesmo "fiz o que estava planejado" que o campo único já significa quando é confirmado vazio. |
+
+  O campo combinado e os campos por lado nunca aparecem juntos, e uma série gravada por lado não
+  guarda `reps` combinado: o total viria do ramo por lado e o número combinado deixaria de ser
+  contado, em silêncio.
+
+  > **Correção de 28/09/2026.** A primeira versão checava "os dois lados" **depois** de adotar a
+  > sugestão, então a checagem nunca disparava quando havia o que adotar — a mesma tela (E digitado,
+  > D vazio) concluía ou recusava dependendo de o rascunho já ter ido para o banco. O commit que
+  > entregou o recurso descrevia o comportamento correto, não o que o código fazia. Um teste escrito
+  > contra esta especificação pegou a diferença.
 
   **Corrige um erro que já estava no app:** dava para marcar "por lado" no treino e registrar no
   campo combinado. O valor ia para `reps`, e como `sideMode` era `PER_SIDE` o domínio **não**
