@@ -59,7 +59,8 @@ public class MigrationTest {
         createVersion1Database(file);
 
         database = Room.databaseBuilder(context, AppDatabase.class, DB_NAME)
-                .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3)
+                .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3,
+                        AppDatabase.MIGRATION_3_4)
                 .allowMainThreadQueries()
                 .build();
         // Opening runs every migration and validates the schema against the current version.

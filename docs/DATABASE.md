@@ -255,6 +255,35 @@ urgente e não bloqueou a Fase 4.
 (centenas de sessões) isso não se mede; quando medir, um índice é uma migration v5 com teste, não um
 ajuste solto.
 
+## 2b. Esquema — versão 4 (grupos de exercícios)
+
+Primeira mudança de esquema desde a v3. Só **cria**: duas tabelas novas e duas colunas anuláveis.
+Nenhuma linha existente é reescrita, e um exercício sem grupo lê `group_id IS NULL` — que é o que
+todo template e toda sessão gravados antes desta migration já têm.
+
+### `template_exercise_group` (v4)
+`id` TEXT PK · `template_id` FK CASCADE · `label` TEXT NOT NULL ("A", "B" → A1, A2) ·
+`technique_id` FK → `training_technique` (NULL = agrupamento sem técnica) ·
+`rest_after_round_s` INTEGER NOT NULL · `position` INTEGER NOT NULL.
+Índices: `template_id`, `technique_id`.
+
+### `session_exercise_group` (v4)
+Mesma forma, ligada a `workout_session` (CASCADE), **mais `technique_code`**: o snapshot do badge.
+
+O código é **gravado, não lido por JOIN**, e isso é de propósito. A revisão adversarial de
+28/09/2026 achou exatamente essa exposição em `training_technique.counts_as_working_set`, que hoje
+sobrevive só como invariante documentada porque snapshotar depois custaria outra migration. Aqui a
+tabela é nova, então a coluna é de graça — e uma sessão passada continua mostrando o badge que
+mostrava no dia.
+
+### Colunas novas
+`template_exercise.group_id` e `session_exercise.group_id`, ambas TEXT NULL com índice e
+**`ON DELETE SET NULL`**. SET NULL e não CASCADE: desagrupar é uma edição normal, e CASCADE ali
+apagaria o exercício junto com o grupo — perder o treino do usuário para corrigir um rótulo.
+
+O descanso fica no **grupo**, não em cada exercício: numa supersérie A1/A2 ele começa quando a
+**rodada** termina (PRODUCT_SPEC §6.3), então pertence à rodada, não a um exercício dela.
+
 ## 3. Tabelas planejadas (próximas migrations)
 
 ### Fase 1 — mídia
@@ -263,8 +292,8 @@ ajuste solto.
 `duration_ms`, `license`, `attribution`, `sort_order`.
 
 ### Fase 2 — grupos de exercícios (o que falta)
-- `template_exercise_group`: `id`, `template_id`, `label` (A, B…), `technique_id`, `rest_after_round_s`.
-- Novas colunas: `template_exercise.group_id`, `.technique_id` (esquema de séries, ex.: pirâmide),
+- ✅ `template_exercise_group` e `template_exercise.group_id` entraram na **v4** (ver §2b).
+- Ainda faltam: `template_exercise.technique_id` (esquema de séries, ex.: pirâmide),
   `.technique_params`; `template_set.technique_params`.
 
 ### Fase 3 — o que ficou de fora da v3 (migrations futuras)

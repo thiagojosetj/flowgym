@@ -27,9 +27,11 @@ import io.github.thiagojosetj.gym.domain.model.TrackingType;
                 @ForeignKey(entity = WorkoutSessionEntity.class, parentColumns = "id",
                         childColumns = "session_id", onDelete = ForeignKey.CASCADE),
                 @ForeignKey(entity = ExerciseEntity.class, parentColumns = "id",
-                        childColumns = "exercise_id")
+                        childColumns = "exercise_id"),
+                @ForeignKey(entity = SessionExerciseGroupEntity.class, parentColumns = "id",
+                        childColumns = "group_id", onDelete = ForeignKey.SET_NULL)
         },
-        indices = {@Index("session_id"), @Index("exercise_id")})
+        indices = {@Index("session_id"), @Index("exercise_id"), @Index("group_id")})
 public class SessionExerciseEntity {
 
     @PrimaryKey
@@ -41,6 +43,11 @@ public class SessionExerciseEntity {
     public String sessionId = "";
 
     /** The library exercise: a stable identity, kept so statistics can group across sessions. */
+    /** The snapshot of the group this exercise was in, or null when it stood alone. */
+    @Nullable
+    @ColumnInfo(name = "group_id")
+    public String groupId;
+
     @NonNull
     @ColumnInfo(name = "exercise_id")
     public String exerciseId = "";
