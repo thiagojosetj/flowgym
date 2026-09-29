@@ -164,11 +164,12 @@ public final class ActiveSessionViewModel extends ViewModel {
         if (current == null) {
             return;
         }
-        SessionExercise exercise = current.exerciseOfSet(setId);
-        LoggedSet set = current.setById(setId);
-        if (exercise == null || set == null || set.isCompleted()) {
+        Located row = locate(current, setId);
+        if (row == null || row.set().isCompleted()) {
             return;
         }
+        SessionExercise exercise = row.exercise();
+        LoggedSet set = row.set();
         SetValues parsed = parse(exercise, set, draft);
         if (parsed != null) {
             sessions.saveTypedValues(setId, parsed);
@@ -192,11 +193,12 @@ public final class ActiveSessionViewModel extends ViewModel {
         if (current == null) {
             return;
         }
-        SessionExercise exercise = current.exerciseOfSet(setId);
-        LoggedSet set = current.setById(setId);
-        if (exercise == null || set == null) {
+        Located row = locate(current, setId);
+        if (row == null) {
             return;
         }
+        SessionExercise exercise = row.exercise();
+        LoggedSet set = row.set();
         SetValues typed = parse(exercise, set, drafts.get(setId));
         if (typed == null) {
             events.setValue(new Event<>(SessionEvent.ACTION_FAILED));
@@ -236,7 +238,32 @@ public final class ActiveSessionViewModel extends ViewModel {
 
     public void removeSet(String sessionExerciseId, String setId) {
         drafts.remove(setId);
+        // Its drops go with it (the foreign key cascades), and so does whatever was typed into them.
+        ActiveSession current = session.getValue();
+        Located row = current == null ? null : locate(current, setId);
+        if (row != null) {
+            for (LoggedSet segment : row.set().segments()) {
+                drafts.remove(segment.id());
+            }
+        }
         sessions.removeSet(sessionId, sessionExerciseId, setId, this::noop, this::onActionFailed);
+    }
+
+    /**
+     * Adds a drop to a set: a child row that belongs to it, not another set (PRODUCT_SPEC 9.1).
+     * Takes the id of the SET, and the drop goes after the ones it already has.
+     */
+    public void addSegment(String setId) {
+        sessions.addSegment(sessionId, setId, this::noop, this::onActionFailed);
+    }
+
+    /**
+     * Removes one drop by its OWN id. Passing its set's id here would ask for a different, much
+     * larger delete, and the repository refuses it. The set and its other drops stay.
+     */
+    public void removeSegment(String segmentId) {
+        drafts.remove(segmentId);
+        sessions.removeSegment(sessionId, segmentId, this::noop, this::onActionFailed);
     }
 
     public void setTechnique(String setId, @Nullable String techniqueId) {
@@ -292,6 +319,33 @@ public final class ActiveSessionViewModel extends ViewModel {
     private void bumpLocalChanges() {
         Integer value = localChanges.getValue();
         localChanges.setValue(value == null ? 1 : value + 1);
+    }
+
+    /** A row that holds values - a set OR one of its drops - and the exercise it belongs to. */
+    private record Located(SessionExercise exercise, LoggedSet set) {
+    }
+
+    /**
+     * Finds a set or a drop by id. {@link ActiveSession#setById} and {@code exerciseOfSet} only
+     * look at SETS, and a drop is nested inside its set, so asked for a drop they answer null. Every
+     * write that starts from them would then return without a word: the drop's typed numbers would
+     * never reach the database and its check button would do nothing, with no error to point at.
+     */
+    @Nullable
+    private static Located locate(ActiveSession current, String rowId) {
+        for (SessionExercise exercise : current.exercises()) {
+            for (LoggedSet set : exercise.sets()) {
+                if (set.id().equals(rowId)) {
+                    return new Located(exercise, set);
+                }
+                for (LoggedSet segment : set.segments()) {
+                    if (segment.id().equals(rowId)) {
+                        return new Located(exercise, segment);
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     private SetDraft draftOf(String setId) {

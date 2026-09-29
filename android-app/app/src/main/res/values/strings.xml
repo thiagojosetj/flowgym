@@ -243,6 +243,12 @@
     <string name="session_add_set">Adicionar série</string>
     <string name="session_remove_set">Remover série %d</string>
     <string name="session_technique_of_set">Técnica da série %d</string>
+    <!-- Drop-set (PRODUCT_SPEC 9.1): "Etapa 1" is the first DROP; the set itself is not counted. -->
+    <string name="session_segment_label">Etapa %d</string>
+    <string name="session_add_segment_of_set">Adicionar etapa à série %d</string>
+    <string name="session_remove_segment">Remover etapa %1$d da série %2$d</string>
+    <string name="session_confirm_segment">Etapa %1$d da série %2$d: marcar como feita</string>
+    <string name="session_undo_segment">Etapa %1$d da série %2$d: desfazer</string>
     <string name="session_collapse">Recolher %s</string>
     <string name="session_expand">Expandir %s</string>
     <string name="session_exercise_progress">%1$d/%2$d</string>

@@ -1,9 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    One set being performed: number (or warm-up badge), what was planned and what happened last time,
-    the two fields, the button that confirms it and the one that adds a drop to it. Suggestions are
-    hints on empty fields, never text, so a suggestion can never be mistaken for a result
-    (PRODUCT_SPEC 6.5).
+    One later step of a drop-set or rest-pause, drawn under the set it belongs to (PRODUCT_SPEC 9.1).
+    "Etapa 1" is the first DROP: the set itself is the first step and keeps its own number.
+
+    Indented, and without the plan, the previous session and the technique - none of which a drop has
+    - so it reads as part of the set above it instead of as one more set.
+
+    Every id here starts with "segment_" on purpose. The workout tests find the SET's fields by
+    weight_input, reps_input and button_done; a drop that reused those names would make each of those
+    lookups match twice.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -11,7 +16,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:paddingStart="@dimen/screen_margin"
+    android:paddingStart="@dimen/space_xxl"
     android:paddingEnd="@dimen/space_xs">
 
     <LinearLayout
@@ -21,39 +26,17 @@
         android:orientation="horizontal">
 
         <TextView
-            android:id="@+id/set_number"
-            android:layout_width="32dp"
-            android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceTitleMedium"
-            tools:text="1" />
-
-        <LinearLayout
+            android:id="@+id/segment_label"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:orientation="vertical">
+            android:textAppearance="?attr/textAppearanceLabelLarge"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            tools:text="Etapa 1" />
 
-            <TextView
-                android:id="@+id/planned"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textAppearance="?attr/textAppearanceBodySmall"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                tools:text="Planejado: 12 reps · 40 kg" />
-
-            <TextView
-                android:id="@+id/previous"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:alpha="0.6"
-                android:textAppearance="?attr/textAppearanceBodySmall"
-                android:visibility="gone"
-                tools:text="Anterior: 10 reps · 40 kg"
-                tools:visibility="visible" />
-        </LinearLayout>
-
+        <!-- "feita" as a WORD: state is never carried by colour or selection alone. -->
         <TextView
-            android:id="@+id/done_label"
+            android:id="@+id/segment_done_label"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="@dimen/space_s"
@@ -62,35 +45,6 @@
             android:textColor="?attr/colorPrimary"
             android:visibility="gone"
             tools:visibility="visible" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/button_technique"
-            style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minWidth="56dp"
-            android:minHeight="@dimen/touch_target_min"
-            android:paddingHorizontal="@dimen/space_s"
-            android:textAppearance="?attr/textAppearanceLabelMedium"
-            tools:text="AQ" />
-
-        <!--
-            Adds a drop (PRODUCT_SPEC 9.1) to THIS set, and it lives on the header row rather than
-            on a row of its own: a third row made every set ~48dp taller, which is not free - it is
-            fewer sets on screen during a workout, and it broke the row matchers the flow tests use.
-            It is on every set on purpose: which techniques can be taken past failure is a fact
-            about the technique catalog (PRODUCT_SPEC 2.8), and a list of codes here would be a
-            second copy of it that goes stale. It stays after the set is confirmed, because whether
-            a drop is needed is only known once the set is over.
-        -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/button_add_segment"
-            style="@style/Widget.Material3.Button.IconButton"
-            android:layout_width="@dimen/touch_target_min"
-            android:layout_height="@dimen/touch_target_min"
-            app:icon="@drawable/ic_add"
-            app:iconGravity="textStart"
-            app:iconPadding="0dp" />
     </LinearLayout>
 
     <LinearLayout
@@ -102,7 +56,7 @@
         android:orientation="horizontal">
 
         <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/weight_layout"
+            android:id="@+id/segment_weight_layout"
             style="@style/Widget.Material3.TextInputLayout.OutlinedBox.Dense"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -110,7 +64,7 @@
             android:hint="@string/session_weight_hint">
 
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/weight_input"
+                android:id="@+id/segment_weight_input"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:imeOptions="actionNext"
@@ -120,7 +74,7 @@
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/reps_layout"
+            android:id="@+id/segment_reps_layout"
             style="@style/Widget.Material3.TextInputLayout.OutlinedBox.Dense"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -129,7 +83,7 @@
             android:hint="@string/session_reps_hint">
 
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/reps_input"
+                android:id="@+id/segment_reps_input"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:imeOptions="actionDone"
@@ -139,12 +93,12 @@
         </com.google.android.material.textfield.TextInputLayout>
 
         <!--
-            Per-side logging (PRODUCT_SPEC 6.4). These replace the single reps field for a
-            unilateral exercise set to "por lado": both sides are recorded as they happened
-            (E 10 / D 9) instead of being averaged into one number nobody performed.
+            Per-side logging (PRODUCT_SPEC 6.4), exactly as in item_session_set.xml. The drop of a
+            per-side exercise needs both fields: that exercise stores its repetitions per side, so a
+            single combined field would be thrown away when the drop is confirmed.
         -->
         <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/reps_left_layout"
+            android:id="@+id/segment_reps_left_layout"
             style="@style/Widget.Material3.TextInputLayout.OutlinedBox.Dense"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -155,7 +109,7 @@
             tools:visibility="visible">
 
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/reps_left_input"
+                android:id="@+id/segment_reps_left_input"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:imeOptions="actionNext"
@@ -165,7 +119,7 @@
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/reps_right_layout"
+            android:id="@+id/segment_reps_right_layout"
             style="@style/Widget.Material3.TextInputLayout.OutlinedBox.Dense"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -176,7 +130,7 @@
             tools:visibility="visible">
 
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/reps_right_input"
+                android:id="@+id/segment_reps_right_input"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:imeOptions="actionDone"
@@ -186,7 +140,7 @@
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/button_done"
+            android:id="@+id/segment_button_done"
             style="@style/Widget.Material3.Button.IconButton.Filled"
             android:layout_width="@dimen/touch_target_min"
             android:layout_height="@dimen/touch_target_min"
@@ -196,7 +150,7 @@
             app:iconPadding="0dp" />
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/button_remove"
+            android:id="@+id/segment_button_remove"
             style="@style/Widget.Material3.Button.IconButton"
             android:layout_width="@dimen/touch_target_min"
             android:layout_height="@dimen/touch_target_min"

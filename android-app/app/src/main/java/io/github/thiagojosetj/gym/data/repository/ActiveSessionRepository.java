@@ -347,7 +347,11 @@ public final class ActiveSessionRepository {
             List<ActiveSetRow> rows = dao.findRows(sessionId);
             ActiveSetRow last = null;
             for (ActiveSetRow row : rows) {
-                if (row.sessionExerciseId.equals(sessionExerciseId) && row.setId != null) {
+                // The rows now include segments, which come right after their set. A segment has
+                // no plan of its own (planned_* are null and its rest is 0), so copying "the last
+                // row" after a drop-set would give the new set no plan and no rest at all.
+                if (row.sessionExerciseId.equals(sessionExerciseId) && row.setId != null
+                        && row.parentSetId == null) {
                     last = row;
                 }
             }
@@ -366,7 +370,10 @@ public final class ActiveSessionRepository {
         }, onDone, onError);
     }
 
-    /** Removes a set. The last remaining set of an exercise is kept: the plan would make no sense. */
+    /**
+     * Removes a set, and its segments with it: the foreign key cascades. The last remaining set of
+     * an exercise is kept: the plan would make no sense.
+     */
     public void removeSet(String sessionId, String sessionExerciseId, String setLogId, Runnable onDone,
                           Consumer<Throwable> onError) {
         write(sessionId, (session, now) -> {
@@ -374,11 +381,71 @@ public final class ActiveSessionRepository {
                 return;
             }
             SetLogEntity set = dao.findSet(setLogId);
-            if (set == null) {
+            // A segment is removed with removeSegment. Getting here with one would shift the SETS
+            // after its position, and that position only orders it among its own siblings.
+            if (set == null || set.parentSetId != null) {
                 return;
             }
             dao.deleteSet(setLogId);
             dao.shiftSetsAfter(sessionExerciseId, set.position);
+            if (setLogId.equals(session.restSetLogId)) {
+                clearRest(session);
+            }
+        }, onDone, onError);
+    }
+
+    /**
+     * Adds a drop (or a rest-pause resumption) to a set: a child row that belongs to it, not
+     * another set (PRODUCT_SPEC section 9.1, ADR-0037). The set is the first step of a drop-set, so
+     * three steps are one set row plus two segment rows, and the set count does not move.
+     *
+     * <p>The segment starts as not performed and with no plan: it is not something the template
+     * asked for, it is a drop taken off the set above it. It also has no technique of its own. The
+     * technique belongs to the set, and {@link #setSetTechnique} can change it at any time, so a
+     * copy on every segment would keep saying "Drop-set" after the set stopped being one: two
+     * definitions of one fact that can disagree. The volume rule already reads warm-up from the
+     * set.
+     *
+     * <p>One level only. A segment under a segment is refused: nothing is created and the call
+     * still reports done, like the other refusals here. The mapper, the volume rule and the screen
+     * all read a single level, so a deeper row would be stored and then silently never counted.
+     *
+     * @param setLogId the SET receiving the segment; the new row takes the next position among the
+     *                 segments of that set, counting from 0
+     */
+    public void addSegment(String sessionId, String setLogId, Runnable onDone,
+                           Consumer<Throwable> onError) {
+        write(sessionId, (session, now) -> {
+            SetLogEntity parent = dao.findSet(setLogId);
+            if (parent == null || parent.parentSetId != null) {
+                return; // unknown, or already a segment
+            }
+            SetLogEntity segment = new SetLogEntity();
+            segment.id = ids.newId();
+            segment.sessionExerciseId = parent.sessionExerciseId;
+            segment.parentSetId = parent.id;
+            segment.position = dao.maxSegmentPosition(parent.id) + 1;
+            // Everything else keeps the entity's defaults: no technique, no plan, rest 0, nothing
+            // performed and status PENDING.
+            dao.insertSet(segment);
+        }, onDone, onError);
+    }
+
+    /**
+     * Removes one segment and closes the gap among its siblings; the set it belonged to and its
+     * other segments stay. A row that is not a segment is refused: {@link #removeSet} is for sets,
+     * and deleting a set here would cascade to every segment it has.
+     */
+    public void removeSegment(String sessionId, String setLogId, Runnable onDone,
+                              Consumer<Throwable> onError) {
+        write(sessionId, (session, now) -> {
+            SetLogEntity segment = dao.findSet(setLogId);
+            if (segment == null || segment.parentSetId == null) {
+                return; // unknown, or a set
+            }
+            dao.deleteSet(setLogId);
+            dao.shiftSegmentsAfter(segment.parentSetId, segment.position);
+            // rest_set_log_id has no foreign key: whoever deletes a row it may point at clears it.
             if (setLogId.equals(session.restSetLogId)) {
                 clearRest(session);
             }

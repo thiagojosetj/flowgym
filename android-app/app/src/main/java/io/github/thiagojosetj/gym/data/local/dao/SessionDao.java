@@ -163,6 +163,15 @@ public interface SessionDao {
     int countSets(String sessionExerciseId);
 
     /**
+     * The highest position among the segments of ONE set, or -1 when it has none (so the first
+     * segment is 0). Scoped to the parent, not to the exercise: a segment's position only orders it
+     * among its own siblings, and {@link #maxSetPosition(String)} - which filters
+     * {@code parent_set_id IS NULL} - never sees a segment at all.
+     */
+    @Query("SELECT COALESCE(MAX(position), -1) FROM set_log WHERE parent_set_id = :parentSetId")
+    int maxSegmentPosition(String parentSetId);
+
+    /**
      * The same exercise in the last finished session, so "anterior" can be frozen into the new
      * session. Sessions that were discarded or deleted are ignored.
      */
@@ -248,6 +257,15 @@ public interface SessionDao {
     @Query("UPDATE set_log SET position = position - 1 WHERE session_exercise_id = :sessionExerciseId"
             + " AND parent_set_id IS NULL AND position > :removedPosition")
     void shiftSetsAfter(String sessionExerciseId, int removedPosition);
+
+    /**
+     * Closes the gap left by a removed segment so its siblings stay 0..n-1. Only the siblings: the
+     * segments of another set have positions of their own, and the sets themselves are not touched
+     * ({@link #shiftSetsAfter(String, int)} is the one that moves sets).
+     */
+    @Query("UPDATE set_log SET position = position - 1 WHERE parent_set_id = :parentSetId"
+            + " AND position > :removedPosition")
+    void shiftSegmentsAfter(String parentSetId, int removedPosition);
 
     /**
      * Saves what the user typed without confirming it. The {@code status = 'PENDING'} clause is the

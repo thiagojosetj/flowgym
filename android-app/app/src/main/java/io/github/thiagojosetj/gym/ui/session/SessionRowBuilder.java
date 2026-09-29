@@ -65,6 +65,13 @@ final class SessionRowBuilder {
             }
             for (LoggedSet set : exercise.sets()) {
                 rows.add(setRow(exercise, set, drafts.get(set.id())));
+                // The drops follow their set, in order. Numbered from 1 and never counting the set:
+                // the set itself is the first step of a drop-set (PRODUCT_SPEC 9.1).
+                List<LoggedSet> segments = set.segments();
+                for (int i = 0; i < segments.size(); i++) {
+                    LoggedSet segment = segments.get(i);
+                    rows.add(segmentRow(exercise, set, segment, i + 1, drafts.get(segment.id())));
+                }
             }
             rows.add(new SessionRow.AddSet("add:" + exercise.id(), exercise.id(), exercise.name()));
         }
@@ -72,10 +79,83 @@ final class SessionRowBuilder {
     }
 
     private SessionRow.SetRow setRow(SessionExercise exercise, LoggedSet set, @Nullable SetDraft draft) {
-        boolean timed = exercise.trackingType().usesDuration() && !exercise.trackingType().usesReps();
-        boolean showWeight = exercise.trackingType().usesWeight();
+        boolean timed = isTimed(exercise);
+        Fields fields = fieldsOf(exercise, set, draft);
+        return new SessionRow.SetRow(
+                set.id(),
+                exercise.id(),
+                set.workingNumber(),
+                set.techniqueCode(),
+                plannedText(exercise, set, timed),
+                previousText(exercise, set, timed),
+                fields.showWeight(),
+                true,
+                fields.weightText(),
+                fields.repsText(),
+                fields.weightHint(),
+                fields.repsHint(),
+                fields.weightLabel(),
+                fields.repsLabel(),
+                fields.perSide(),
+                fields.repsLeftText(),
+                fields.repsRightText(),
+                fields.repsLeftHint(),
+                fields.repsRightHint(),
+                set.isCompleted(),
+                exercise.sets().size() > 1);
+    }
+
+    /**
+     * One drop of a set. Its fields come from the same {@link #fieldsOf} a set uses, so a draft, a
+     * suggestion and a confirmed value mean exactly the same thing on both rows.
+     */
+    private SessionRow.Segment segmentRow(SessionExercise exercise, LoggedSet parent,
+                                          LoggedSet segment, int index, @Nullable SetDraft draft) {
+        Fields fields = fieldsOf(exercise, segment, draft);
+        return new SessionRow.Segment(
+                segment.id(),
+                parent.id(),
+                index,
+                parent.workingNumber(),
+                fields.showWeight(),
+                fields.weightText(),
+                fields.repsText(),
+                fields.weightHint(),
+                fields.repsHint(),
+                fields.weightLabel(),
+                fields.repsLabel(),
+                fields.perSide(),
+                fields.repsLeftText(),
+                fields.repsRightText(),
+                fields.repsLeftHint(),
+                fields.repsRightHint(),
+                segment.isCompleted());
+    }
+
+    /** What a set row and a segment row have in common: the fields the user types into. */
+    private record Fields(
+            boolean showWeight,
+            String weightText,
+            String repsText,
+            String weightHint,
+            String repsHint,
+            String weightLabel,
+            String repsLabel,
+            boolean perSide,
+            String repsLeftText,
+            String repsRightText,
+            String repsLeftHint,
+            String repsRightHint) {
+    }
+
+    /**
+     * Worked out in ONE place for sets and for drops, because the rules in here are the ones this
+     * screen has already got wrong once (a confirmed row showing a draft). A second copy would be
+     * free to get them wrong again by itself.
+     */
+    private Fields fieldsOf(SessionExercise exercise, LoggedSet set, @Nullable SetDraft draft) {
+        boolean timed = isTimed(exercise);
         SetValues suggestion = set.suggestion();
-        String number = set.workingNumber() == null ? null : String.valueOf(set.workingNumber());
 
         // A confirmed set shows what is stored, never a draft: the row must not display a number
         // the database refused to keep.
@@ -96,15 +176,8 @@ final class SessionRowBuilder {
                 ? pending.repsRightText()
                 : intOf(set.values().repsRight());
 
-        return new SessionRow.SetRow(
-                set.id(),
-                exercise.id(),
-                set.workingNumber(),
-                set.techniqueCode(),
-                plannedText(exercise, set, timed),
-                previousText(exercise, set, timed),
-                showWeight,
-                true,
+        return new Fields(
+                exercise.trackingType().usesWeight(),
                 weightText,
                 repsText,
                 weightOf(suggestion),
@@ -115,9 +188,12 @@ final class SessionRowBuilder {
                 repsLeftText,
                 repsRightText,
                 sideSuggestion(suggestion, suggestion.repsLeft()),
-                sideSuggestion(suggestion, suggestion.repsRight()),
-                set.isCompleted(),
-                exercise.sets().size() > 1);
+                sideSuggestion(suggestion, suggestion.repsRight()));
+    }
+
+    /** Measured in time only (a plank): its "reps" field holds seconds. */
+    private static boolean isTimed(SessionExercise exercise) {
+        return exercise.trackingType().usesDuration() && !exercise.trackingType().usesReps();
     }
 
     /** "Planejado: 12 reps · 40 kg" - what the template asked for, never overwritten. */

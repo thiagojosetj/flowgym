@@ -297,6 +297,16 @@ public class ActiveSessionFragment extends Fragment implements SessionRowAdapter
         viewModel.addSet(sessionExerciseId);
     }
 
+    @Override
+    public void onAddSegment(String setId) {
+        viewModel.addSegment(setId);
+    }
+
+    @Override
+    public void onRemoveSegment(String segmentId) {
+        viewModel.removeSegment(segmentId);
+    }
+
     // ------------------------------------------------------------------ finishing
 
     /** Shows exactly what finishing will do before it does anything (PRODUCT_SPEC section 8). */
