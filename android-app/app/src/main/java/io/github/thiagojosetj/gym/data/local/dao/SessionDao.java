@@ -12,6 +12,7 @@ import androidx.room.Update;
 import java.util.List;
 
 import io.github.thiagojosetj.gym.data.local.entity.SessionExerciseEntity;
+import io.github.thiagojosetj.gym.data.local.entity.SessionExerciseGroupEntity;
 import io.github.thiagojosetj.gym.data.local.entity.SessionPauseEntity;
 import io.github.thiagojosetj.gym.data.local.entity.SetLogEntity;
 import io.github.thiagojosetj.gym.data.local.entity.WorkoutSessionEntity;
@@ -34,6 +35,10 @@ public interface SessionDao {
      * joined here: they pair by ordinal among working sets (PRODUCT_SPEC section 11), which SQLite on
      * API 28 cannot express (window functions arrived later), so they come from
      * {@link #observePreviousSets(String)} and are paired in the mapper.
+     *
+     * <p>The group is the session's own snapshot ({@code session_exercise_group}), joined by its
+     * primary key, so it adds columns and never rows: the ordering below, and the drop-set segments
+     * the mapper nests, see exactly what they saw before groups existed.
      */
     String ACTIVE_ROWS_SQL =
             "SELECT se.id AS sessionExerciseId, se.position AS exercisePosition, se.exercise_id AS exerciseId,"
@@ -42,6 +47,10 @@ public interface SessionDao {
                     + " se.laterality AS laterality, se.side_mode AS sideMode,"
                     + " se.rest_seconds AS exerciseRestSeconds, se.permanent_notes AS permanentNotes,"
                     + " se.notes AS exerciseNotes,"
+                    + " g.id AS groupId, g.label AS groupLabel, g.technique_id AS groupTechniqueId,"
+                    + " g.technique_code AS groupTechniqueCode,"
+                    + " g.rest_after_round_s AS groupRestAfterRoundSeconds,"
+                    + " g.position AS groupPosition,"
                     + " (SELECT q.code FROM exercise_equipment ee JOIN equipment q ON q.id = ee.equipment_id"
                     + "     WHERE ee.exercise_id = se.exercise_id"
                     + "     ORDER BY ee.is_primary DESC, q.sort_order LIMIT 1) AS primaryEquipmentCode,"
@@ -57,6 +66,7 @@ public interface SessionDao {
                     + " sl.status AS status, sl.completed_at AS completedAt, sl.notes AS setNotes,"
                     + " se.previous_session_exercise_id AS previousSessionExerciseId"
                     + " FROM session_exercise se"
+                    + " LEFT JOIN session_exercise_group g ON g.id = se.group_id"
                     + " LEFT JOIN set_log sl ON sl.session_exercise_id = se.id"
                     + " LEFT JOIN set_log p ON p.id = sl.parent_set_id"
                     + " LEFT JOIN training_technique t ON t.id = sl.technique_id"
@@ -154,6 +164,11 @@ public interface SessionDao {
     @Query("SELECT * FROM set_log WHERE id = :setId")
     SetLogEntity findSet(String setId);
 
+    /** The group a session exercise is in, or null when it stands alone. */
+    @Nullable
+    @Query("SELECT group_id FROM session_exercise WHERE id = :sessionExerciseId")
+    String findGroupIdOfExercise(String sessionExerciseId);
+
     @Query("SELECT COALESCE(MAX(position), -1) FROM set_log WHERE session_exercise_id = :sessionExerciseId"
             + " AND parent_set_id IS NULL")
     int maxSetPosition(String sessionExerciseId);
@@ -237,6 +252,10 @@ public interface SessionDao {
 
     @Update
     void updateSession(WorkoutSessionEntity session);
+
+    /** Before the exercises: each one points at its group, and the foreign key is enforced. */
+    @Insert
+    void insertExerciseGroups(List<SessionExerciseGroupEntity> groups);
 
     @Insert
     void insertExercises(List<SessionExerciseEntity> exercises);

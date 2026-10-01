@@ -42,12 +42,12 @@ public class SessionExerciseEntity {
     @ColumnInfo(name = "session_id")
     public String sessionId = "";
 
-    /** The library exercise: a stable identity, kept so statistics can group across sessions. */
     /** The snapshot of the group this exercise was in, or null when it stood alone. */
     @Nullable
     @ColumnInfo(name = "group_id")
     public String groupId;
 
+    /** The library exercise: a stable identity, kept so statistics can group across sessions. */
     @NonNull
     @ColumnInfo(name = "exercise_id")
     public String exerciseId = "";

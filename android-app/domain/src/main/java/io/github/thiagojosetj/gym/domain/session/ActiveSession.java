@@ -2,23 +2,61 @@ package io.github.thiagojosetj.gym.domain.session;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * A whole session as the screen sees it: the header plus its exercises and sets. Read-only - every
  * change goes to the database through the repository and comes back as a new instance, so the screen
  * can never show a value that was not persisted (ADR for phase 3).
+ *
+ * <p>The groups travel beside the exercises instead of inside {@link SessionExercise}: that record
+ * is built positionally in the mapper and in several tests, so widening it would break every one
+ * of them for a fact most exercises (the ungrouped ones) do not even have.
+ *
+ * @param groupByExerciseId the group of each exercise that is in one, keyed by the session
+ *                          exercise's id; an exercise that stands alone has no entry
  */
-public record ActiveSession(SessionHeader header, List<SessionExercise> exercises) {
+public record ActiveSession(SessionHeader header, List<SessionExercise> exercises,
+                            Map<String, SessionGroup> groupByExerciseId) {
 
     public ActiveSession {
         exercises = exercises == null
                 ? Collections.emptyList()
                 : Collections.unmodifiableList(new ArrayList<>(exercises));
+        groupByExerciseId = groupByExerciseId == null
+                ? Collections.emptyMap()
+                : Collections.unmodifiableMap(new LinkedHashMap<>(groupByExerciseId));
+    }
+
+    /** A session in which every exercise stands alone. */
+    public ActiveSession(SessionHeader header, List<SessionExercise> exercises) {
+        this(header, exercises, null);
     }
 
     public String id() {
         return header.id();
+    }
+
+    /** The group an exercise was in, or null when it stood alone. */
+    public SessionGroup groupOf(String sessionExerciseId) {
+        return groupByExerciseId.get(sessionExerciseId);
+    }
+
+    /**
+     * The exercises of one group, in session order: exactly what
+     * {@link GroupRounds#isRoundComplete(List, int)} takes.
+     */
+    public List<SessionExercise> exercisesOfGroup(String groupId) {
+        List<SessionExercise> members = new ArrayList<>();
+        for (SessionExercise exercise : exercises) {
+            SessionGroup group = groupByExerciseId.get(exercise.id());
+            if (group != null && group.id().equals(groupId)) {
+                members.add(exercise);
+            }
+        }
+        return Collections.unmodifiableList(members);
     }
 
     public int totalSets() {

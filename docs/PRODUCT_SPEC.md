@@ -180,6 +180,31 @@ Exercícios de um template podem pertencer a um grupo com rótulo (A, B...) e t�
 Exibição: A1 Supino, A2 Crucifixo. O descanso automático ocorre após o **último** exercício da
 rodada do grupo.
 
+**Implementado no banco e nos dados (01/10/2026); falta a interface.** Banco na **versão 4**
+(`template_exercise_group`, `session_exercise_group`, colunas `group_id`).
+
+Regras decididas ao implementar:
+
+- **O descanso é da RODADA.** Começa quando **nenhum exercício do grupo ainda deve** a série daquela
+  rodada — não quando o "último por posição" termina. A leitura literal quebraria a ACT-01, que diz
+  que a ordem planejada não é obrigatória: quem faz A2 antes de A1 nunca descansaria. Série **pulada**
+  também encerra (não se deve mais nada); só `PENDING` segura a rodada.
+- **Grupo desigual não trava.** Um exercício com menos séries que o índice da rodada não deve nada,
+  então 3×A1 com 2×A2 descansa em todas as rodadas.
+- **Etapa não é rodada.** Os segmentos de um drop-set ficam dentro da série (ADR-0037), então um
+  drop-set dentro de uma supersérie é **uma** rodada e as etapas não deslocam o índice.
+- **Rótulos são derivados, não digitados.** A, B, C seguem a ordem do primeiro exercício de cada
+  grupo no treino. Criar um grupo antes de outro renumera; apagar o A faz o B virar A. Dois grupos
+  nunca compartilham rótulo. A **sessão guarda o rótulo que valia no dia**.
+- **Grupo tem no mínimo 2 exercícios.** Um grupo que cai para 1 (por exemplo, o editor removeu o
+  outro exercício) é **desfeito**, e o exercício que sobra fica sem grupo. Técnica × tamanho
+  (SS/BI = 2, TRI = 3) **não** é cobrado.
+- **Salvar e duplicar um treino preservam os grupos.** Os dois caminhos reescrevem os exercícios a
+  partir de um rascunho que não conhece grupos; sem tratar isso, qualquer edição desagrupava tudo e
+  duplicar perdia as superséries em silêncio.
+- **Uma confirmação que não inicia descanso encerra o que estiver correndo.** O descanso é da sessão,
+  não do exercício: sem isso o alerta da rodada N tocaria no meio da rodada N+1.
+
 ### 6.4 Carga: halteres, unilateral e peso corporal
 - **Halteres (dois implementos):** registra-se o peso **de cada halter** ("12 kg por halter"). A UI
   nunca exibe 24 kg como se fosse a carga da série.

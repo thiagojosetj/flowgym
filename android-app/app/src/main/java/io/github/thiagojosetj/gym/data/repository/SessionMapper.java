@@ -5,6 +5,7 @@ import androidx.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -17,6 +18,7 @@ import io.github.thiagojosetj.gym.domain.session.ActiveSession;
 import io.github.thiagojosetj.gym.domain.session.LoggedSet;
 import io.github.thiagojosetj.gym.domain.session.SessionClock;
 import io.github.thiagojosetj.gym.domain.session.SessionExercise;
+import io.github.thiagojosetj.gym.domain.session.SessionGroup;
 import io.github.thiagojosetj.gym.domain.session.SessionHeader;
 import io.github.thiagojosetj.gym.domain.session.SetStatus;
 import io.github.thiagojosetj.gym.domain.session.SetValues;
@@ -60,7 +62,36 @@ final class SessionMapper {
 
     static ActiveSession toSession(SessionHeaderRow header, List<ActiveSetRow> rows,
                                   List<PreviousSetRow> previousRows) {
-        return new ActiveSession(toHeader(header), toExercises(rows, previousRows));
+        return new ActiveSession(toHeader(header), toExercises(rows, previousRows), toGroups(rows));
+    }
+
+    /**
+     * The session's own snapshot of the group of each exercise that was in one, keyed by the
+     * session exercise's id. Beside the exercises rather than inside them: {@link SessionExercise}
+     * is built positionally here and in many tests, and an ungrouped exercise has nothing to put
+     * in it.
+     *
+     * <p>Reads only the group columns of the rows, so it can neither see nor disturb the sets, and
+     * therefore not the segments nested under them or the working-set numbering (ADR-0033).
+     */
+    static Map<String, SessionGroup> toGroups(@Nullable List<ActiveSetRow> rows) {
+        if (rows == null || rows.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<String, SessionGroup> groups = new LinkedHashMap<>(); // in exercise order
+        for (ActiveSetRow row : rows) {
+            if (row.groupId == null || groups.containsKey(row.sessionExerciseId)) {
+                continue; // stands alone, or already read from an earlier row of the same exercise
+            }
+            groups.put(row.sessionExerciseId, new SessionGroup(
+                    row.groupId,
+                    row.groupLabel == null ? "" : row.groupLabel,
+                    row.groupTechniqueId,
+                    row.groupTechniqueCode,
+                    row.groupRestAfterRoundSeconds == null ? 0 : row.groupRestAfterRoundSeconds,
+                    row.groupPosition == null ? 0 : row.groupPosition));
+        }
+        return groups;
     }
 
     static List<SessionExercise> toExercises(List<ActiveSetRow> rows, List<PreviousSetRow> previousRows) {

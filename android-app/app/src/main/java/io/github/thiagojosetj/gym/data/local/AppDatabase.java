@@ -187,10 +187,6 @@ public abstract class AppDatabase extends RoomDatabase {
     };
 
     /**
-     * Opens the on-disk database. Called once by the AppContainer, which owns the only instance
-     * (no static singleton here - ADR-0005).
-     */
-    /**
      * v3 -> v4: exercise groups (superset, bi-set, tri-set, giant set — PRODUCT_SPEC section 6.3).
      *
      * <p>Only new tables and two nullable columns, so nothing existing is rewritten and every row
@@ -242,6 +238,10 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /**
+     * Opens the on-disk database. Called once by the AppContainer, which owns the only instance
+     * (no static singleton here - ADR-0005).
+     */
     public static AppDatabase open(Context context) {
         return Room.databaseBuilder(context.getApplicationContext(), AppDatabase.class, FILE_NAME)
                 .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)

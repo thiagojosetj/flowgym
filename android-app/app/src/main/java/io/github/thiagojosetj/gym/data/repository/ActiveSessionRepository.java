@@ -11,7 +11,9 @@ import java.time.ZoneId;
 import java.util.function.Supplier;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import io.github.thiagojosetj.gym.core.AppExecutors;
@@ -19,6 +21,7 @@ import io.github.thiagojosetj.gym.data.local.AppDatabase;
 import io.github.thiagojosetj.gym.data.local.dao.SessionDao;
 import io.github.thiagojosetj.gym.data.local.dao.TemplateDao;
 import io.github.thiagojosetj.gym.data.local.entity.SessionExerciseEntity;
+import io.github.thiagojosetj.gym.data.local.entity.SessionExerciseGroupEntity;
 import io.github.thiagojosetj.gym.data.local.entity.SessionPauseEntity;
 import io.github.thiagojosetj.gym.data.local.entity.SetLogEntity;
 import io.github.thiagojosetj.gym.data.local.entity.SyncStatus;
@@ -29,9 +32,13 @@ import io.github.thiagojosetj.gym.data.local.row.ActiveSetRow;
 import io.github.thiagojosetj.gym.data.local.row.PreviousSetRow;
 import io.github.thiagojosetj.gym.data.local.row.SessionHeaderRow;
 import io.github.thiagojosetj.gym.data.local.row.TemplateExerciseRow;
+import io.github.thiagojosetj.gym.data.local.row.TemplateGroupRow;
 import io.github.thiagojosetj.gym.domain.session.ActiveSession;
 import io.github.thiagojosetj.gym.domain.session.FinishReview;
+import io.github.thiagojosetj.gym.domain.session.GroupRounds;
 import io.github.thiagojosetj.gym.domain.session.RestTimer;
+import io.github.thiagojosetj.gym.domain.session.SessionExercise;
+import io.github.thiagojosetj.gym.domain.session.SessionGroup;
 import io.github.thiagojosetj.gym.domain.session.SessionHeader;
 import io.github.thiagojosetj.gym.domain.session.SessionStatus;
 import io.github.thiagojosetj.gym.domain.session.SessionSummary;
@@ -171,6 +178,7 @@ public final class ActiveSessionRepository {
             }
             List<TemplateExerciseRow> exercises = templates.findExercises(templateId);
             List<TemplateSetEntity> plannedSets = templates.findSets(templateId);
+            List<TemplateGroupRow> plannedGroups = templates.findGroups(templateId);
             String ownerId = users.requireCurrentUserId();
             String[] created = new String[1];
             database.runInTransaction(() -> {
@@ -183,10 +191,21 @@ public final class ActiveSessionRepository {
                 WorkoutSessionEntity session = newSession(template, ownerId, now);
                 dao.insertSession(session);
 
+                // The groups are copied, not referenced: from here on the session owns its group
+                // (label, badge and rest), so editing or deleting the template's afterwards cannot
+                // change what this session says happened.
+                Map<String, SessionExerciseGroupEntity> groupCopies = new LinkedHashMap<>();
+                for (TemplateGroupRow planned : plannedGroups) {
+                    groupCopies.put(planned.id, newSessionGroup(session.id, planned));
+                }
+                // Before the exercises: each one points at its group, and the key is enforced.
+                dao.insertExerciseGroups(new ArrayList<>(groupCopies.values()));
+
                 List<SessionExerciseEntity> sessionExercises = new ArrayList<>(exercises.size());
                 List<SetLogEntity> sets = new ArrayList<>(plannedSets.size());
                 for (TemplateExerciseRow exercise : exercises) {
-                    SessionExerciseEntity entity = newSessionExercise(session.id, exercise);
+                    SessionExerciseEntity entity = newSessionExercise(session.id, exercise,
+                            exercise.groupId == null ? null : groupCopies.get(exercise.groupId));
                     sessionExercises.add(entity);
                     int position = 0;
                     for (TemplateSetEntity planned : plannedSets) {
@@ -559,8 +578,11 @@ public final class ActiveSessionRepository {
     }
 
     private void startRest(WorkoutSessionEntity session, SetLogEntity set, long now) {
-        int restSeconds = set.plannedRestSeconds;
+        int restSeconds = restSecondsAfter(session.id, set);
         if (restSeconds <= 0) {
+            // Nothing to wait for - and whatever rest was still counting down is over too: the user
+            // has just done another set. The rest is one per SESSION, not one per exercise, so this
+            // is also what ends the previous round's rest when the next round starts early.
             clearRest(session);
             return;
         }
@@ -573,6 +595,41 @@ public final class ActiveSessionRepository {
             session.restEndsAt = RestTimer.endsAt(now, restSeconds);
             session.restRemainingMsWhenPaused = null;
         }
+    }
+
+    /**
+     * The rest a just-confirmed set starts, in seconds; 0 means none.
+     *
+     * <p>An exercise that stands alone keeps what it always had: the rest planned for the set. In a
+     * group the rest belongs to the ROUND (PRODUCT_SPEC section 6.3), so a set starts the group's
+     * rest only when its confirmation is what ends the round. {@link GroupRounds} decides that, and
+     * it must be asked AFTER the set was written, because the set being confirmed is one of the
+     * things it reads. Whichever exercise is finished last starts the rest, so doing A2 before A1
+     * still gets one.
+     */
+    private int restSecondsAfter(String sessionId, SetLogEntity set) {
+        String groupId = dao.findGroupIdOfExercise(set.sessionExerciseId);
+        if (groupId == null) {
+            return set.plannedRestSeconds; // not in a group: exactly what it was before groups
+        }
+        if (set.parentSetId != null) {
+            // A drop belongs to its set's round and is not one of its own (ADR-0037): GroupRounds
+            // gives it no round, and it must not start one. Like any confirmation that starts no
+            // rest, it ends the one that was running.
+            return 0;
+        }
+        // The mapping the screen renders, so "which sets belong to which round" has one answer.
+        ActiveSession snapshot = SessionMapper.toSession(requireHeader(sessionId),
+                dao.findRows(sessionId), null);
+        SessionExercise exercise = snapshot.exerciseById(set.sessionExerciseId);
+        SessionGroup group = snapshot.groupOf(set.sessionExerciseId);
+        if (exercise == null || group == null) {
+            return 0;
+        }
+        int round = GroupRounds.roundOf(exercise, set.id);
+        return GroupRounds.isRoundComplete(snapshot.exercisesOfGroup(group.id()), round)
+                ? group.restAfterRoundSeconds()
+                : 0;
     }
 
     private static void clearRest(WorkoutSessionEntity session) {
@@ -604,10 +661,25 @@ public final class ActiveSessionRepository {
         return session;
     }
 
-    private SessionExerciseEntity newSessionExercise(String sessionId, TemplateExerciseRow row) {
+    private SessionExerciseGroupEntity newSessionGroup(String sessionId, TemplateGroupRow row) {
+        SessionExerciseGroupEntity entity = new SessionExerciseGroupEntity();
+        entity.id = ids.newId();
+        entity.sessionId = sessionId;
+        entity.label = row.label;
+        entity.techniqueId = row.techniqueId;
+        // The badge is stored, not joined: a catalog edit must not rewrite a past session.
+        entity.techniqueCode = row.techniqueCode;
+        entity.restAfterRoundSeconds = row.restAfterRoundSeconds;
+        entity.position = row.position;
+        return entity;
+    }
+
+    private SessionExerciseEntity newSessionExercise(String sessionId, TemplateExerciseRow row,
+                                                     @Nullable SessionExerciseGroupEntity group) {
         SessionExerciseEntity entity = new SessionExerciseEntity();
         entity.id = ids.newId();
         entity.sessionId = sessionId;
+        entity.groupId = group == null ? null : group.id;
         entity.exerciseId = row.exercise.id;
         entity.templateExerciseId = row.id;
         entity.position = row.position;
