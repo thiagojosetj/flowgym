@@ -8,6 +8,10 @@ Fase 3 passaram exatamente por esse buraco.
 Este documento é o roteiro para fechar essas pendências. A ordem importa: o **passo 0** só dá para
 fazer **uma vez**, antes de instalar a versão nova.
 
+> **Primeira vez?** Faça antes o [`DEVICE_SETUP.md`](DEVICE_SETUP.md): ele instala o Android Studio
+> e o SDK, libera a depuração no aparelho e deixa o `adb` respondendo. O passo 0 logo abaixo já usa
+> `adb`, então sem aquilo pronto ele não roda.
+
 ---
 
 ## 0. ANTES DE INSTALAR — a migration v3 → v4 com dados reais
@@ -72,34 +76,24 @@ estão no backup.
 
 ## 1. Preparar o aparelho
 
-No S24+:
-
-1. **Ajustes → Sobre o telefone → Informações de software** → toque 7× em **Número da versão**.
-2. **Ajustes → Opções do desenvolvedor** → ligue **Depuração USB**.
-3. Ligue o cabo e aceite o diálogo "Permitir depuração USB" no aparelho.
+Depurador ligado, cabo conectado e app instalado: tudo isso está no
+[`DEVICE_SETUP.md`](DEVICE_SETUP.md), passo a passo. Daqui em diante este roteiro assume que
 
 ```bash
-adb devices          # tem de listar o seu aparelho como "device", não "unauthorized"
+adb devices          # lista o aparelho como "device", não "unauthorized"
+```
+
+já funciona, e que a versão `debug` está instalada (a `release` não é assinada e o Android recusa
+instalá-la).
+
+Antes de começar, anote em qual API você está:
+
+```bash
 adb shell getprop ro.build.version.sdk    # 34 (Android 14), 35 (15) ou 36 (16)
 ```
 
 Esse número importa: as regras de tipo de foreground service que nunca rodaram aqui valem **da API
 34 em diante**. `minSdk` do projeto é 28 e `targetSdk` é 37.
-
-### Compilar
-
-Precisa do Android SDK com a plataforma `android-37` e um `local.properties` apontando para ele
-(esse arquivo é gitignored de propósito — nunca versionar):
-
-```bash
-cd android-app
-echo "sdk.dir=/caminho/para/o/Android/Sdk" > local.properties
-./gradlew :app:installDebug
-```
-
-Pelo Android Studio: abra a pasta **`android-app`** (não a raiz do repositório), deixe sincronizar e
-dê Run. O build `debug` usa `applicationIdSuffix = ".debug"`, então ele **convive** com um release
-instalado.
 
 ---
 
