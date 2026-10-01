@@ -400,3 +400,27 @@ grupos no rascunho e reconciliar no salvar — é uma camada inteira a mais, e a
 `GroupLabels.forIndex` em vez de recalcular letras na UI.
 **Também não feito ainda:** editar descanso ou técnica de um grupo depois de criado (`updateGroup`
 existe, sem interface) e escolher a técnica do grupo (SS/BI/TRI/GS continuam sem uso).
+
+### ADR-0039 — O APK que vai para o celular é o **release assinado**, e a chave mora fora do repositório
+**Contexto:** até aqui, pôr uma versão nova no aparelho exigia cabo e `./gradlew :app:installDebug`.
+O `assembleRelease` produzia `app-release-unsigned.apk`, que o Android recusa instalar.
+**Decisão:** o `build.gradle.kts` ganha um `signingConfig` de release lido de **variáveis de
+ambiente** (`FLOWGYM_KEYSTORE_FILE`, `..._PASSWORD`, `..._KEY_ALIAS`, `..._KEY_PASSWORD`). Sem elas,
+o release sai sem assinatura, exatamente como antes. O CI preenche essas variáveis a partir de
+*secrets* do repositório, e publica o APK assinado como artefato de cada execução.
+**Por que o release e não o debug:** o debug fica na chave que o próprio SDK gera. Assiná-lo com
+outra chave faria o build instalado pelo cabo e o baixado se recusarem mutuamente — mesmo
+`applicationId`, assinaturas diferentes — e a única saída seria desinstalar, **apagando o histórico
+de treinos**. Como o release não tem o sufixo `.debug`, os dois **convivem** no aparelho, com bancos
+separados: o do cabo para desenvolver, o baixado para usar de verdade.
+**Efeito colateral que é na verdade o maior ganho:** o release passa pelo R8 (`isMinifyEnabled`), e
+rodar esse APK no aparelho é a única forma de descobrir uma regra `keep` faltando. O gate só provava
+que o R8 **compila**; nada ali prova que o app abre depois de encolhido.
+**Segredo:** a chave **não** é versionada e eu nunca a vejo — quem a gera e a guarda como secret é o
+dono do repositório (`docs/DEVICE_SETUP.md` tem os comandos). Um fork, ou um pull request vindo de um
+fork, não recebe secrets: lá o passo anuncia que não há chave, o release sai sem assinatura e o
+portão continua verde. Perder essa chave significa não conseguir mais atualizar por cima de um APK
+já instalado, então ela precisa de backup fora do GitHub.
+**Alternativas:** assinar o debug com uma chave fixa compartilhada (quebra o fluxo pelo cabo, acima);
+commitar a keystore (o repositório é público, e a regra é não versionar keystore nenhuma).
+**Pendente de aparelho:** que o APK encolhido pelo R8 realmente abre e funciona. Nada aqui prova isso.

@@ -160,10 +160,14 @@ Métricas flexíveis sobre o modelo de medições da Fase 5.
   agrupar com muitos exercícios na lista — nada disso roda em Robolectric de forma que prove a tela.
 - **Etapas de drop-set no aparelho:** os dois campos da etapa com teclado real, e a linha da série
   com quatro botões no cabeçalho a 360 dp com fonte ampliada.
-- **CI ainda não foi visto rodando no GitHub.** O workflow foi validado com `actionlint` e o portão que
-  ele executa roda verde aqui (192 testes, 0 achados de lint, `assembleRelease` com R8), mas o job em si
-  só prova que funciona no primeiro `push` — a instalação de `platforms;android-37.0` no runner e o cache
-  do Gradle são as partes que este ambiente não consegue exercitar.
+- **O APK encolhido pelo R8 nunca foi aberto.** O portão prova que o `assembleRelease` **compila**;
+  não prova que o app sobe depois de o R8 renomear e remover código. Uma regra `keep` faltando só
+  aparece em tempo de execução, e o caminho mais provável é Room com reflexão. Agora que o CI
+  publica o APK release assinado (ADR-0039), esse é o primeiro teste a fazer com ele: instalar,
+  abrir, criar um treino, registrar uma série e finalizar.
+- **A publicação do APK pelo CI depende de secrets que só o dono do repositório pode criar.** Até
+  que `FLOWGYM_KEYSTORE_BASE64` e as três senhas existam, o passo anuncia no log que não há chave e
+  o release continua saindo sem assinatura. Os comandos estão em `docs/DEVICE_SETUP.md` §8.
 
 Levantadas pela revisão de 22/09/2026 e **não corrigidas às cegas**, porque dependem de ver a tela:
 

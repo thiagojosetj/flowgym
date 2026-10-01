@@ -198,6 +198,75 @@ passo 0, diga isso, e siga do passo 1.
 
 ---
 
+## Parte 8 — Pegar versões novas sem cabo (configuração única)
+
+Depois disto, toda vez que algo for para o GitHub o CI monta um APK **assinado**, e você baixa pelo
+navegador do próprio celular. Nada é automático no aparelho: ninguém empurra atualização para você,
+você é que vai buscar. Mas deixa de precisar de computador para isso.
+
+### 8.1 Criar a chave de assinatura (uma vez, na sua máquina)
+
+```bash
+keytool -genkeypair -v -keystore flowgym-release.jks -storetype PKCS12   -alias flowgym -keyalg RSA -keysize 2048 -validity 10000
+```
+
+Ele pergunta uma senha e alguns dados (nome, organização, país — pode ser o que você quiser).
+**Guarde a senha e faça backup do arquivo fora do GitHub.** Perder essa chave significa não
+conseguir mais atualizar por cima de um APK já instalado: a única saída seria desinstalar, apagando
+o histórico.
+
+Esse arquivo **nunca** entra no repositório. O `.gitignore` já barra `*.jks`.
+
+### 8.2 Guardar a chave como *secret* do repositório
+
+Transforme o arquivo em texto:
+
+```bash
+base64 -w0 flowgym-release.jks > flowgym-release.b64     # Linux
+base64 -i flowgym-release.jks | tr -d '\n' > flowgym-release.b64   # macOS
+```
+
+No GitHub: **Settings → Secrets and variables → Actions → New repository secret**, e crie quatro:
+
+| Nome | Valor |
+|---|---|
+| `FLOWGYM_KEYSTORE_BASE64` | o conteúdo de `flowgym-release.b64` |
+| `FLOWGYM_KEYSTORE_PASSWORD` | a senha do keystore |
+| `FLOWGYM_KEY_ALIAS` | `flowgym` |
+| `FLOWGYM_KEY_PASSWORD` | a senha da chave (igual à do keystore, se você só deu uma) |
+
+Apague o `.b64` depois. Enquanto os secrets não existirem, nada quebra: o CI avisa no log que não
+há chave, o release sai sem assinatura e o portão continua verde — é o que acontece também em
+qualquer fork, que por regra do GitHub não recebe secrets.
+
+### 8.3 Baixar no celular
+
+1. No celular, abra o repositório no GitHub e entre em **Actions**.
+2. Abra a execução mais recente que está verde, na branch que você quer.
+3. Em **Artifacts**, baixe **`flowgym-apk-<sha>`** (vem num `.zip`; o nome traz o commit, então dá
+   para saber qual versão é).
+4. Descompacte e toque no `app-release.apk`. O Android vai pedir para permitir **"instalar apps
+   desconhecidos"** para o navegador ou o gerenciador de arquivos — permita.
+
+Baixar artefato do Actions **exige estar logado no GitHub** no navegador do celular, e o artefato
+expira depois de alguns meses. Se isso incomodar, dá para publicar em *Releases*, que é link
+público e não expira — me peça.
+
+### 8.4 O que esperar no aparelho
+
+Esse APK é o **release**, não o debug. Então:
+
+- Ele instala como **`io.github.thiagojosetj.flowgym`**, sem o `.debug`, e **convive** com o build
+  que você instala pelo cabo. São dois apps, com **bancos separados** — o treino que você registrar
+  num não aparece no outro.
+- Ele passou pelo **R8** (código encolhido e renomeado). Isso é bom: é a única forma de descobrir
+  uma regra `keep` faltando. Também significa que, se algo quebrar só nele, o problema é do R8 e eu
+  preciso do `adb logcat`.
+- Atualizar é só baixar o APK novo e instalar por cima: **o banco é preservado**, porque o
+  `applicationId` e a assinatura são os mesmos.
+
+---
+
 ## Quando der errado
 
 | O que você vê | Causa mais provável | O que fazer |
@@ -209,6 +278,8 @@ passo 0, diga isso, e siga do passo 1.
 | `SDK location not found` | falta `local.properties` | Parte 6 |
 | `Unsupported Android Gradle Plugin version` | Studio mais velho que o projeto | atualize o Studio, ou compile pelo terminal |
 | `Failed to install the following SDK components: platforms;android-37` | plataforma não instalada | Parte 2, item 3 |
+| APK baixado: "app não instalado" | é o `app-release-unsigned.apk`, ou a chave mudou | baixe o artefato `flowgym-apk-…`, não o APK do seu próprio build; se a chave mudou, desinstale (**apaga o banco**) |
+| O release abre e fecha, mas o debug funciona | regra `keep` faltando no R8 | `adb logcat -d \| grep -iE "AndroidRuntime"` e me mande o stack trace |
 | O app instala mas fecha ao abrir | pode ser a migration do banco | `adb logcat -d \| grep -iE "room\|migration\|flowgym" \| tail -40` e me mande esse trecho |
 
 Para qualquer falha que não esteja na tabela, junte o log e me mande:

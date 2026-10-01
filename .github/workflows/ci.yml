@@ -64,7 +64,35 @@ jobs:
           # Also verifies the checksum of gradle-wrapper.jar (supply-chain check).
           validate-wrappers: true
 
+      # Writes the release key to a file OUTSIDE the checkout, only when the repository has the
+      # secret. Without it every step below still runs and the release APK comes out unsigned,
+      # exactly as before, so a fork and a pull request from one are not broken by a key they
+      # cannot have. GitHub masks the secret in the log; the file is on the runner's disk, which is
+      # destroyed with the job.
+      - name: Make the release signing key available
+        id: signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.FLOWGYM_KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          # The shell decides, not an `if:` expression: whether a secret is readable from a step
+          # condition depends on context rules that differ between event types, and a condition
+          # that silently evaluates false would skip signing without saying why.
+          if [ -z "${KEYSTORE_BASE64:-}" ]; then
+            echo "No release key configured for this repository; the release APK stays unsigned."
+            exit 0
+          fi
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/flowgym-release.jks"
+          echo "keystore=$RUNNER_TEMP/flowgym-release.jks" >> "$GITHUB_OUTPUT"
+          echo "Release key loaded; the APK will be signed and published."
+
       - name: Run the gate
+        env:
+          # Empty when the secret is absent, and the build then skips the signing config entirely.
+          FLOWGYM_KEYSTORE_FILE: ${{ steps.signing.outputs.keystore }}
+          FLOWGYM_KEYSTORE_PASSWORD: ${{ secrets.FLOWGYM_KEYSTORE_PASSWORD }}
+          FLOWGYM_KEY_ALIAS: ${{ secrets.FLOWGYM_KEY_ALIAS }}
+          FLOWGYM_KEY_PASSWORD: ${{ secrets.FLOWGYM_KEY_PASSWORD }}
         run: ./gradlew --no-daemon :domain:test :app:testDebugUnitTest :app:lintDebug assembleRelease
 
       # abortOnError only fails the build on lint *errors*. The project's bar is zero
@@ -100,6 +128,16 @@ jobs:
               sys.exit(1)
           print(f"lint: 0 blocking findings ({len(issues) - len(blocking)} advisory)")
           PY
+
+      # The phone install. Only the signed APK is published: an unsigned one cannot be installed,
+      # so offering it would be offering a file that does nothing.
+      - name: Publish the installable APK
+        if: ${{ steps.signing.outputs.keystore != '' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: flowgym-apk-${{ github.sha }}
+          if-no-files-found: error
+          path: android-app/app/build/outputs/apk/release/app-release.apk
 
       - name: Upload test and lint reports
         if: failure()
