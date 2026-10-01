@@ -56,7 +56,9 @@ jobs:
       - name: Set up Gradle (with dependency and build cache)
         uses: gradle/actions/setup-gradle@v6
         with:
-          build-root-directory: android-app
+          # No build-root-directory: v6 dropped that input and warns twice per run that it is
+          # ignoring it. The gate does not need it - the cache keys off GRADLE_USER_HOME, and the
+          # steps below find the wrapper through defaults.run.working-directory.
           # Only the default branch refreshes the shared cache; branches read it.
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
           # Also verifies the checksum of gradle-wrapper.jar (supply-chain check).
