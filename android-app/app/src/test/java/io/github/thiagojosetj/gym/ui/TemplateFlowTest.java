@@ -47,6 +47,14 @@ import io.github.thiagojosetj.gym.testutil.TestGymApplication;
  * The first vertical slice through the real UI (PRODUCT_SPEC TPL-01/02/03, LIB-02):
  * library → pick exercise → create template → save to Room → reopen it.
  * Runs on the JVM with Robolectric; the same scenario can later run on a device (androidTest).
+ *
+ * <p>Nothing here asserts a Snackbar. Under the paused looper the virtual clock advances by
+ * whatever number of frames the preceding interactions happen to pump - measured at 1793 ms and
+ * 2628 ms between steps of one single test - while a Snackbar lives for LENGTH_LONG, 2750 ms. An
+ * assertion on one therefore sits inside a window the test does not control: it passes or fails on
+ * identical code and identical input, so it proves nothing either way. The messages themselves are
+ * pinned where they are deterministic, as the GROUPED and UNGROUPED events in
+ * TemplateEditorViewModelTest. What this test asserts is the state that outlives the notification.
  */
 @RunWith(AndroidJUnit4.class)
 @Config(application = TestGymApplication.class, qualifiers = "pt-rBR-w411dp-h891dp")
@@ -258,9 +266,9 @@ public class TemplateFlowTest {
                     .perform(scrollTo(), click());
 
             // Both say A1 and A2 before the name, and the label was never typed by anybody.
+            // (The "Exercicios agrupados" Snackbar is not asserted here - see the class comment.)
             onView(withText("A1 " + SUPINO)).check(matches(isDisplayed()));
             onView(withText("A2 " + CRUCIFIXO)).check(matches(isDisplayed()));
-            onView(withText(R.string.editor_grouped)).check(matches(isDisplayed()));
             // The card shows the rest that applies: the group's, not the exercise's own 1:30.
             onView(restLineOf("A1 " + SUPINO))
                     .check(matches(withText("descanso 2:00 min depois da rodada")));
@@ -313,7 +321,7 @@ public class TemplateFlowTest {
             onView(withText(R.string.editor_group_with)).check(doesNotExist());
             onView(withText(R.string.editor_ungroup)).perform(click());
 
-            onView(withText(R.string.editor_ungrouped)).check(matches(isDisplayed()));
+            // The Snackbar it raises is not asserted here - see the class comment.
             onView(withText(SUPINO)).check(matches(isDisplayed()));
             onView(withText(CRUCIFIXO)).check(matches(isDisplayed()));
             onView(withText("A1 " + SUPINO)).check(doesNotExist());
