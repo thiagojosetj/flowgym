@@ -44,7 +44,12 @@ Legenda: ✅ concluído · 🟡 em andamento/parcial · ⬜ não iniciado.
 - ✅ Técnicas avançadas como dados (12 métodos), escolha por série com badge e ⓘ explicando o método.
 - ✅ Configurações da conta: descanso padrão (90 s de fábrica, editável), som e vibração do descanso.
 - ✅ Banco na versão 2 com migration explícita e testada.
-- ⬜ Grupos de exercícios (supersérie, bi-set, tri-set, giant set) e técnicas de escopo exercício (pirâmides).
+- 🟡 Grupos de exercícios (supersérie, bi-set, tri-set, giant set): **banco v4, dados e editor
+  prontos**. Agrupar e desagrupar pelo menu do exercício, rótulo A1/A2 derivado (nunca digitado),
+  descanso por rodada. Falta escolher a **técnica** do grupo (SS/BI/TRI/GS seguem sem uso) e editar
+  descanso/técnica depois de criado (`updateGroup` existe, sem interface). Grupo é gravado na hora,
+  fora do rascunho do editor — ADR-0038.
+- ⬜ Técnicas de escopo exercício (pirâmides).
 - ⬜ Arquivar/desarquivar.
 
 ### Fase 3 — Treino ativo 🟡
@@ -66,7 +71,10 @@ Legenda: ✅ concluído · 🟡 em andamento/parcial · ⬜ não iniciado.
   um erro real: dava para marcar "por lado" e registrar no campo combinado, e aí o domínio não
   dobrava as repetições — metade das reps e metade do volume.
 - ⬜ Segmentos de drop-set / rest-pause (a coluna `parent_set_id` existe).
-- ⬜ Grupos de exercícios (supersérie) — dependem das tabelas de grupo, ainda não criadas.
+- 🟡 Grupos de exercícios (supersérie): o treino em andamento mostra A1/A2 e **o descanso é da
+  rodada** — começa quando nenhum exercício do grupo ainda deve a série daquela rodada, e não
+  quando o "último por posição" termina (a ordem planejada não é obrigatória, ACT-01). Falta
+  validar em aparelho.
 - ⬜ Avaliação 1–5 e observações da sessão (colunas existem, sem interface).
 - ⬜ **Validar no aparelho**: promoção do serviço com tipo `health` na API 34+, som e vibração com a
   tela apagada, `POST_NOTIFICATIONS` negado, force stop e reboot, teclado real.
@@ -77,6 +85,12 @@ Robolectric, porque os testes usam executores sincronizados: o serviço se matav
 tela do treino voltava sozinha para a Início antes de carregar, e um descanso que terminava continuava
 na tela e na notificação. Lição registrada: um teste que depende de executor sincronizado **não prova**
 comportamento de corrida — por isso a lista de pendências de aparelho acima não é opcional.
+
+### Fase 2/3 — grupos de exercícios (01/10/2026)
+Banco na **versão 4** (`template_exercise_group`, `session_exercise_group`, colunas `group_id`), com
+migration explícita e teste que vai de v1 a v4. Dois erros que teriam passado em silêncio foram
+achados ao implementar: **salvar** um treino desagrupava tudo (o rascunho não conhece grupos) e
+**duplicar** perdia as superséries. Os dois têm teste.
 
 ### Fase 4 — Histórico 🟡
 - ✅ Aba **Histórico** com a lista de sessões concluídas, mais recentes primeiro. Sessões **ativas** e
@@ -142,6 +156,10 @@ Métricas flexíveis sobre o modelo de medições da Fase 5.
   **datas** são novas porque esta é a primeira tela que mostra uma. O bilhete certo é "publicar um
   segundo idioma (`values-en`) ou fixar pt-BR explicitamente", não desinternacionalizar os
   formatadores.
+- **Supersérie no aparelho.** O descanso por rodada, o rótulo A1/A2 com fonte grande, e a folha de
+  agrupar com muitos exercícios na lista — nada disso roda em Robolectric de forma que prove a tela.
+- **Etapas de drop-set no aparelho:** os dois campos da etapa com teclado real, e a linha da série
+  com quatro botões no cabeçalho a 360 dp com fonte ampliada.
 - **CI ainda não foi visto rodando no GitHub.** O workflow foi validado com `actionlint` e o portão que
   ele executa roda verde aqui (192 testes, 0 achados de lint, `assembleRelease` com R8), mas o job em si
   só prova que funciona no primeiro `push` — a instalação de `platforms;android-37.0` no runner e o cache

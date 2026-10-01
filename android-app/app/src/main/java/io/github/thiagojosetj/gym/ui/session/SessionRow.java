@@ -14,12 +14,16 @@ public interface SessionRow {
     String id();
 
     /**
+     * @param name          "A1 Supino reto" inside a group (PRODUCT_SPEC 6.3), the plain name
+     *                      otherwise
+     * @param spokenName    what a screen reader says instead, because "A1" is read as a code
      * @param completedSets how many of this exercise's sets are done, for "2/4"
      * @param permanentNotes note that comes from the template
      */
     record ExerciseHeader(
             String id,
             String name,
+            String spokenName,
             int completedSets,
             int totalSets,
             boolean collapsed,

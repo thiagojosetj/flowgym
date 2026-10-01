@@ -146,10 +146,13 @@ final class SessionRowAdapter extends ListAdapter<SessionRow, RecyclerView.ViewH
             views.permanentNotes.setText(header.permanentNotes());
             views.permanentNotes.setVisibility(header.permanentNotes() == null ? View.GONE : View.VISIBLE);
             views.collapseIcon.setRotation(header.collapsed() ? 0f : 180f);
-            // The action is spoken, not inferred from an icon rotation.
+            // The action is spoken, not inferred from an icon rotation. A grouped exercise reads
+            // "A1 Supino" on screen, which a screen reader spells out as a code, so it gets the
+            // words instead (PRODUCT_SPEC 6.3).
+            String spoken = header.spokenName() == null ? header.name() : header.spokenName();
             views.header.setContentDescription(views.getRoot().getContext().getString(
                     header.collapsed() ? R.string.session_expand : R.string.session_collapse,
-                    header.name()));
+                    spoken));
             String exerciseId = header.id().substring("header:".length());
             views.header.setOnClickListener(v -> callbacks.onToggleExercise(exerciseId));
         }

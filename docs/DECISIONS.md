@@ -43,6 +43,7 @@ são respondidos aqui quando mudam ou confirmam uma decisão.
 | 0035 | CI no GitHub Actions; o job falha em qualquer achado de lint | Aceita |
 | 0036 | Sessão do histórico é carregada uma vez, não observada | Aceita |
 | 0037 | Segmento de drop-set soma volume, mas conta como uma série só | Aceita |
+| 0038 | Grupo é gravado na hora, fora do rascunho do editor | Aceita (com ressalva) |
 
 ---
 
@@ -380,3 +381,22 @@ consulta que conta séries muda: todas já filtram `parent_set_id IS NULL`, e a 
 série-pai. Sem mudança de esquema — o banco continua na v3.
 **Em aberto (Fase 5):** para recordes, o segmento de maior carga é o que vale para "maior carga".
 Anotado no PRODUCT_SPEC §9.1; não implementado aqui.
+
+### ADR-0038 — Grupo é gravado **na hora**, e não no "Salvar" do editor
+**Contexto:** a ADR-0019 diz que o editor de treino trabalha com **rascunho** e só grava no "Salvar"
+explícito. Os grupos de exercícios fogem disso: `TemplateRepository.createGroup`/`removeGroup`
+gravam imediatamente, e o editor chama os dois na hora.
+**Por quê:** o rótulo (A, B, C) é **derivado** e renumerado pela camada de dados a partir da ordem
+dos exercícios — criar um grupo acima de outro renumera, apagar o A promove o B. Um grupo que
+existisse só no rascunho não teria rótulo até salvar, ou obrigaria a UI a derivar letras por conta
+própria, que é exatamente a duplicação que `GroupLabels` existe para impedir. O editor diz isso
+antes de confirmar ("O grupo é gravado na hora").
+**Consequência, e ela é real:** descartar o editor **não desfaz** um grupo. Isso é inconsistente com
+o resto da tela e o usuário pode se surpreender. Fica assim por ora porque a alternativa — modelar
+grupos no rascunho e reconciliar no salvar — é uma camada inteira a mais, e a parte que importa
+(perder supersérie em silêncio ao editar ou duplicar o treino) já foi resolvida na camada de dados.
+**Quando revisar:** se aparecer mais alguma coisa que precise ser gravada na hora, ou se o
+"descartar" passar a confundir de verdade, o certo é levar os grupos para o rascunho reutilizando
+`GroupLabels.forIndex` em vez de recalcular letras na UI.
+**Também não feito ainda:** editar descanso ou técnica de um grupo depois de criado (`updateGroup`
+existe, sem interface) e escolher a técnica do grupo (SS/BI/TRI/GS continuam sem uso).

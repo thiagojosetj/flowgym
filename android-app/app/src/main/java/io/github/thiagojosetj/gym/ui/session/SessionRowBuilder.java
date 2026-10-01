@@ -18,6 +18,7 @@ import io.github.thiagojosetj.gym.domain.model.WeightUnit;
 import io.github.thiagojosetj.gym.domain.session.ActiveSession;
 import io.github.thiagojosetj.gym.domain.session.LoggedSet;
 import io.github.thiagojosetj.gym.domain.session.SessionExercise;
+import io.github.thiagojosetj.gym.domain.session.SessionGroup;
 import io.github.thiagojosetj.gym.domain.session.SetValues;
 import io.github.thiagojosetj.gym.ui.common.Durations;
 import io.github.thiagojosetj.gym.ui.common.NumberInput;
@@ -52,14 +53,17 @@ final class SessionRowBuilder {
         List<SessionRow> rows = new ArrayList<>();
         for (SessionExercise exercise : session.exercises()) {
             boolean isCollapsed = collapsed.contains(exercise.id());
+            SessionGroup group = session.groupOf(exercise.id());
+            int numberInGroup = group == null ? 0 : numberInGroup(session, group, exercise);
             rows.add(new SessionRow.ExerciseHeader(
                     "header:" + exercise.id(),
-                    exercise.name(),
+                    groupedName(exercise, group, numberInGroup),
+                    spokenGroupedName(exercise, group, numberInGroup),
                     exercise.completedSets(),
                     exercise.sets().size(),
                     isCollapsed,
                     emptyToNull(exercise.permanentNotes()),
-                    exercise.restSeconds() > 0 ? Durations.restLabel(exercise.restSeconds()) : null));
+                    restLabelOf(exercise, group)));
             if (isCollapsed) {
                 continue;
             }
@@ -273,6 +277,46 @@ final class SessionRowBuilder {
             text.append(res.getString(R.string.separator_dot));
         }
         text.append(value);
+    }
+
+    /** "A1 Supino reto" inside a group (PRODUCT_SPEC 6.3), the plain name otherwise. */
+    private String groupedName(SessionExercise exercise, @Nullable SessionGroup group, int number) {
+        if (group == null) {
+            return exercise.name();
+        }
+        return res.getString(R.string.editor_group_exercise_name, group.label(), number,
+                exercise.name());
+    }
+
+    /** "A1" is spelled out as a code by a screen reader, so it hears the words instead. */
+    private String spokenGroupedName(SessionExercise exercise, @Nullable SessionGroup group,
+                                     int number) {
+        if (group == null) {
+            return null;
+        }
+        return res.getString(R.string.editor_group_exercise_description, group.label(), number,
+                exercise.name());
+    }
+
+    /**
+     * The rest a grouped exercise actually obeys is the GROUP's, which starts when the round ends
+     * (PRODUCT_SPEC 6.3). Showing the exercise's own rest here would be a number the app never uses.
+     */
+    private String restLabelOf(SessionExercise exercise, @Nullable SessionGroup group) {
+        int seconds = group == null ? exercise.restSeconds() : group.restAfterRoundSeconds();
+        return seconds > 0 ? Durations.restLabel(seconds) : null;
+    }
+
+    /** 1-based position of this exercise among its group's members, in workout order. */
+    private static int numberInGroup(ActiveSession session, SessionGroup group,
+                                     SessionExercise exercise) {
+        List<SessionExercise> members = session.exercisesOfGroup(group.id());
+        for (int i = 0; i < members.size(); i++) {
+            if (members.get(i).id().equals(exercise.id())) {
+                return i + 1;
+            }
+        }
+        return 1;
     }
 
     private static String emptyToNull(@Nullable String text) {

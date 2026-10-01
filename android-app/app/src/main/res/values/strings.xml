@@ -142,6 +142,25 @@
     <string name="editor_moved">%1$s movido para a posição %2$d</string>
     <string name="editor_move_down">Mover para baixo</string>
     <string name="editor_remove">Remover do treino</string>
+    <!-- Groups (supersets): made at once, in the database, not by the editor's Salvar -->
+    <string name="editor_group_with">Agrupar com…</string>
+    <string name="editor_ungroup">Desagrupar</string>
+    <string name="editor_group_intro">%s entra no grupo. Marque pelo menos mais um exercício.</string>
+    <string name="editor_group_candidate_unsaved">%s (salve o treino antes)</string>
+    <string name="editor_group_rest">Descanso depois de cada rodada (s)</string>
+    <string name="editor_group_rest_helper">Começa quando todos os exercícios do grupo terminam a série. 0 = sem descanso automático.</string>
+    <string name="editor_group_saved_now">O grupo é gravado na hora, sem esperar o botão Salvar do treino.</string>
+    <string name="editor_group_confirm">Agrupar</string>
+    <plurals name="editor_group_error_too_small">
+        <item quantity="one">Um grupo precisa de pelo menos %d exercício</item>
+        <item quantity="other">Um grupo precisa de pelo menos %d exercícios</item>
+    </plurals>
+    <string name="editor_group_error_unsaved">Salve o treino antes de agrupar exercícios que você acabou de adicionar.</string>
+    <string name="editor_grouped">Exercícios agrupados</string>
+    <string name="editor_ungrouped">Exercícios desagrupados</string>
+    <!-- "A1 Supino reto": the group's letter, the place inside the group, the name. -->
+    <string name="editor_group_exercise_name">%1$s%2$d %3$s</string>
+    <string name="editor_group_exercise_description">Grupo %1$s, exercício %2$d: %3$s</string>
 
     <!-- Plan summary (template exercise card) -->
     <plurals name="plan_sets">
@@ -157,6 +176,8 @@
     <string name="plan_bodyweight_plus">peso corporal + %s</string>
     <string name="plan_bodyweight_assisted">peso corporal − %s (assistência)</string>
     <string name="plan_per_side">cada lado registrado separadamente</string>
+    <!-- The rest of an exercise in a group is the group's, taken once the round is over. -->
+    <string name="plan_group_rest">descanso %s depois da rodada</string>
 
     <!-- Loads -->
     <string name="weight_value">%1$s %2$s</string>
@@ -194,6 +215,7 @@
     <string name="plan_sheet_bodyweight_assisted">Assistência (−)</string>
     <string name="plan_sheet_rest">Descanso após cada série (s)</string>
     <string name="plan_sheet_rest_helper">0 = sem cronômetro de descanso automático.</string>
+    <string name="plan_sheet_rest_grouped">Neste grupo vale o descanso do grupo, depois de cada rodada.</string>
     <string name="plan_sheet_side_mode">Registro dos lados</string>
     <string name="plan_sheet_side_combined">Mesmo valor por lado</string>
     <string name="plan_sheet_side_per_side">Cada lado separado</string>

@@ -169,8 +169,9 @@ nem PRs (`counts_as_working_set = 0`).
 
 **Implementado:** as 12 técnicas existem como dados (`training_technique`), e as de escopo **série**
 podem ser escolhidas por série no editor de treino, com badge e ⓘ. As de escopo exercício (pirâmides)
-e grupo (supersérie e companhia) já estão no catálogo e serão aplicáveis quando os grupos de
-exercícios entrarem.
+e grupo (supersérie e companhia) já estão no catálogo. Os **grupos** entraram em 01/10/2026 (§6.3),
+mas ainda são criados como agrupamento simples: escolher SS/BI/TRI/GS para um grupo não tem
+interface, então essas quatro técnicas continuam sem uso.
 
 Técnicas com várias etapas (drop-set, rest-pause, myo-reps, cluster) registram cada etapa como um
 **segmento** da mesma série (ex.: 40 kg × 10 → 30 kg × 8 → 20 kg × 6).

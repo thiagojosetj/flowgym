@@ -4,6 +4,13 @@
     <item
         android:id="@+id/action_edit_plan"
         android:title="@string/editor_edit_plan" />
+    <!-- One of the two shows, by whether the exercise is in a group. -->
+    <item
+        android:id="@+id/action_group"
+        android:title="@string/editor_group_with" />
+    <item
+        android:id="@+id/action_ungroup"
+        android:title="@string/editor_ungroup" />
     <item
         android:id="@+id/action_move_up"
         android:title="@string/editor_move_up" />
