@@ -424,3 +424,36 @@ já instalado, então ela precisa de backup fora do GitHub.
 **Alternativas:** assinar o debug com uma chave fixa compartilhada (quebra o fluxo pelo cabo, acima);
 commitar a keystore (o repositório é público, e a regra é não versionar keystore nenhuma).
 **Pendente de aparelho:** que o APK encolhido pelo R8 realmente abre e funciona. Nada aqui prova isso.
+
+### ADR-0040 — As imagens de músculo são **nossas**, vetoriais e **geradas** de uma única fonte
+**Contexto:** o filtro da biblioteca tem 38 subgrupos com nomes como "vasto intermédio" e
+"semitendinoso e semimembranoso". Quem não sabe anatomia não escolhe numa lista de nomes — e os
+subgrupos existem exatamente para quem está afunilando o que quer treinar.
+**Decisão:** uma silhueta esquemática em vetor, com a região acesa. Todo traço é escrito à mão em
+`tools/musclemap.py`; nada é decalcado de produto nenhum nem de prancha anatômica com direitos.
+**Por que não imagem pronta:** o repositório é público e a ADR-0016 já registra que o texto do
+catálogo é autoral; a imagem não pode ter padrão mais baixo. Não existe conjunto gratuito,
+consistente e devidamente licenciado de anatomia para usar.
+**Por que vetor e não foto:** poucos KB, nítido em qualquer densidade, e **tingido pelo tema** — o
+modo escuro sai de graça em vez de exigir um segundo conjunto de arquivos. Para "onde fica isso no
+corpo", um esquema basta e é mais honesto que uma foto: não finge ser atlas.
+**Gerado, não desenhado 51 vezes:** `tools/gen_muscle_drawables.py` produz os 53 VectorDrawables, e
+`tools/preview_musclemap.py` produz a folha de revisão, das **mesmas** definições — a imagem revisada
+e a instalada não podem divergir. Músculo par é desenhado **uma vez** e espelhado por
+`<group android:scaleX="-1">`; desenhar os dois lados garantiria que eles fossem divergindo. Os 13
+grupos **não são desenhados**: um grupo é a união dos seus subgrupos, composta na hora, então ganhar
+um subgrupo atualiza o grupo de graça.
+**Silhueta e região são arquivos separados**, sem cor assada, para a tela poder tingir corpo e
+músculo com cores diferentes.
+**A tabela dos 51 é escrita à mão** em `MuscleArt`, e não montada do código do músculo em tempo de
+execução: nome vindo de string é invisível para o R8, que removeria os desenhos ou forçaria manter
+todos os recursos do app, e o erro apareceria no aparelho em vez de no build.
+**Garantia:** `MuscleArtTest` lê o `catalog.json` que o app embarca e falha se qualquer músculo
+ficar sem imagem, ou se dois códigos apontarem para o mesmo desenho. Foi verificado por mutação, não
+por confiança.
+**Custo:** +38 KB no APK release (3.307.891 → 3.346.855 bytes).
+**Alternativas recusadas:** miniatura de músculo na lista de exercícios (o dono do projeto preferiu
+ilustrações do movimento ali — ver `docs/EXERCISE_ART.md`); PNG gerado por IA para a anatomia (perde
+o tema e pesa muito mais).
+**Pendente de aparelho:** a linha com fonte ampliada, e se as regiões pequenas (glúteo mínimo,
+transverso, manguito rotador) ainda se distinguem a 40 dp.

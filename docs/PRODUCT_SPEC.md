@@ -60,7 +60,11 @@ Os IDs abaixo são usados no ROADMAP, nos commits e nos testes. Estado atualizad
 - **LIB-02** Busca rápida por nome e apelidos, tolerante a maiúsculas/minúsculas, acentos e trechos
   do nome ("supino", "SUPINO", "súpino" e "pino" encontram "Supino reto com barra").
 - **LIB-03** Filtros combináveis: grupo, subgrupo, equipamento e papel do músculo
-  (principal / secundário / ambos).
+  (principal / secundário / ambos). O **subgrupo é escolhido por imagem**: ao selecionar um grupo,
+  aparece uma linha com uma silhueta por parte, com aquela parte acesa, e o nome embaixo. A
+  primeira opção é o **grupo inteiro**, que acende tudo o que suas partes acendem. O motivo é o
+  próprio problema: "vasto medial" e "semitendinoso" são nomes que quem está começando não conhece,
+  e uma lista só de nomes torna o filtro inútil justamente para quem mais precisaria dele.
 - **LIB-04** Detalhe: descrição, instruções, dicas, erros comuns, observações, equipamentos, músculo
   principal em destaque e secundários em seção menor.
 - **LIB-05** Mídia: ≥ 2 imagens (posição inicial/final) quando disponível; animação curta opcional

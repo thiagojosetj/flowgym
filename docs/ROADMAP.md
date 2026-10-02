@@ -33,7 +33,12 @@ Legenda: ✅ concluído · 🟡 em andamento/parcial · ⬜ não iniciado.
 - ✅ Grupos/subgrupos hierárquicos (13 grupos, 38 subgrupos), 14 equipamentos, 55 exercícios com textos próprios (JSON com UUIDs fixos).
 - ✅ Lista, busca tolerante a acentos e apelidos, filtros combinados (grupo + subgrupo + equipamento + papel).
 - ✅ Detalhe do exercício (principal em destaque, secundários, instruções, dicas, erros comuns, como registrar).
-- ⬜ Mídia (imagens início/fim, animação) + cache.
+- 🟡 Mídia: o **filtro de subgrupo é por imagem** — silhueta com a parte acesa, 13 grupos +
+  38 subgrupos, desenhados neste projeto e gerados de `tools/musclemap.py` (ADR-0040).
+  Falta: ilustração do movimento por exercício (prompts prontos em `docs/EXERCISE_ART.md`,
+  imagens ainda não produzidas), imagens de início/fim e animação.
+- ⬜ **Validar no aparelho**: a linha de subgrupos com fonte ampliada, e se as regiões
+  pequenas (glúteo mínimo, transverso, manguito rotador) se distinguem a 40 dp.
 - ⬜ Ampliar o catálogo.
 - ⬜ Exercícios personalizados (o modelo já suporta).
 
