@@ -70,7 +70,10 @@ Legenda: ✅ concluído · 🟡 em andamento/parcial · ⬜ não iniciado.
   exercício como "por lado", com os dois lados obrigatórios para concluir a série. Fechou de quebra
   um erro real: dava para marcar "por lado" e registrar no campo combinado, e aí o domínio não
   dobrava as repetições — metade das reps e metade do volume.
-- ⬜ Segmentos de drop-set / rest-pause (a coluna `parent_set_id` existe).
+- 🟡 Segmentos de drop-set / rest-pause: o botão **+** no cabeçalho da série abre uma linha
+  recuada "Etapa N" com campos próprios, gravada como filha em `parent_set_id`. O volume soma
+  todas as etapas e o conjunto conta como **uma** série (§9.1, ADR-0037). Falta validar em
+  aparelho: os campos da etapa com teclado real.
 - 🟡 Grupos de exercícios (supersérie): o treino em andamento mostra A1/A2 e **o descanso é da
   rodada** — começa quando nenhum exercício do grupo ainda deve a série daquela rodada, e não
   quando o "último por posição" termina (a ordem planejada não é obrigatória, ACT-01). Falta
