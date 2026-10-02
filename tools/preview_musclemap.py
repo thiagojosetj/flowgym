@@ -17,17 +17,23 @@ import musclemap as m
 BODY = "#C9CEDA"
 HINT = "#AEB5C4"
 HIGHLIGHT = "#2E6BE6"
-SCALE = 0.72
-COLUMNS = 4
+SCALE = 0.56
+COLUMNS = 7
 
 
-def figure(x, y, side, region_paths, label):
+def figure(x, y, side, region_paths, paired, label):
     hint = m.FRONT_HINT if side == "front" else m.BACK_HINT
     out = [f'<g transform="translate({x},{y}) scale({SCALE})">']
     out += [f'<path d="{p}" fill="{BODY}"/>' for p in m.FRONT_BODY]
     out += [f'<path d="{p}" fill="none" stroke="{HINT}" stroke-width="1.6" '
             f'stroke-linecap="round"/>' for p in hint]
-    out += [f'<path d="{p}" fill="{HIGHLIGHT}"/>' for p in region_paths]
+    for path, is_paired in zip(region_paths, paired):
+        out.append(f'<path d="{path}" fill="{HIGHLIGHT}"/>')
+        if is_paired:
+            # Mirrored about the figure's axis rather than drawn again, so the two halves of a
+            # muscle can never drift apart.
+            out.append(f'<g transform="translate({m.VIEW_W},0) scale(-1,1)">'
+                       f'<path d="{path}" fill="{HIGHLIGHT}"/></g>')
     out.append("</g>")
     cx = x + (m.VIEW_W * SCALE) / 2
     base = y + m.VIEW_H * SCALE
@@ -40,8 +46,12 @@ def figure(x, y, side, region_paths, label):
 
 
 def main(destination):
-    cells = [("front", [], "silhueta (frente)"), ("back", [], "silhueta (costas)")]
-    cells += [(side, paths, code) for code, (side, paths) in sorted(m.REGIONS.items())]
+    cells = [("front", [], [], "silhueta (frente)"), ("back", [], [], "silhueta (costas)")]
+    for code in sorted(m.GROUP_SIDE):
+        side, paths, paired = m.group_region(code)
+        cells.append((side, paths, paired, f"[grupo] {code}"))
+    cells += [(side, paths, [is_paired] * len(paths), code)
+              for code, (side, paths, is_paired) in sorted(m.REGIONS.items())]
 
     cell_w = m.VIEW_W * SCALE + 26
     cell_h = m.VIEW_H * SCALE + 42
@@ -53,15 +63,17 @@ def main(destination):
            f'viewBox="0 0 {width} {height}">',
            f'<rect width="{width}" height="{height}" fill="#FBFBFD"/>',
            f'<text x="16" y="26" font-family="system-ui,sans-serif" font-size="14" fill="#222" '
-           f'font-weight="600">FlowGym — mapa muscular ({len(m.REGIONS)} de 51 regiões)</text>']
-    for index, (side, paths, label) in enumerate(cells):
+           f'font-weight="600">FlowGym — mapa muscular: {len(m.GROUP_SIDE)} grupos + '
+           f'{len(m.REGIONS)} subgrupos</text>']
+    for index, (side, paths, paired, label) in enumerate(cells):
         row, column = divmod(index, COLUMNS)
-        svg += figure(20 + column * cell_w, 42 + row * cell_h, side, paths, label)
+        svg += figure(20 + column * cell_w, 42 + row * cell_h, side, paths, paired, label)
     svg.append("</svg>")
 
     with open(destination, "w", encoding="utf-8") as handle:
         handle.write("\n".join(svg))
-    print(f"{destination}: {len(m.REGIONS)} regiões, {os.path.getsize(destination)} bytes")
+    print(f"{destination}: {len(m.GROUP_SIDE)} grupos + {len(m.REGIONS)} subgrupos, "
+          f"{os.path.getsize(destination)} bytes")
 
 
 if __name__ == "__main__":
