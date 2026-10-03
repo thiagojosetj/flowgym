@@ -850,6 +850,31 @@ public class ExerciseGroupTest {
                 + templateId + "'"));
     }
 
+
+    @Test
+    public void aDropOnTheLastExerciseOfTheRoundRestartsTheRoundRestInsteadOfKillingIt()
+            throws Exception {
+        // The round is not over while the drops of it are still being done. Before this, the drop
+        // read its own row - a segment has no plan of its own - and ended the round's rest with
+        // nothing in its place (found in review, 03/10/2026).
+        String sessionId = startSuperset();
+        LoggedSet a1 = setOf(sessionId, 0, 0);
+        LoggedSet a2 = setOf(sessionId, 1, 0);
+        confirm(sessionId, a1.id(), values(40, 10));
+        confirm(sessionId, a2.id(), values(60, 10));
+        assertEquals(a2.id(), restOwner(sessionId));
+
+        addSegment(sessionId, a2.id());
+        String drop = setOf(sessionId, 1, 0).segments().get(0).id();
+        clock.advanceSeconds(20);
+        confirm(sessionId, drop, values(45, 6));
+
+        SessionHeader header = loadSession(sessionId).header();
+        assertEquals("o descanso passa a ser do drop, nao some", drop, header.restSetLogId());
+        // Restarted, not continued: the work ended now, so the round's rest starts now.
+        assertEquals(ROUND_REST_MS, header.restRemainingMs(clock.millis()));
+    }
+
     private String start(String templateId) {
         AtomicReference<String> id = new AtomicReference<>();
         app.activeSessions.startFromTemplate(templateId, id::set, this::fail);

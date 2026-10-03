@@ -572,6 +572,28 @@ public class SegmentLoggingTest {
         assertEquals(1, summary.performedSets());
     }
 
+
+    @Test
+    public void afterTheLastDropThereIsStillARest() throws Exception {
+        // The flow this describes is the normal one: do the set, tap confirm, do the drop, tap
+        // confirm. A drop-set is ONE set (ADR-0037), so the rest belongs after the whole thing -
+        // and a drop-set is the most tiring set in the workout to be left without one.
+        String sessionId = start(createTemplate("Push A", "Supino reto com barra"));
+        String setId = setId(sessionId, 0);
+        setTechnique(sessionId, setId, techniqueId("D"));
+        addSegment(sessionId, setId);
+        String dropId = setAt(sessionId, 0).segments().get(0).id();
+
+        confirm(sessionId, setId, values(40, 10));
+        assertEquals("a serie inicia o descanso", setId,
+                loadSession(sessionId).header().restSetLogId());
+
+        confirm(sessionId, dropId, values(30, 8));
+
+        assertNotNull("confirmar o drop nao pode deixar o treino sem descanso nenhum",
+                loadSession(sessionId).header().restSetLogId());
+    }
+
     private void confirm(String sessionId, String setId, SetValues values) {
         AtomicReference<Boolean> done = new AtomicReference<>(false);
         app.activeSessions.confirmSet(sessionId, setId, values, () -> done.set(true), this::fail);

@@ -608,25 +608,32 @@ public final class ActiveSessionRepository {
      * still gets one.
      */
     private int restSecondsAfter(String sessionId, SetLogEntity set) {
-        String groupId = dao.findGroupIdOfExercise(set.sessionExerciseId);
-        if (groupId == null) {
-            return set.plannedRestSeconds; // not in a group: exactly what it was before groups
-        }
+        // A drop-set is ONE set taken past failure (ADR-0037), so the rest is the SET's and it
+        // starts after the last drop. Asking the drop's own row gives 0 - a segment is created
+        // with no plan of its own - and the hardest set of the workout would end with no rest at
+        // all, after cancelling the one the set had just started (found in review, 03/10/2026).
+        SetLogEntity restOwner = set;
         if (set.parentSetId != null) {
-            // A drop belongs to its set's round and is not one of its own (ADR-0037): GroupRounds
-            // gives it no round, and it must not start one. Like any confirmation that starts no
-            // rest, it ends the one that was running.
-            return 0;
+            SetLogEntity parent = dao.findSet(set.parentSetId);
+            if (parent != null) {
+                restOwner = parent;
+            }
+        }
+        String groupId = dao.findGroupIdOfExercise(restOwner.sessionExerciseId);
+        if (groupId == null) {
+            return restOwner.plannedRestSeconds; // not in a group: as it was before groups
         }
         // The mapping the screen renders, so "which sets belong to which round" has one answer.
         ActiveSession snapshot = SessionMapper.toSession(requireHeader(sessionId),
                 dao.findRows(sessionId), null);
-        SessionExercise exercise = snapshot.exerciseById(set.sessionExerciseId);
-        SessionGroup group = snapshot.groupOf(set.sessionExerciseId);
+        SessionExercise exercise = snapshot.exerciseById(restOwner.sessionExerciseId);
+        SessionGroup group = snapshot.groupOf(restOwner.sessionExerciseId);
         if (exercise == null || group == null) {
             return 0;
         }
-        int round = GroupRounds.roundOf(exercise, set.id);
+        // Asked for the SET, so a drop ends its round the same way its set would: the round is not
+        // really over while the drops of it are still being done.
+        int round = GroupRounds.roundOf(exercise, restOwner.id);
         return GroupRounds.isRoundComplete(snapshot.exercisesOfGroup(group.id()), round)
                 ? group.restAfterRoundSeconds()
                 : 0;

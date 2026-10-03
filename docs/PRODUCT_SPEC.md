@@ -304,6 +304,12 @@ A primeira etapa **é** a própria série (a linha com `parent_set_id IS NULL`);
 filhas dela. Por isso toda consulta que conta séries continua filtrando `parent_set_id IS NULL` e
 continua certa sem mudança — e por isso isto **não precisa de migration**: a coluna existe desde a v3.
 
+**O descanso vem depois da última etapa, e é o da série.** Um drop-set é uma série, então o
+descanso automático é o que a série planejou (ou o da rodada, se ela estiver num grupo) e começa
+quando a última etapa é confirmada. Ler o descanso da própria etapa daria zero — a etapa nasce
+sem plano — e a série mais cansativa do treino terminaria **sem descanso nenhum**, ainda por cima
+cancelando o que a série tinha acabado de iniciar (corrigido em 03/10/2026).
+
 **Ao finalizar, a etapa é resolvida junto com a série** (§8 vale para ela também): etapa com
 tudo o que precisa vira **feita**, etapa vazia ou pela metade vira **pulada**, e o diálogo diz
 quantas etapas serão resolvidas — em linha separada, porque o drop-set continua contando como
