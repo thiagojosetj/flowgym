@@ -111,9 +111,15 @@ correção e cada metade de cada correção verificada por mutação:
 Os três primeiros têm a mesma causa: as etapas foram **gravadas** como linhas próprias e tratadas como
 parte da série em um único lugar, o volume. Todo caminho que lia a linha isolada tinha o defeito.
 
-**Verificado e sem defeito** (por mutação, não por leitura): a numeração e o pareamento com a sessão
-anterior (ADR-0033) — deixar um drop vazar para qualquer um dos lados derruba o teste existente, e
-seis testes derrubam a partição do mapper.
+**Verificado e sem defeito** (por mutação, não por leitura):
+
+- **Numeração e pareamento com a sessão anterior** (ADR-0033): deixar um drop vazar para qualquer um
+  dos lados derruba o teste existente, e seis testes derrubam a partição do mapper.
+- **Ordem das linhas lidas** (`ORDER BY` que põe a série antes das etapas dela): inverter o desempate
+  derruba seis testes.
+- **Mapeamento de grupos** (`SessionMapper.toGroups`): lido, sem mutação. O `LEFT JOIN` cobre o
+  exercício que ficou sem séries — ele continua aparecendo na tela e não segura a rodada aberta,
+  porque não deve nada. Isto é leitura, não prova: fica como a parte menos verificada desta revisão.
 
 ### Fase 2/3 — grupos de exercícios (01/10/2026)
 Banco na **versão 4** (`template_exercise_group`, `session_exercise_group`, colunas `group_id`), com
