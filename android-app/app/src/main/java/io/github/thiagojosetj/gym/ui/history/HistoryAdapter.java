@@ -24,6 +24,8 @@ final class HistoryAdapter extends ListAdapter<SessionHistoryEntry, HistoryAdapt
 
     interface Listener {
         void onOpen(SessionHistoryEntry entry);
+
+        void onMore(SessionHistoryEntry entry, android.view.View anchor);
     }
 
     private static final DiffUtil.ItemCallback<SessionHistoryEntry> DIFF =
@@ -107,6 +109,11 @@ final class HistoryAdapter extends ListAdapter<SessionHistoryEntry, HistoryAdapt
                     spokenDuration,
                     binding.summary.getText().toString()));
             binding.getRoot().setOnClickListener(v -> listener.onOpen(entry));
+            // Named for this row, so a screen reader does not read "session options" four times
+            // with no way to tell which session each belongs to.
+            binding.buttonMore.setContentDescription(
+                    res.getString(R.string.history_session_options_of, entry.name()));
+            binding.buttonMore.setOnClickListener(v -> listener.onMore(entry, v));
         }
     }
 }

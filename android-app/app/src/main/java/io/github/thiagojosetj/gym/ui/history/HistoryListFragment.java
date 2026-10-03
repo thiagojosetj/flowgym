@@ -7,6 +7,10 @@ import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.PopupMenu;
+
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.snackbar.Snackbar;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -22,6 +26,8 @@ public class HistoryListFragment extends Fragment implements HistoryAdapter.List
 
     private FragmentHistoryListBinding binding;
     private HistoryAdapter adapter;
+    /** A field because the row's menu arrives long after onViewCreated has returned. */
+    private HistoryListViewModel viewModel;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -33,7 +39,7 @@ public class HistoryListFragment extends Fragment implements HistoryAdapter.List
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         AppContainer app = ViewModelFactories.container(this);
-        HistoryListViewModel viewModel = new ViewModelProvider(this,
+        viewModel = new ViewModelProvider(this,
                 ViewModelFactories.of(HistoryListViewModel.class,
                         () -> new HistoryListViewModel(app.history)))
                 .get(HistoryListViewModel.class);
@@ -45,6 +51,40 @@ public class HistoryListFragment extends Fragment implements HistoryAdapter.List
             adapter.submitList(sessions);
             binding.emptyState.setVisibility(sessions.isEmpty() ? View.VISIBLE : View.GONE);
         });
+        viewModel.failures().observe(getViewLifecycleOwner(), event -> {
+            if (event.consume() != null && binding != null) {
+                Snackbar.make(binding.getRoot(), R.string.history_delete_failed,
+                        Snackbar.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    @Override
+    public void onMore(SessionHistoryEntry entry, View anchor) {
+        PopupMenu popup = new PopupMenu(requireContext(), anchor);
+        popup.inflate(R.menu.menu_history_item);
+        popup.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == R.id.action_delete) {
+                confirmDelete(entry);
+                return true;
+            }
+            return false;
+        });
+        popup.show();
+    }
+
+    /**
+     * Asks before removing, and says what is lost. The numbers of that day go for good; the
+     * template that produced them is a different thing and stays.
+     */
+    private void confirmDelete(SessionHistoryEntry entry) {
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.history_delete_title)
+                .setMessage(getString(R.string.history_delete_message, entry.name()))
+                .setNegativeButton(R.string.action_cancel, null)
+                .setPositiveButton(R.string.history_delete_action,
+                        (dialog, which) -> viewModel.delete(entry.sessionId()))
+                .show();
     }
 
     @Override

@@ -73,7 +73,7 @@ public final class AppContainer {
         // The zone is resolved per session (see the repository): the process can outlive a change.
         this.activeSessions = new ActiveSessionRepository(database, users, executors, clock,
                 () -> zone, ids);
-        this.history = new HistoryRepository(database, executors);
+        this.history = new HistoryRepository(database, executors, clock);
         this.catalogSeeder = new CatalogSeeder(database, catalogSource, clock);
     }
 

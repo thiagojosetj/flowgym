@@ -104,6 +104,12 @@ notificação, o serviço em primeiro plano e o alerta com a tela apagada.
 - **HIS-03** Sessão antiga em detalhe, a partir dos snapshots (nunca do template atual).
 - **HIS-04** Tabela de comparação Exercício | Anterior | Atual | Variação (↑ ↓ =), expansível série a série.
 
+- **HIS-05** **Excluir uma sessão do histórico**, pelo menu da linha, com confirmação que nomeia
+  a sessão. Ela sai da lista e deixa de contar nos números; o treino que a gerou continua em
+  Treinos. Exclusão é **soft** (`deleted_at`), para poder ser sincronizada. Não fere a
+  imutabilidade: a sessão sai inteira, nada que ela registrou é reescrito (ADR-0041).
+  **Lacuna conhecida:** uma sessão posterior ainda compara com a sessão excluída, porque o
+  pareamento é gravado no início e não refiltra.
 **Implementado (28/09/2026):** HIS-01 (menos recordes e medalhas, que dependem das Fases 5 e 7),
 HIS-03 e a comparação de sessão do HIS-04. **HIS-02 (calendário) não foi feito.**
 

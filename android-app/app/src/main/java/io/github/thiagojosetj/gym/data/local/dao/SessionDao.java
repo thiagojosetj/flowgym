@@ -310,6 +310,18 @@ public interface SessionDao {
     int uncompleteSet(String setId);
 
     /**
+     * Removes a finished session from the history. Soft: the row stays so the removal can be
+     * synced, exactly as a discard does, and every read already filters {@code deleted_at IS NULL}
+     * through MINE_SQL. Nothing recorded is rewritten - the session leaves whole (ADR-0041).
+     *
+     * @return 0 when the session does not exist, is not this user's, or was already removed
+     */
+    @Query("UPDATE workout_session SET deleted_at = :now, updated_at = :now,"
+            + " sync_status = 'PENDING' WHERE id = :sessionId AND deleted_at IS NULL")
+    int softDeleteSession(String sessionId, long now);
+
+
+    /**
      * The drops of a set that is being undone. A drop is part of its set (ADR-0037), so leaving
      * them performed under a set that is not would make the database say reps happened while every
      * total ignores them.

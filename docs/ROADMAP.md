@@ -145,7 +145,9 @@ achados ao implementar: **salvar** um treino desagrupava tudo (o rascunho não c
   de cada série já aparece, vindo do ponteiro congelado).
 - ⬜ Avaliação 1–5 e observação da sessão (as colunas existem; o resumo já exibe a avaliação quando
   houver, mas ainda não há como registrá-la).
-- ⬜ Excluir uma sessão do histórico (não existe caminho de exclusão; `deleted_at` nunca é escrito).
+- ✅ **HIS-05 — excluir uma sessão do histórico**: menu da linha, confirmação que nomeia a sessão,
+  exclusão soft (`deleted_at`) para poder sincronizar (ADR-0041). **Lacuna registrada:** o
+  pareamento "anterior" não refiltra, então uma sessão posterior ainda compara com a excluída.
 - ⬜ **Validar no aparelho**: a lista com muitas sessões e a rolagem do detalhe de uma sessão longa.
 
 ### Fase 5 — Progresso ⬜

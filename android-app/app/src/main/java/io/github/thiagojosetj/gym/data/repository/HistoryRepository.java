@@ -3,6 +3,8 @@ package io.github.thiagojosetj.gym.data.repository;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Transformations;
 
+import java.time.Clock;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -22,8 +24,12 @@ import io.github.thiagojosetj.gym.domain.session.SessionStatus;
 import io.github.thiagojosetj.gym.domain.session.SessionSummary;
 
 /**
- * Reads finished sessions (PRODUCT_SPEC HIS-01, HIS-03 and HIS-04). Read-only by construction:
- * history is immutable, and there is no write on this class to make it otherwise.
+ * Reads finished sessions (PRODUCT_SPEC HIS-01, HIS-03 and HIS-04).
+ *
+ * <p>History is immutable, and the one write here does not make it otherwise: {@link #delete} takes
+ * a session away WHOLE and rewrites nothing it recorded. "Immutable" means a session's numbers are
+ * never edited after the fact, not that a workout logged by mistake has to be lived with for ever
+ * (ADR-0041).
  *
  * <p>Two different shapes for two different questions, on purpose:
  *
@@ -40,10 +46,13 @@ public final class HistoryRepository {
 
     private final SessionDao dao;
     private final AppExecutors executors;
+    /** Injected rather than System.currentTimeMillis, so a test can say when a removal happened. */
+    private final Clock clock;
 
-    public HistoryRepository(AppDatabase database, AppExecutors executors) {
+    public HistoryRepository(AppDatabase database, AppExecutors executors, Clock clock) {
         this.dao = database.sessionDao();
         this.executors = executors;
+        this.clock = clock;
     }
 
     /** Every finished session, newest first. Empty while nothing has been performed yet. */
@@ -60,6 +69,21 @@ public final class HistoryRepository {
     public void loadDetail(String sessionId, Consumer<SessionDetail> onResult,
                            Consumer<Throwable> onError) {
         executors.runOnDisk(() -> detailOf(sessionId), onResult, onError);
+    }
+
+    /**
+     * Takes a finished session out of the history.
+     *
+     * <p>Soft, like a discard: the row stays so the removal can be synced, and every read already
+     * hides it. The caller is expected to have asked first - this method does not confirm anything.
+     *
+     * @param onDone receives true when a session was removed, false when there was nothing to
+     *               remove (unknown id, another user's, or already gone). Said rather than thrown:
+     *               deleting twice is not an error, and the screen has nothing different to do.
+     */
+    public void delete(String sessionId, Consumer<Boolean> onDone, Consumer<Throwable> onError) {
+        executors.runOnDisk(() -> dao.softDeleteSession(sessionId, clock.millis()) > 0,
+                onDone, onError);
     }
 
     private SessionDetail detailOf(String sessionId) throws Exception {

@@ -457,3 +457,28 @@ ilustrações do movimento ali — ver `docs/EXERCISE_ART.md`); PNG gerado por I
 o tema e pesa muito mais).
 **Pendente de aparelho:** a linha com fonte ampliada, e se as regiões pequenas (glúteo mínimo,
 transverso, manguito rotador) ainda se distinguem a 40 dp.
+
+### ADR-0041 — Excluir uma sessão **não** fere a imutabilidade do histórico
+**Contexto:** o `HistoryRepository` dizia, no próprio Javadoc, "read-only by construction: history is
+immutable, and there is no write on this class to make it otherwise". Mas registrar um treino errado
+— começar o treino errado, confirmar série que não aconteceu — não tinha saída: a coluna `deleted_at`
+existia e **nunca era escrita**, e o número ficava nas suas estatísticas para sempre.
+**Decisão:** HIS-05. A lista do histórico ganha "Excluir do histórico" por linha, com confirmação que
+nomeia a sessão.
+**Por que isso não contradiz a imutabilidade:** "imutável" sempre significou que os números de uma
+sessão **não são reescritos depois** — editar um treino não altera uma sessão passada (ADR-0036).
+Excluir não reescreve nada: a sessão sai **inteira**. A regra existe para impedir que o passado seja
+*corrigido*, não para obrigar alguém a conviver com um registro falso.
+**Soft delete, como o descarte:** a linha permanece e `deleted_at` é marcado, porque apagar a linha
+deixaria o servidor com uma sessão que este aparelho não sabe mais que existiu, e nada para mandar
+removê-la. Toda leitura já filtrava `deleted_at IS NULL` pelo `MINE_SQL`, então a escrita foi o único
+pedaço que faltava.
+**Excluir duas vezes não é erro:** `delete` responde `false` em vez de lançar. A tela não tem nada
+diferente a fazer, e a linha já saiu da lista observada.
+**Consequência conhecida e NÃO resolvida:** o pareamento "anterior" (ADR-0033) é gravado no início da
+sessão em `previous_session_exercise_id` e **não** filtra sessões excluídas. Uma sessão posterior
+continua comparando com a sessão que você excluiu. Está errado — se você apagou porque foi engano, os
+números dela não deviam guiar o próximo treino — e consertar exige repareamento, que é trabalho de
+outro tamanho. Fica registrado como lacuna, não como detalhe.
+**Alternativas:** apagar a linha de verdade (quebra o sync); permitir editar a sessão em vez de
+excluir (aí sim feriria a imutabilidade, e é o que a ADR-0036 recusa).

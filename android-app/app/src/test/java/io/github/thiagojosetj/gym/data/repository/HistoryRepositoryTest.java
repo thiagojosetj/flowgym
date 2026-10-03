@@ -539,6 +539,81 @@ public class HistoryRepositoryTest {
         clock.advance(Duration.ofDays(1));
     }
 
+
+    // ---------------------------------------------------------------- removing a session (HIS-05)
+
+    @Test
+    public void aRemovedSessionLeavesTheHistoryAndCannotBeOpenedAgain() throws Exception {
+        String sessionId = start(createTemplate("Push A", "Supino reto com barra"));
+        confirm(sessionId, firstSetOf(sessionId).id(), lifted(40, 10));
+        finish(sessionId);
+        assertEquals(sessionId, onlyEntry().sessionId());
+
+        assertTrue("devia ter removido", delete(sessionId));
+
+        assertTrue("a sessao removida continua na lista", history().isEmpty());
+        AtomicReference<Throwable> error = new AtomicReference<>();
+        app.history.loadDetail(sessionId, detail -> {}, error::set);
+        assertNotNull("abrir uma sessao removida devia falhar", error.get());
+    }
+
+    @Test
+    public void theRowStaysSoTheRemovalCanBeSynced() throws Exception {
+        // Soft, like a discard: deleting the row would leave the server with a session this device
+        // no longer knows it ever had, and nothing to tell it to drop.
+        String sessionId = start(createTemplate("Push A", "Supino reto com barra"));
+        confirm(sessionId, firstSetOf(sessionId).id(), lifted(40, 10));
+        finish(sessionId);
+
+        delete(sessionId);
+
+        // Read straight from the table: every DAO read filters deleted_at, which is the point.
+        try (Cursor row = database.getOpenHelper().getReadableDatabase().query(
+                "SELECT deleted_at, sync_status, status FROM workout_session WHERE id = '"
+                        + sessionId + "'")) {
+            assertTrue("a linha nao pode sumir", row.moveToFirst());
+            assertFalse("deleted_at precisa estar marcado", row.isNull(0));
+            assertEquals("PENDING", row.getString(1));
+            // Nothing it recorded was rewritten: the session leaves whole (ADR-0041).
+            assertEquals("COMPLETED", row.getString(2));
+        }
+    }
+
+    @Test
+    public void removingTheSameSessionTwiceIsNotAnError() throws Exception {
+        String sessionId = start(createTemplate("Push A", "Supino reto com barra"));
+        confirm(sessionId, firstSetOf(sessionId).id(), lifted(40, 10));
+        finish(sessionId);
+
+        assertTrue(delete(sessionId));
+        assertFalse("a segunda vez nao removeu nada, e isso nao e erro", delete(sessionId));
+    }
+
+    @Test
+    public void removingOneSessionLeavesTheOthersAlone() throws Exception {
+        String templateId = createTemplate("Push A", "Supino reto com barra");
+        String first = start(templateId);
+        confirm(first, firstSetOf(first).id(), lifted(40, 10));
+        finish(first);
+        clock.advanceMinutes(60);
+        String second = start(templateId);
+        confirm(second, firstSetOf(second).id(), lifted(45, 10));
+        finish(second);
+
+        delete(second);
+
+        assertEquals(first, onlyEntry().sessionId());
+    }
+
+    private boolean delete(String sessionId) {
+        AtomicReference<Boolean> removed = new AtomicReference<>();
+        AtomicReference<Throwable> error = new AtomicReference<>();
+        app.history.delete(sessionId, removed::set, error::set);
+        assertNull("delete should not have failed: " + error.get(), error.get());
+        assertNotNull("delete should have answered", removed.get());
+        return removed.get();
+    }
+
     private List<SessionHistoryEntry> history() throws Exception {
         return LiveDataTestUtil.getOrAwaitValue(app.history.observeHistory());
     }

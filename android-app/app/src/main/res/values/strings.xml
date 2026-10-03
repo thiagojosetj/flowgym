@@ -334,6 +334,14 @@
     <!-- History (PRODUCT_SPEC HIS-01, HIS-03, HIS-04) -->
     <string name="history_empty_title">Nenhum treino no histórico</string>
     <string name="history_empty_body">Quando você finalizar um treino, ele aparece aqui com duração, exercícios e séries.</string>
+    <string name="history_session_options">Opções da sessão</string>
+    <string name="history_session_options_of">Opções de \"%s\"</string>
+    <string name="history_delete_action">Excluir do histórico</string>
+    <string name="history_delete_title">Excluir esta sessão?</string>
+    <!-- Says what is lost and what is not. The numbers are gone for good; the workout that
+         produced them is a different thing and stays. -->
+    <string name="history_delete_message">\"%s\" sai do histórico e deixa de contar nos seus números. O treino em si continua na aba Treinos.</string>
+    <string name="history_delete_failed">Não foi possível excluir. Tente novamente.</string>
     <string name="history_day_today">Hoje</string>
     <string name="history_day_yesterday">Ontem</string>
     <string name="history_detail_title">Sessão</string>
