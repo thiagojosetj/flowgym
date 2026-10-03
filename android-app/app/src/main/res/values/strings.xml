@@ -301,6 +301,12 @@
         <item quantity="one">%d série está preenchida pela metade e ficará como não feita (os valores continuam salvos).</item>
         <item quantity="other">%d séries estão preenchidas pela metade e ficarão como não feitas (os valores continuam salvos).</item>
     </plurals>
+    <!-- The drops of a drop-set. Counted apart from the sets, because a drop-set is one set
+         taken past failure (ADR-0037) and folding the drops into the set count would say "3". -->
+    <plurals name="finish_segments_resolved">
+        <item quantity="one">1 etapa de drop-set também será resolvida.</item>
+        <item quantity="other">%d etapas de drop-set também serão resolvidas.</item>
+    </plurals>
     <plurals name="finish_will_skip_empty">
         <item quantity="one">%d série vazia ficará como não feita.</item>
         <item quantity="other">%d séries vazias ficarão como não feitas.</item>

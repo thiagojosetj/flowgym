@@ -340,6 +340,13 @@ public class ActiveSessionFragment extends Fragment implements SessionRowAdapter
             lines.add(getResources().getQuantityString(R.plurals.finish_will_skip_empty,
                     review.empty().size(), review.empty().size()));
         }
+        if (review.affectedSegments() > 0) {
+            // Said out loud rather than folded into the counts above: a drop-set is one set, so
+            // its drops must not inflate "N series", but a drop that is about to be recorded or
+            // dropped is still a decision the user is entitled to see.
+            lines.add(getResources().getQuantityString(R.plurals.finish_segments_resolved,
+                    review.affectedSegments(), review.affectedSegments()));
+        }
 
         MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(requireContext())
                 .setTitle(R.string.finish_title)

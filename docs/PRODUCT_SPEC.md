@@ -304,6 +304,12 @@ A primeira etapa **é** a própria série (a linha com `parent_set_id IS NULL`);
 filhas dela. Por isso toda consulta que conta séries continua filtrando `parent_set_id IS NULL` e
 continua certa sem mudança — e por isso isto **não precisa de migration**: a coluna existe desde a v3.
 
+**Ao finalizar, a etapa é resolvida junto com a série** (§8 vale para ela também): etapa com
+tudo o que precisa vira **feita**, etapa vazia ou pela metade vira **pulada**, e o diálogo diz
+quantas etapas serão resolvidas — em linha separada, porque o drop-set continua contando como
+**uma** série. Deixar a etapa pendente dentro de uma sessão encerrada era descarte silencioso:
+as repetições aconteceram, não entravam em nada e ninguém era avisado (corrigido em 03/10/2026).
+
 ## 10. Recordes pessoais (PRs)
 
 Por exercício, considerando apenas séries elegíveis (§9, exceto que peso corporal conta para PRs de

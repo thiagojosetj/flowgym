@@ -533,6 +533,45 @@ public class SegmentLoggingTest {
         return session;
     }
 
+
+    @Test
+    public void finishingResolvesADropThatWasFilledInAndNeverConfirmed() throws Exception {
+        // Section 8's promise applied to a drop. Before this, finishing touched only the parent
+        // sets, so a drop stayed PENDING inside a COMPLETED session: its repetitions counted for
+        // nothing and the dialog never mentioned it (found in review, 03/10/2026).
+        String sessionId = start(createTemplate("Push A", "Supino reto com barra"));
+        String setId = setId(sessionId, 0);
+        setTechnique(sessionId, setId, techniqueId("D"));
+        addSegment(sessionId, setId);
+        String dropId = setAt(sessionId, 0).segments().get(0).id();
+        confirm(sessionId, setId, values(40, 10));
+        type(dropId, 30, 8); // typed, never confirmed
+
+        SessionSummary summary = finish(sessionId);
+
+        assertEquals(SetStatus.COMPLETED, database.sessionDao().findSet(dropId).status);
+        // And the work it holds now reaches the numbers: 40x10 + 30x8 = 640 kg.
+        assertEquals(640_000L, summary.volumeGrams());
+        assertEquals("o drop-set continua valendo UMA serie", 1, summary.performedSets());
+        assertEquals(18, summary.totalReps());
+    }
+
+    @Test
+    public void finishingSkipsADropThatWasNeverFilledIn() throws Exception {
+        String sessionId = start(createTemplate("Push A", "Supino reto com barra"));
+        String setId = setId(sessionId, 0);
+        setTechnique(sessionId, setId, techniqueId("D"));
+        addSegment(sessionId, setId);
+        String dropId = setAt(sessionId, 0).segments().get(0).id();
+        confirm(sessionId, setId, values(40, 10));
+
+        SessionSummary summary = finish(sessionId);
+
+        assertEquals(SetStatus.SKIPPED, database.sessionDao().findSet(dropId).status);
+        assertEquals(400_000L, summary.volumeGrams());
+        assertEquals(1, summary.performedSets());
+    }
+
     private void confirm(String sessionId, String setId, SetValues values) {
         AtomicReference<Boolean> done = new AtomicReference<>(false);
         app.activeSessions.confirmSet(sessionId, setId, values, () -> done.set(true), this::fail);

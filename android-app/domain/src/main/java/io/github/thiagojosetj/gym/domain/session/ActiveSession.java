@@ -84,17 +84,23 @@ public record ActiveSession(SessionHeader header, List<SessionExercise> exercise
         List<FinishReview.SetUnderReview> underReview = new ArrayList<>(totalSets());
         for (SessionExercise exercise : exercises) {
             for (LoggedSet set : exercise.sets()) {
-                underReview.add(new FinishReview.SetUnderReview(
-                        set.id(),
-                        exercise.name(),
-                        set.workingNumber() != null ? set.workingNumber() : set.position() + 1,
-                        set.status(),
-                        set.values(),
-                        exercise.trackingType(),
-                        exercise.sideMode()));
+                int number = set.workingNumber() != null ? set.workingNumber() : set.position() + 1;
+                underReview.add(review(exercise, set, number, false));
+                // The drops of this set go in too. They are rows of their own in the database, so
+                // without this they stay PENDING in a finished session and their repetitions
+                // count for nothing, with nothing on screen saying so (section 8).
+                for (LoggedSet segment : set.segments()) {
+                    underReview.add(review(exercise, segment, number, true));
+                }
             }
         }
         return FinishReview.of(underReview);
+    }
+
+    private static FinishReview.SetUnderReview review(SessionExercise exercise, LoggedSet set,
+                                                      int number, boolean isSegment) {
+        return new FinishReview.SetUnderReview(set.id(), exercise.name(), number, set.status(),
+                set.values(), exercise.trackingType(), exercise.sideMode(), isSegment);
     }
 
     public SessionExercise exerciseById(String sessionExerciseId) {
