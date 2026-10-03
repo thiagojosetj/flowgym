@@ -94,6 +94,27 @@ tela do treino voltava sozinha para a Início antes de carregar, e um descanso q
 na tela e na notificação. Lição registrada: um teste que depende de executor sincronizado **não prova**
 comportamento de corrida — por isso a lista de pendências de aparelho acima não é opcional.
 
+**Revisão de 03/10/2026 (adversarial, ADR-0028) — segmentos e grupos:** os itens de drop-set e de
+supersérie tinham entrado **sem** essa passagem. Quatro defeitos, todos com teste escrito antes da
+correção e cada metade de cada correção verificada por mutação:
+
+1. **Etapa preenchida ficava sem decisão ao finalizar.** `finishReview` percorria só as séries-mãe, e
+   a etapa ficava PENDING dentro de uma sessão encerrada: reps feitas, contando para nada, sem aviso.
+2. **Drop-set terminava sem descanso.** A etapa nasce sem plano, então o descanso lido era 0 — e 0
+   significa "limpa o cronômetro". A série mais cansativa acabava sem descanso, cancelando o que a
+   série tinha iniciado.
+3. **Desfazer a série deixava as etapas feitas.** O banco dizia que as reps aconteceram enquanto todos
+   os totais as ignoravam; e o descanso, que pertence à última etapa, continuava correndo.
+4. **Aquecimento em supersérie deslocava as rodadas.** O aquecimento de A1 pareava com a série de
+   verdade de A2, e o descanso do grupo disparava depois de um aquecimento.
+
+Os três primeiros têm a mesma causa: as etapas foram **gravadas** como linhas próprias e tratadas como
+parte da série em um único lugar, o volume. Todo caminho que lia a linha isolada tinha o defeito.
+
+**Verificado e sem defeito** (por mutação, não por leitura): a numeração e o pareamento com a sessão
+anterior (ADR-0033) — deixar um drop vazar para qualquer um dos lados derruba o teste existente, e
+seis testes derrubam a partição do mapper.
+
 ### Fase 2/3 — grupos de exercícios (01/10/2026)
 Banco na **versão 4** (`template_exercise_group`, `session_exercise_group`, colunas `group_id`), com
 migration explícita e teste que vai de v1 a v4. Dois erros que teriam passado em silêncio foram
