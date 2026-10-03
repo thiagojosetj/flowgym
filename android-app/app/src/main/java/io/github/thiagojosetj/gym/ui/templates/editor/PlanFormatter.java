@@ -47,10 +47,22 @@ final class PlanFormatter {
         return load == null ? main : main + separator + load;
     }
 
+    /**
+     * The rest the exercise really gets. In a group that is the group's, taken once the round is
+     * over (PRODUCT_SPEC 6.3): the exercise's own is not used there, and showing it would be
+     * showing a number that does nothing.
+     */
     String restLine(TemplateExerciseItem item) {
-        String rest = item.restSeconds() == 0
-                ? res.getString(R.string.plan_no_rest)
-                : res.getString(R.string.plan_rest, duration(item.restSeconds()));
+        TemplateExerciseItem.GroupMark group = item.group();
+        int seconds = group == null ? item.restSeconds() : group.restAfterRoundSeconds();
+        String rest;
+        if (seconds == 0) {
+            rest = res.getString(R.string.plan_no_rest);
+        } else if (group == null) {
+            rest = res.getString(R.string.plan_rest, duration(seconds));
+        } else {
+            rest = res.getString(R.string.plan_group_rest, duration(seconds));
+        }
         if (item.sideMode() == SideMode.PER_SIDE) {
             rest = rest + separator + res.getString(R.string.plan_per_side);
         }

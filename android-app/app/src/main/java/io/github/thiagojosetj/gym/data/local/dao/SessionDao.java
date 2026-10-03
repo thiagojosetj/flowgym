@@ -12,12 +12,14 @@ import androidx.room.Update;
 import java.util.List;
 
 import io.github.thiagojosetj.gym.data.local.entity.SessionExerciseEntity;
+import io.github.thiagojosetj.gym.data.local.entity.SessionExerciseGroupEntity;
 import io.github.thiagojosetj.gym.data.local.entity.SessionPauseEntity;
 import io.github.thiagojosetj.gym.data.local.entity.SetLogEntity;
 import io.github.thiagojosetj.gym.data.local.entity.WorkoutSessionEntity;
 import io.github.thiagojosetj.gym.data.local.row.ActiveSetRow;
 import io.github.thiagojosetj.gym.data.local.row.PreviousSetRow;
 import io.github.thiagojosetj.gym.data.local.row.SessionHeaderRow;
+import io.github.thiagojosetj.gym.data.local.row.SessionHistoryRow;
 
 /**
  * Sessions of the current user. The current user is resolved inside the SQL (ADR-0006), so a query
@@ -33,6 +35,10 @@ public interface SessionDao {
      * joined here: they pair by ordinal among working sets (PRODUCT_SPEC section 11), which SQLite on
      * API 28 cannot express (window functions arrived later), so they come from
      * {@link #observePreviousSets(String)} and are paired in the mapper.
+     *
+     * <p>The group is the session's own snapshot ({@code session_exercise_group}), joined by its
+     * primary key, so it adds columns and never rows: the ordering below, and the drop-set segments
+     * the mapper nests, see exactly what they saw before groups existed.
      */
     String ACTIVE_ROWS_SQL =
             "SELECT se.id AS sessionExerciseId, se.position AS exercisePosition, se.exercise_id AS exerciseId,"
@@ -41,10 +47,15 @@ public interface SessionDao {
                     + " se.laterality AS laterality, se.side_mode AS sideMode,"
                     + " se.rest_seconds AS exerciseRestSeconds, se.permanent_notes AS permanentNotes,"
                     + " se.notes AS exerciseNotes,"
+                    + " g.id AS groupId, g.label AS groupLabel, g.technique_id AS groupTechniqueId,"
+                    + " g.technique_code AS groupTechniqueCode,"
+                    + " g.rest_after_round_s AS groupRestAfterRoundSeconds,"
+                    + " g.position AS groupPosition,"
                     + " (SELECT q.code FROM exercise_equipment ee JOIN equipment q ON q.id = ee.equipment_id"
                     + "     WHERE ee.exercise_id = se.exercise_id"
                     + "     ORDER BY ee.is_primary DESC, q.sort_order LIMIT 1) AS primaryEquipmentCode,"
-                    + " sl.id AS setId, sl.position AS setPosition, sl.technique_id AS techniqueId,"
+                    + " sl.id AS setId, sl.position AS setPosition,"
+                    + " sl.parent_set_id AS parentSetId, sl.technique_id AS techniqueId,"
                     + " t.code AS techniqueCode, t.counts_as_working_set AS techniqueCountsAsWorkingSet,"
                     + " sl.planned_reps_min AS plannedRepsMin, sl.planned_reps_max AS plannedRepsMax,"
                     + " sl.planned_weight_g AS plannedWeightGrams,"
@@ -55,10 +66,16 @@ public interface SessionDao {
                     + " sl.status AS status, sl.completed_at AS completedAt, sl.notes AS setNotes,"
                     + " se.previous_session_exercise_id AS previousSessionExerciseId"
                     + " FROM session_exercise se"
-                    + " LEFT JOIN set_log sl ON sl.session_exercise_id = se.id AND sl.parent_set_id IS NULL"
+                    + " LEFT JOIN session_exercise_group g ON g.id = se.group_id"
+                    + " LEFT JOIN set_log sl ON sl.session_exercise_id = se.id"
+                    + " LEFT JOIN set_log p ON p.id = sl.parent_set_id"
                     + " LEFT JOIN training_technique t ON t.id = sl.technique_id"
                     + " WHERE se.session_id = :sessionId"
-                    + " ORDER BY se.position, sl.position";
+                    // Segments follow the set they belong to: sort by the SET's position
+                    // (the parent's, for a segment), then the set before its segments, then
+                    // the segments among themselves.
+                    + " ORDER BY se.position, COALESCE(p.position, sl.position),"
+                    + " (sl.parent_set_id IS NOT NULL), sl.position";
 
     // ------------------------------------------------------------------ reads
 
@@ -147,6 +164,11 @@ public interface SessionDao {
     @Query("SELECT * FROM set_log WHERE id = :setId")
     SetLogEntity findSet(String setId);
 
+    /** The group a session exercise is in, or null when it stands alone. */
+    @Nullable
+    @Query("SELECT group_id FROM session_exercise WHERE id = :sessionExerciseId")
+    String findGroupIdOfExercise(String sessionExerciseId);
+
     @Query("SELECT COALESCE(MAX(position), -1) FROM set_log WHERE session_exercise_id = :sessionExerciseId"
             + " AND parent_set_id IS NULL")
     int maxSetPosition(String sessionExerciseId);
@@ -154,6 +176,15 @@ public interface SessionDao {
     @Query("SELECT COUNT(*) FROM set_log WHERE session_exercise_id = :sessionExerciseId"
             + " AND parent_set_id IS NULL")
     int countSets(String sessionExerciseId);
+
+    /**
+     * The highest position among the segments of ONE set, or -1 when it has none (so the first
+     * segment is 0). Scoped to the parent, not to the exercise: a segment's position only orders it
+     * among its own siblings, and {@link #maxSetPosition(String)} - which filters
+     * {@code parent_set_id IS NULL} - never sees a segment at all.
+     */
+    @Query("SELECT COALESCE(MAX(position), -1) FROM set_log WHERE parent_set_id = :parentSetId")
+    int maxSegmentPosition(String parentSetId);
 
     /**
      * The same exercise in the last finished session, so "anterior" can be frozen into the new
@@ -165,6 +196,55 @@ public interface SessionDao {
             + " ORDER BY s.started_at DESC LIMIT 1")
     String findPreviousSessionExerciseId(String exerciseId);
 
+    // ------------------------------------------------------------------ history (PRODUCT_SPEC HIS-03)
+
+    /**
+     * One finished session per row, with the pauses already summed and the exercises and performed
+     * sets already counted. Ends in "WHERE " so a caller appends its own predicate.
+     *
+     * <p>{@code parent_set_id IS NULL} is not optional in the set count: drop-set and rest-pause
+     * segments will be child rows of the set they belong to, and counting them would silently
+     * inflate every past session the day that screen ships.
+     */
+    String HISTORY_SQL =
+            "SELECT s.id AS id, s.template_id AS templateId, s.name AS name,"
+                    + " s.started_at AS startedAt, s.ended_at AS endedAt,"
+                    + " s.local_date AS localDate, s.time_zone AS timeZone, s.rating AS rating,"
+                    + " (SELECT COALESCE(SUM(p.ended_at - p.started_at), 0) FROM session_pause p"
+                    + "     WHERE p.session_id = s.id AND p.ended_at IS NOT NULL) AS closedPausedMs,"
+                    + " (SELECT COUNT(*) FROM session_exercise se WHERE se.session_id = s.id)"
+                    + "     AS exerciseCount,"
+                    + " (SELECT COUNT(*) FROM set_log sl"
+                    + "     JOIN session_exercise se2 ON se2.id = sl.session_exercise_id"
+                    + "     WHERE se2.session_id = s.id AND sl.parent_set_id IS NULL"
+                    + "     AND sl.status = 'COMPLETED') AS performedSetCount"
+                    + " FROM workout_session s WHERE ";
+
+    /**
+     * The history list. {@code status = 'COMPLETED'} is explicit because a discarded session also
+     * carries an {@code ended_at}: "it ended" is not the same as "it happened".
+     */
+    @Query(HISTORY_SQL + MINE_SQL + " AND s.status = 'COMPLETED' ORDER BY s.started_at DESC")
+    LiveData<List<SessionHistoryRow>> observeCompletedSessions();
+
+    @Query(HISTORY_SQL + MINE_SQL + " AND s.status = 'COMPLETED' ORDER BY s.started_at DESC")
+    List<SessionHistoryRow> findCompletedSessions();
+
+    /**
+     * The previous time this same workout was performed, for the comparison in PRODUCT_SPEC
+     * section 11.
+     *
+     * <p>This is a different question from {@link #findPreviousSessionExerciseId(String)}, which
+     * answers "the last time I did this exercise, in any workout" and is frozen per set when the
+     * session starts (ADR-0033). Here the template has to match and the session has to be strictly
+     * older, which is also what keeps a session from comparing itself with itself.
+     */
+    @Nullable
+    @Query("SELECT s.id FROM workout_session s WHERE " + MINE_SQL
+            + " AND s.status = 'COMPLETED' AND s.template_id = :templateId"
+            + " AND s.started_at < :startedAt ORDER BY s.started_at DESC LIMIT 1")
+    String findPreviousSessionOfTemplate(String templateId, long startedAt);
+
     // ------------------------------------------------------------------ writes
 
     @Insert
@@ -172,6 +252,10 @@ public interface SessionDao {
 
     @Update
     void updateSession(WorkoutSessionEntity session);
+
+    /** Before the exercises: each one points at its group, and the foreign key is enforced. */
+    @Insert
+    void insertExerciseGroups(List<SessionExerciseGroupEntity> groups);
 
     @Insert
     void insertExercises(List<SessionExerciseEntity> exercises);
@@ -192,6 +276,15 @@ public interface SessionDao {
     @Query("UPDATE set_log SET position = position - 1 WHERE session_exercise_id = :sessionExerciseId"
             + " AND parent_set_id IS NULL AND position > :removedPosition")
     void shiftSetsAfter(String sessionExerciseId, int removedPosition);
+
+    /**
+     * Closes the gap left by a removed segment so its siblings stay 0..n-1. Only the siblings: the
+     * segments of another set have positions of their own, and the sets themselves are not touched
+     * ({@link #shiftSetsAfter(String, int)} is the one that moves sets).
+     */
+    @Query("UPDATE set_log SET position = position - 1 WHERE parent_set_id = :parentSetId"
+            + " AND position > :removedPosition")
+    void shiftSegmentsAfter(String parentSetId, int removedPosition);
 
     /**
      * Saves what the user typed without confirming it. The {@code status = 'PENDING'} clause is the
@@ -215,6 +308,42 @@ public interface SessionDao {
     /** Undo: the values typed stay, the set goes back to "not performed". */
     @Query("UPDATE set_log SET status = 'PENDING', completed_at = NULL WHERE id = :setId")
     int uncompleteSet(String setId);
+
+    /**
+     * Removes a finished session from the history. Soft: the row stays so the removal can be
+     * synced, exactly as a discard does, and every read already filters {@code deleted_at IS NULL}
+     * through MINE_SQL. Nothing recorded is rewritten - the session leaves whole (ADR-0041).
+     *
+     * @return 0 when the session does not exist, is not this user's, or was already removed
+     */
+    @Query("UPDATE workout_session SET deleted_at = :now, updated_at = :now,"
+            + " sync_status = 'PENDING' WHERE id = :sessionId AND deleted_at IS NULL")
+    int softDeleteSession(String sessionId, long now);
+
+    /**
+     * How the session felt, 1 to 5. Only on a finished session that still exists: rating a running
+     * workout would be rating something that has not happened yet.
+     *
+     * @return 0 when there was nothing to rate
+     */
+    @Query("UPDATE workout_session SET rating = :rating, updated_at = :now,"
+            + " sync_status = 'PENDING' WHERE id = :sessionId AND deleted_at IS NULL"
+            + " AND status = 'COMPLETED'")
+    int rateSession(String sessionId, Integer rating, long now);
+
+
+    /**
+     * The drops of a set that is being undone. A drop is part of its set (ADR-0037), so leaving
+     * them performed under a set that is not would make the database say reps happened while every
+     * total ignores them.
+     */
+    @Query("UPDATE set_log SET status = 'PENDING', completed_at = NULL"
+            + " WHERE parent_set_id = :parentSetId AND status = 'COMPLETED'")
+    int uncompleteSegmentsOf(String parentSetId);
+
+    /** Ids of the drops of a set, used to find out whether one of them owns the running rest. */
+    @Query("SELECT id FROM set_log WHERE parent_set_id = :parentSetId")
+    List<String> findSegmentIds(String parentSetId);
 
     @Query("UPDATE set_log SET status = 'COMPLETED', completed_at = :completedAt WHERE id IN (:setIds)")
     int completeSets(List<String> setIds, long completedAt);

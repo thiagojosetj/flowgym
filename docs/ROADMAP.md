@@ -22,7 +22,10 @@ Legenda: ✅ concluído · 🟡 em andamento/parcial · ⬜ não iniciado.
 - ✅ Navegação (single-activity + bottom navigation) e design system (Material 3, paleta própria, claro/escuro).
 - ✅ Seletor de tema nas configurações.
 - ✅ Build de release com R8 (minify + shrink) validado.
-- ⬜ CI (GitHub Actions: build + testes + lint) — quando o repositório for publicado.
+- ✅ CI (GitHub Actions): `push` e `pull_request` rodam `:domain:test`, `:app:testDebugUnitTest`,
+  `:app:lintDebug` e `assembleRelease`, com cache do Gradle e a plataforma `android-37.0` instalada
+  explicitamente. O job **reprova em qualquer achado de lint**, não só em erro (ADR-0035). Badge no
+  README. Ainda não observado rodando no GitHub — ver pendências.
 - ✅ Testes instrumentados (`androidTest`): smoke test do fluxo principal e migration 1 → 2 com o
   `MigrationTestHelper` — escritos, aguardando a primeira execução em aparelho.
 
@@ -30,7 +33,12 @@ Legenda: ✅ concluído · 🟡 em andamento/parcial · ⬜ não iniciado.
 - ✅ Grupos/subgrupos hierárquicos (13 grupos, 38 subgrupos), 14 equipamentos, 55 exercícios com textos próprios (JSON com UUIDs fixos).
 - ✅ Lista, busca tolerante a acentos e apelidos, filtros combinados (grupo + subgrupo + equipamento + papel).
 - ✅ Detalhe do exercício (principal em destaque, secundários, instruções, dicas, erros comuns, como registrar).
-- ⬜ Mídia (imagens início/fim, animação) + cache.
+- 🟡 Mídia: o **filtro de subgrupo é por imagem** — silhueta com a parte acesa, 13 grupos +
+  38 subgrupos, desenhados neste projeto e gerados de `tools/musclemap.py` (ADR-0040).
+  Falta: ilustração do movimento por exercício (prompts prontos em `docs/EXERCISE_ART.md`,
+  imagens ainda não produzidas), imagens de início/fim e animação.
+- ⬜ **Validar no aparelho**: a linha de subgrupos com fonte ampliada, e se as regiões
+  pequenas (glúteo mínimo, transverso, manguito rotador) se distinguem a 40 dp.
 - ⬜ Ampliar o catálogo.
 - ⬜ Exercícios personalizados (o modelo já suporta).
 
@@ -41,7 +49,12 @@ Legenda: ✅ concluído · 🟡 em andamento/parcial · ⬜ não iniciado.
 - ✅ Técnicas avançadas como dados (12 métodos), escolha por série com badge e ⓘ explicando o método.
 - ✅ Configurações da conta: descanso padrão (90 s de fábrica, editável), som e vibração do descanso.
 - ✅ Banco na versão 2 com migration explícita e testada.
-- ⬜ Grupos de exercícios (supersérie, bi-set, tri-set, giant set) e técnicas de escopo exercício (pirâmides).
+- 🟡 Grupos de exercícios (supersérie, bi-set, tri-set, giant set): **banco v4, dados e editor
+  prontos**. Agrupar e desagrupar pelo menu do exercício, rótulo A1/A2 derivado (nunca digitado),
+  descanso por rodada. Falta escolher a **técnica** do grupo (SS/BI/TRI/GS seguem sem uso) e editar
+  descanso/técnica depois de criado (`updateGroup` existe, sem interface). Grupo é gravado na hora,
+  fora do rascunho do editor — ADR-0038.
+- ⬜ Técnicas de escopo exercício (pirâmides).
 - ⬜ Arquivar/desarquivar.
 
 ### Fase 3 — Treino ativo 🟡
@@ -58,10 +71,21 @@ Legenda: ✅ concluído · 🟡 em andamento/parcial · ⬜ não iniciado.
 - ✅ Recuperação: a faixa "você tem um treino em andamento" na Início lê só o banco.
 - ✅ Finalização com validação (PRODUCT_SPEC §8): mostra o que vai acontecer com cada série não
   confirmada, nada é descartado em silêncio, e o resumo diz quantas séries ficaram fora do volume.
-- ⬜ Registro por lado (E 10 / D 9): as colunas existem e o domínio já calcula; falta o layout.
-- ⬜ Segmentos de drop-set / rest-pause (a coluna `parent_set_id` existe).
-- ⬜ Grupos de exercícios (supersérie) — dependem das tabelas de grupo, ainda não criadas.
-- ⬜ Avaliação 1–5 e observações da sessão (colunas existem, sem interface).
+- ✅ Registro por lado (E 10 / D 9): dois campos no lugar do campo único quando o treino marca o
+  exercício como "por lado", com os dois lados obrigatórios para concluir a série. Fechou de quebra
+  um erro real: dava para marcar "por lado" e registrar no campo combinado, e aí o domínio não
+  dobrava as repetições — metade das reps e metade do volume.
+- 🟡 Segmentos de drop-set / rest-pause: o botão **+** no cabeçalho da série abre uma linha
+  recuada "Etapa N" com campos próprios, gravada como filha em `parent_set_id`. O volume soma
+  todas as etapas e o conjunto conta como **uma** série (§9.1, ADR-0037). Falta validar em
+  aparelho: os campos da etapa com teclado real.
+- 🟡 Grupos de exercícios (supersérie): o treino em andamento mostra A1/A2 e **o descanso é da
+  rodada** — começa quando nenhum exercício do grupo ainda deve a série daquela rodada, e não
+  quando o "último por posição" termina (a ordem planejada não é obrigatória, ACT-01). Falta
+  validar em aparelho.
+- 🟡 **HIS-06 — avaliação 1–5** no resumo da finalização, gravada a cada toque e removível
+  tocando de novo (ADR-0041 estende a imutabilidade: a nota é comentário de quem treinou,
+  não medição). **Falta:** observação em texto (`notes` existe) e avaliar depois pelo detalhe.
 - ⬜ **Validar no aparelho**: promoção do serviço com tipo `health` na API 34+, som e vibração com a
   tela apagada, `POST_NOTIFICATIONS` negado, force stop e reboot, teclado real.
 
@@ -72,8 +96,62 @@ tela do treino voltava sozinha para a Início antes de carregar, e um descanso q
 na tela e na notificação. Lição registrada: um teste que depende de executor sincronizado **não prova**
 comportamento de corrida — por isso a lista de pendências de aparelho acima não é opcional.
 
-### Fase 4 — Histórico ⬜
-Resumo, calendário, sessão antiga, comparação com anterior.
+**Revisão de 03/10/2026 (adversarial, ADR-0028) — segmentos e grupos:** os itens de drop-set e de
+supersérie tinham entrado **sem** essa passagem. Quatro defeitos, todos com teste escrito antes da
+correção e cada metade de cada correção verificada por mutação:
+
+1. **Etapa preenchida ficava sem decisão ao finalizar.** `finishReview` percorria só as séries-mãe, e
+   a etapa ficava PENDING dentro de uma sessão encerrada: reps feitas, contando para nada, sem aviso.
+2. **Drop-set terminava sem descanso.** A etapa nasce sem plano, então o descanso lido era 0 — e 0
+   significa "limpa o cronômetro". A série mais cansativa acabava sem descanso, cancelando o que a
+   série tinha iniciado.
+3. **Desfazer a série deixava as etapas feitas.** O banco dizia que as reps aconteceram enquanto todos
+   os totais as ignoravam; e o descanso, que pertence à última etapa, continuava correndo.
+4. **Aquecimento em supersérie deslocava as rodadas.** O aquecimento de A1 pareava com a série de
+   verdade de A2, e o descanso do grupo disparava depois de um aquecimento.
+
+Os três primeiros têm a mesma causa: as etapas foram **gravadas** como linhas próprias e tratadas como
+parte da série em um único lugar, o volume. Todo caminho que lia a linha isolada tinha o defeito.
+
+**Verificado e sem defeito** (por mutação, não por leitura):
+
+- **Numeração e pareamento com a sessão anterior** (ADR-0033): deixar um drop vazar para qualquer um
+  dos lados derruba o teste existente, e seis testes derrubam a partição do mapper.
+- **Ordem das linhas lidas** (`ORDER BY` que põe a série antes das etapas dela): inverter o desempate
+  derruba seis testes.
+- **Mapeamento de grupos** (`SessionMapper.toGroups`): lido, sem mutação. O `LEFT JOIN` cobre o
+  exercício que ficou sem séries — ele continua aparecendo na tela e não segura a rodada aberta,
+  porque não deve nada. Isto é leitura, não prova: fica como a parte menos verificada desta revisão.
+
+### Fase 2/3 — grupos de exercícios (01/10/2026)
+Banco na **versão 4** (`template_exercise_group`, `session_exercise_group`, colunas `group_id`), com
+migration explícita e teste que vai de v1 a v4. Dois erros que teriam passado em silêncio foram
+achados ao implementar: **salvar** um treino desagrupava tudo (o rascunho não conhece grupos) e
+**duplicar** perdia as superséries. Os dois têm teste.
+
+### Fase 4 — Histórico 🟡
+- ✅ Aba **Histórico** com a lista de sessões concluídas, mais recentes primeiro. Sessões **ativas** e
+  **descartadas** não entram: "terminou" não é "aconteceu".
+- ✅ Detalhe de uma sessão antiga montado **só dos snapshots** gravados por ela — editar ou renomear o
+  treino depois não muda o que está lá.
+- ✅ Resumo (HIS-01, menos recordes e medalhas): duração total e efetiva, séries, repetições, volume e
+  a linha "N séries não incluídas no volume", calculados pelo mesmo `SessionVolume` que a tela de
+  finalização usa.
+- ✅ Comparação com a **sessão anterior do mesmo treino** (§11): volume, séries, repetições e tempo
+  efetivo, com ↑ ↓ = e percentual **só** quando o valor anterior é maior que zero — `percent()` lança
+  exceção se ninguém checou `hasPercent()`, então esquecer quebra um teste, não a honestidade da tela.
+- ✅ Sem mudança de esquema: o banco continua na **versão 3**. `local_date`, `time_zone` e `rating` já
+  existiam desde a v3 e só agora são lidos.
+- ⬜ **HIS-02 — calendário** de dias treinados (`local_date` já está indexado para isso).
+- ⬜ Comparação **por exercício** expansível série a série (a parte da HIS-04 que falta; o "anterior"
+  de cada série já aparece, vindo do ponteiro congelado).
+- 🟡 **HIS-06 — avaliação 1–5** no resumo da finalização, gravada a cada toque e removível
+  tocando de novo (ADR-0041 estende a imutabilidade: a nota é comentário de quem treinou,
+  não medição). **Falta:** observação em texto (`notes` existe) e avaliar depois pelo detalhe.
+- ✅ **HIS-05 — excluir uma sessão do histórico**: menu da linha, confirmação que nomeia a sessão,
+  exclusão soft (`deleted_at`) para poder sincronizar (ADR-0041). **Lacuna registrada:** o
+  pareamento "anterior" não refiltra, então uma sessão posterior ainda compara com a excluída.
+- ⬜ **Validar no aparelho**: a lista com muitas sessões e a rolagem do detalhe de uma sessão longa.
 
 ### Fase 5 — Progresso ⬜
 Gráficos (biblioteca a decidir — ADR pendente), PRs, estatísticas semanais/mensais e por grupo
@@ -100,6 +178,36 @@ Link, código, deep link e QR; importação como cópia; revogação.
 Métricas flexíveis sobre o modelo de medições da Fase 5.
 
 ## Pendências conhecidas (precisam de aparelho/emulador para validar)
+
+- **Ordem do histórico depende do relógio do aparelho, e fica assim de propósito.** `started_at` é
+  gravado sem trava de monotonicidade (`finish()` trava `ended_at`, o início não). Se alguém **acertar
+  o relógio para trás manualmente** por mais tempo do que o intervalo entre dois treinos iguais, a
+  lista inverte e a comparação pode pegar uma sessão posterior. Levantado e **verificado** na revisão
+  de 28/09/2026; a decisão é **não corrigir agora**, porque as duas correções óbvias não funcionam:
+  `ended_at` vem do mesmo relógio destravado, e o desempate por `id` também — o UUID v7 é construído
+  a partir de `System.currentTimeMillis()`. A correção real seria travar `started_at` na criação, o
+  que exige uma consulta extra dentro da transação de início e **gravar um instante que o aparelho
+  nunca viu**, contra a política de nunca reescrever instantes (`SessionMapper.toClock`). Sync NTP
+  comum não alcança isso: só uma sessão ativa por vez, então dois treinos do mesmo template estão a
+  dias de distância.
+- **Datas e números seguem o idioma do aparelho, mas os textos são pt-BR fixos.** Num aparelho em
+  inglês o histórico mostra "Histórico"/"Hoje" ao lado de "Sep 28, 2026". A parte dos **números** já
+  era assim antes da Fase 4 (`ExercisePlanSheet` e `Durations` já usavam `Locale.getDefault()`); as
+  **datas** são novas porque esta é a primeira tela que mostra uma. O bilhete certo é "publicar um
+  segundo idioma (`values-en`) ou fixar pt-BR explicitamente", não desinternacionalizar os
+  formatadores.
+- **Supersérie no aparelho.** O descanso por rodada, o rótulo A1/A2 com fonte grande, e a folha de
+  agrupar com muitos exercícios na lista — nada disso roda em Robolectric de forma que prove a tela.
+- **Etapas de drop-set no aparelho:** os dois campos da etapa com teclado real, e a linha da série
+  com quatro botões no cabeçalho a 360 dp com fonte ampliada.
+- **O APK encolhido pelo R8 nunca foi aberto.** O portão prova que o `assembleRelease` **compila**;
+  não prova que o app sobe depois de o R8 renomear e remover código. Uma regra `keep` faltando só
+  aparece em tempo de execução, e o caminho mais provável é Room com reflexão. Agora que o CI
+  publica o APK release assinado (ADR-0039), esse é o primeiro teste a fazer com ele: instalar,
+  abrir, criar um treino, registrar uma série e finalizar.
+- **A publicação do APK pelo CI depende de secrets que só o dono do repositório pode criar.** Até
+  que `FLOWGYM_KEYSTORE_BASE64` e as três senhas existam, o passo anuncia no log que não há chave e
+  o release continua saindo sem assinatura. Os comandos estão em `docs/DEVICE_SETUP.md` §8.
 
 Levantadas pela revisão de 22/09/2026 e **não corrigidas às cegas**, porque dependem de ver a tela:
 

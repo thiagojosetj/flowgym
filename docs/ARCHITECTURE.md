@@ -122,6 +122,15 @@ Regras:
   corridas (ex.: dois toques rápidos em "salvar").
 - Resultados de escritas voltam à UI por `LiveData`/callback na main thread.
 - `allowMainThreadQueries` **nunca** é usado em produção.
+- **Observar é para dado que muda.** Uma tela montada a partir de **duas ou mais** consultas
+  observadas renderiza com o que responder primeiro — foi assim que três bugs da Fase 3 passaram
+  pelos testes, que usam executores síncronos e por isso nunca têm uma consulta chegando "depois".
+  Regra prática, e o que o histórico faz (ADR-0036):
+  - dado **imutável** (uma sessão concluída) → leitura **única** em `runOnDisk`, que devolve tudo
+    pronto; não há segunda emissão para esperar nem estado intermediário para desenhar;
+  - dado **que muda** (a lista de sessões) → `LiveData`, mas **uma** consulta e um `map`, nunca
+    fontes combinadas. Se combinar for inevitável, o teste que prova o comportamento não pode ser
+    o que usa executor síncrono.
 
 ### 5.3 Estado de UI e eventos
 - Estado contínuo (lista, filtros, formulário): `LiveData<Estado>`.
@@ -200,7 +209,9 @@ rotinas sempre que o cronograma muda.
 - Uma `RecyclerView` com `ListAdapter` + `DiffUtil`, sem `NestedScrollView` com listas dentro.
 - Itens estáveis (IDs = UUID) → animações e atualizações parciais; editar o peso de uma série
   atualiza **um item**, não a lista inteira.
-- Escritas por série debounced (~300 ms) no executor de disco; a UI nunca espera o disco.
+- Escritas por série no executor de disco; a UI nunca espera o disco. **Não há debounce**: cada
+  gesto é gravado na hora, e o que está sendo digitado é gravado ao sair do campo e ao fechar a
+  tela (ADR-0031). A linha anterior aqui falava de um debounce de ~300 ms que o código não tem.
 - Cronômetros redesenham só os `TextView`s de tempo (1×/s), não a lista.
 - Observações de banco sem loops: a UI não escreve em resposta direta à própria emissão do LiveData.
 

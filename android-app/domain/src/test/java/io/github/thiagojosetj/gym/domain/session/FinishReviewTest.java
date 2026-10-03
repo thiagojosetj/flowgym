@@ -90,13 +90,13 @@ public class FinishReviewTest {
         SetValues onlyLeft = new SetValues(FORTY_KG, null, 10, null, null);
         FinishReview partial = FinishReview.of(Collections.singletonList(
                 new SetUnderReview("a", "Rosca unilateral", 1, SetStatus.PENDING, onlyLeft,
-                        TrackingType.WEIGHT_REPS, SideMode.PER_SIDE)));
+                        TrackingType.WEIGHT_REPS, SideMode.PER_SIDE, false)));
         assertEquals(1, partial.partiallyFilled().size());
 
         SetValues bothSides = new SetValues(FORTY_KG, null, 10, 9, null);
         FinishReview complete = FinishReview.of(Collections.singletonList(
                 new SetUnderReview("a", "Rosca unilateral", 1, SetStatus.PENDING, bothSides,
-                        TrackingType.WEIGHT_REPS, SideMode.PER_SIDE)));
+                        TrackingType.WEIGHT_REPS, SideMode.PER_SIDE, false)));
         assertEquals(Collections.singletonList("a"), complete.setIdsToComplete());
         assertEquals(Integer.valueOf(19), bothSides.totalReps());
     }
@@ -106,13 +106,13 @@ public class FinishReviewTest {
         SetValues noDuration = new SetValues(null, null, null, null, null);
         FinishReview empty = FinishReview.of(Collections.singletonList(
                 new SetUnderReview("a", "Prancha", 1, SetStatus.PENDING, noDuration,
-                        TrackingType.DURATION, SideMode.COMBINED)));
+                        TrackingType.DURATION, SideMode.COMBINED, false)));
         assertEquals(1, empty.empty().size());
 
         SetValues withDuration = new SetValues(null, null, null, null, 45);
         FinishReview done = FinishReview.of(Collections.singletonList(
                 new SetUnderReview("a", "Prancha", 1, SetStatus.PENDING, withDuration,
-                        TrackingType.DURATION, SideMode.COMBINED)));
+                        TrackingType.DURATION, SideMode.COMBINED, false)));
         assertEquals(Collections.singletonList("a"), done.setIdsToComplete());
     }
 
@@ -135,6 +135,6 @@ public class FinishReviewTest {
 
     private static SetUnderReview set(String id, SetStatus status, SetValues values) {
         return new SetUnderReview(id, "Supino reto com barra", 1, status, values,
-                TrackingType.WEIGHT_REPS, SideMode.COMBINED);
+                TrackingType.WEIGHT_REPS, SideMode.COMBINED, false);
     }
 }

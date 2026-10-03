@@ -1,5 +1,7 @@
 # FlowGym
 
+[![CI](https://github.com/thiagojosetj/flowgym/actions/workflows/ci.yml/badge.svg)](https://github.com/thiagojosetj/flowgym/actions/workflows/ci.yml)
+
 > **Nome provisório.** Aplicativo de acompanhamento de musculação **offline-first**, feito em **Java**
 > para Android, com backend Spring Boot e app iOS planejados.
 
@@ -83,7 +85,8 @@ flowchart LR
   conflito para templates e eventos append-only — nada de "última alteração vence" cego.
 
 Documentos: [Arquitetura](docs/ARCHITECTURE.md) · [Banco de dados](docs/DATABASE.md) ·
-[Sincronização](docs/SYNC.md) · [Decisões (ADRs)](docs/DECISIONS.md) · [Roadmap](docs/ROADMAP.md).
+[Sincronização](docs/SYNC.md) · [Decisões (ADRs)](docs/DECISIONS.md) · [Roadmap](docs/ROADMAP.md) ·
+[Instalar no aparelho](docs/DEVICE_SETUP.md) · [Testar no aparelho](docs/DEVICE_TESTING.md).
 
 ## Tecnologias
 
@@ -124,17 +127,19 @@ release (o id de debug termina em `.debug`).
 ./gradlew :domain:test :app:testDebugUnitTest :app:lintDebug
 ```
 
-São **183 testes** (96 no `:domain`, 87 no `:app`), todos na JVM — nenhum emulador necessário.
+São **339 testes** (140 no `:domain`, 199 no `:app`), todos na JVM — nenhum emulador necessário.
 
 - **`:domain`** — regras puras: padrões de treino, validações, cargas, UUID v7, normalização de busca,
   aritmética de tempo do treino (pausas, relógio andando para trás, descanso), volume (com as exclusões
   que a especificação exige) e a validação da finalização.
 - **`:app`** (Robolectric) — seed do catálogo, busca e filtros no SQLite real, ida e volta do agregado
-  de treino, migrations v1 → v3, ViewModels, o **fluxo completo pela interface** (biblioteca →
+  de treino, migrations v1 → v4, ViewModels, o **fluxo completo pela interface** (biblioteca →
   selecionar exercício → criar treino → editar séries → salvar → reabrir) e o **treino em andamento**
   (iniciar → registrar série → descanso → pausar → finalizar), incluindo um teste que fecha o banco em
   arquivo e reabre para provar que um treino sobrevive à morte do processo.
-- **Lint** do Android sem avisos, inclusive sobre o módulo `:domain` contra a API 28.
+- **Lint** do Android com `checkDependencies`, o que inclui o módulo `:domain` contra a API 28.
+  O único achado é o `AndroidGradlePluginVersion` (pergunta a uma lista remota se existe algo mais
+  novo, então muda sozinho sem ninguém commitar nada); o CI o trata como aviso e barra qualquer outro.
 
 Com um aparelho conectado (depuração USB ligada) ou um emulador:
 
@@ -144,7 +149,7 @@ Com um aparelho conectado (depuração USB ligada) ou um emulador:
 
 - **Smoke test** do fluxo principal no SQLite real, com teclado e widgets reais: criar treino →
   adicionar exercício → ajustar o descanso → salvar → excluir (limpa o que criou).
-- **Migrations** com o `MigrationTestHelper` do Room (v1 → v3), que valida tabelas, colunas, índices e
+- **Migrations** com o `MigrationTestHelper` do Room (v1 → v4), que valida tabelas, colunas, índices e
   chaves estrangeiras contra o schema exportado.
 - **Treino em andamento no aparelho**: o serviço em primeiro plano realmente promovido com o tipo
   `health`, a notificação com cronômetro, e o treino sobrevivendo a sair do app.
@@ -155,7 +160,7 @@ Com um aparelho conectado (depuração USB ligada) ou um emulador:
 android-app/   App Android (módulos :app e :domain)
 backend/       Backend Spring Boot (Fase 8 — por enquanto, só o plano)
 api/           Contrato OpenAPI compartilhado por Android e iOS (Fase 8)
-docs/          Produto, arquitetura, banco, sincronização, roadmap e decisões
+docs/          Produto, arquitetura, banco, sincronização, roadmap, decisões e teste em aparelho
 ```
 
 ## Roadmap
