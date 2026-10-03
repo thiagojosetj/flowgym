@@ -17,6 +17,11 @@ import java.util.List;
  *
  * <p>Drops are not rounds. A set's segments are nested inside it (ADR-0037), so they never shift a
  * round index and a drop-set in a superset still counts as one round.
+ *
+ * <p>Warm-ups are not rounds either. A round of a superset is a round of WORKING sets: counting
+ * warm-ups would pair the warm-up of one exercise with the first real set of the other, end the
+ * round there, and start the group's rest after a warm-up - and every round after it would stay
+ * shifted by however many warm-ups that exercise happened to have.
  */
 public final class GroupRounds {
 
@@ -32,11 +37,15 @@ public final class GroupRounds {
         if (exercise == null || setId == null) {
             return -1;
         }
-        List<LoggedSet> sets = exercise.sets();
-        for (int i = 0; i < sets.size(); i++) {
-            if (setId.equals(sets.get(i).id())) {
-                return i;
+        int round = 0;
+        for (LoggedSet set : exercise.sets()) {
+            if (set.isWarmUp()) {
+                continue; // outside the rounds entirely, so it has none of its own
             }
+            if (setId.equals(set.id())) {
+                return round;
+            }
+            round++;
         }
         return -1;
     }
@@ -58,15 +67,30 @@ public final class GroupRounds {
         }
         boolean anySetAtThisRound = false;
         for (SessionExercise exercise : group) {
-            List<LoggedSet> sets = exercise.sets();
-            if (round >= sets.size()) {
+            LoggedSet set = workingSetAt(exercise, round);
+            if (set == null) {
                 continue; // nothing owed: this exercise is shorter than the others
             }
             anySetAtThisRound = true;
-            if (sets.get(round).status() == SetStatus.PENDING) {
+            if (set.status() == SetStatus.PENDING) {
                 return false;
             }
         }
         return anySetAtThisRound;
+    }
+
+    /** The round-th working set of this exercise, or null when it has none that far. */
+    private static LoggedSet workingSetAt(SessionExercise exercise, int round) {
+        int index = 0;
+        for (LoggedSet set : exercise.sets()) {
+            if (set.isWarmUp()) {
+                continue;
+            }
+            if (index == round) {
+                return set;
+            }
+            index++;
+        }
+        return null;
     }
 }

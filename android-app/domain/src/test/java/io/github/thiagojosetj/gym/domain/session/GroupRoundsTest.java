@@ -112,6 +112,42 @@ public class GroupRoundsTest {
 
     // ------------------------------------------------------------------ helpers
 
+
+    @Test
+    public void aWarmUpOnOneExerciseDoesNotPairWithTheOthersWorkingSet() {
+        // A1 warms up twice before its working sets; A2 goes straight in. A "round" of a superset
+        // is a round of WORKING sets - pairing A1's warm-up with A2's first real set would end the
+        // round, and the rest would start after a warm-up.
+        SessionExercise a1 = exercise("a1", warmUp(), warmUp(), done(), pending());
+        SessionExercise a2 = exercise("a2", done(), pending());
+        List<SessionExercise> group = Arrays.asList(a1, a2);
+
+        LoggedSet a1FirstWorking = a1.sets().get(2);
+        LoggedSet a2FirstWorking = a2.sets().get(0);
+
+        assertEquals("a primeira serie de verdade de cada um e a mesma rodada",
+                GroupRounds.roundOf(a2, a2FirstWorking.id()),
+                GroupRounds.roundOf(a1, a1FirstWorking.id()));
+    }
+
+    @Test
+    public void aWarmUpDoesNotCloseTheRound() {
+        SessionExercise a1 = exercise("a1", warmUp(), pending());
+        SessionExercise a2 = exercise("a2", done());
+        List<SessionExercise> group = Arrays.asList(a1, a2);
+
+        // A1 has done only its warm-up; its working set is still owed, so the round is not over.
+        assertFalse("um aquecimento nao fecha a rodada",
+                GroupRounds.isRoundComplete(group, 0));
+    }
+
+    private static LoggedSet warmUp() {
+        nextId++;
+        return new LoggedSet("warm-" + nextId, 0, null, "technique-warmup", "AQ", false, null,
+                null, null, 0, SetValues.EMPTY, SetStatus.COMPLETED, 1L, null, null,
+                Collections.emptyList());
+    }
+
     private static LoggedSet done() {
         return set(SetStatus.COMPLETED);
     }

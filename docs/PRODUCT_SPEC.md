@@ -210,6 +210,12 @@ Regras decididas ao implementar:
 - **Uma confirmação que não inicia descanso encerra o que estiver correndo.** O descanso é da sessão,
   não do exercício: sem isso o alerta da rodada N tocaria no meio da rodada N+1.
 
+**Rodada é rodada de séries válidas.** Aquecimento fica fora: contá-lo parearia o aquecimento de
+um exercício com a primeira série de verdade do outro, encerraria a rodada ali e dispararia o
+descanso do grupo depois de um aquecimento — e todas as rodadas seguintes ficariam deslocadas
+pelo número de aquecimentos daquele exercício. Confirmar um aquecimento num grupo não inicia
+descanso de rodada (corrigido em 03/10/2026).
+
 ### 6.4 Carga: halteres, unilateral e peso corporal
 - **Halteres (dois implementos):** registra-se o peso **de cada halter** ("12 kg por halter"). A UI
   nunca exibe 24 kg como se fosse a carga da série.
