@@ -480,5 +480,10 @@ sessão em `previous_session_exercise_id` e **não** filtra sessões excluídas.
 continua comparando com a sessão que você excluiu. Está errado — se você apagou porque foi engano, os
 números dela não deviam guiar o próximo treino — e consertar exige repareamento, que é trabalho de
 outro tamanho. Fica registrado como lacuna, não como detalhe.
+**Mesma linha, a avaliação (HIS-06):** gravar a nota 1–5 numa sessão encerrada também é escrita em
+sessão terminada, e também não é reescrita de resultado — a nota é **comentário de quem treinou**,
+não medição. Nenhuma série, carga ou duração é tocada. É por isso que ela mora no
+`HistoryRepository`, ao lado da exclusão: as duas escritas em sessão encerrada ficam no mesmo
+lugar, onde a regra pode ser lida de uma vez.
 **Alternativas:** apagar a linha de verdade (quebra o sync); permitir editar a sessão em vez de
 excluir (aí sim feriria a imutabilidade, e é o que a ADR-0036 recusa).

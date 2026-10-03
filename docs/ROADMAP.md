@@ -83,7 +83,9 @@ Legenda: ✅ concluído · 🟡 em andamento/parcial · ⬜ não iniciado.
   rodada** — começa quando nenhum exercício do grupo ainda deve a série daquela rodada, e não
   quando o "último por posição" termina (a ordem planejada não é obrigatória, ACT-01). Falta
   validar em aparelho.
-- ⬜ Avaliação 1–5 e observações da sessão (colunas existem, sem interface).
+- 🟡 **HIS-06 — avaliação 1–5** no resumo da finalização, gravada a cada toque e removível
+  tocando de novo (ADR-0041 estende a imutabilidade: a nota é comentário de quem treinou,
+  não medição). **Falta:** observação em texto (`notes` existe) e avaliar depois pelo detalhe.
 - ⬜ **Validar no aparelho**: promoção do serviço com tipo `health` na API 34+, som e vibração com a
   tela apagada, `POST_NOTIFICATIONS` negado, force stop e reboot, teclado real.
 
@@ -143,8 +145,9 @@ achados ao implementar: **salvar** um treino desagrupava tudo (o rascunho não c
 - ⬜ **HIS-02 — calendário** de dias treinados (`local_date` já está indexado para isso).
 - ⬜ Comparação **por exercício** expansível série a série (a parte da HIS-04 que falta; o "anterior"
   de cada série já aparece, vindo do ponteiro congelado).
-- ⬜ Avaliação 1–5 e observação da sessão (as colunas existem; o resumo já exibe a avaliação quando
-  houver, mas ainda não há como registrá-la).
+- 🟡 **HIS-06 — avaliação 1–5** no resumo da finalização, gravada a cada toque e removível
+  tocando de novo (ADR-0041 estende a imutabilidade: a nota é comentário de quem treinou,
+  não medição). **Falta:** observação em texto (`notes` existe) e avaliar depois pelo detalhe.
 - ✅ **HIS-05 — excluir uma sessão do histórico**: menu da linha, confirmação que nomeia a sessão,
   exclusão soft (`deleted_at`) para poder sincronizar (ADR-0041). **Lacuna registrada:** o
   pareamento "anterior" não refiltra, então uma sessão posterior ainda compara com a excluída.

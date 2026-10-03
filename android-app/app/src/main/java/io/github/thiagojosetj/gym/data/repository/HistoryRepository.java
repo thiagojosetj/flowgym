@@ -1,5 +1,6 @@
 package io.github.thiagojosetj.gym.data.repository;
 
+import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Transformations;
 
@@ -83,6 +84,30 @@ public final class HistoryRepository {
      */
     public void delete(String sessionId, Consumer<Boolean> onDone, Consumer<Throwable> onError) {
         executors.runOnDisk(() -> dao.softDeleteSession(sessionId, clock.millis()) > 0,
+                onDone, onError);
+    }
+
+    /** The lowest and highest a session can be rated (PRODUCT_SPEC HIS-06). */
+    public static final int MIN_RATING = 1;
+    public static final int MAX_RATING = 5;
+
+    /**
+     * Records how the session felt, 1 to 5, or clears it when given null.
+     *
+     * <p>A write on a finished session, and deliberately not a breach of immutability: the rating
+     * is the person's own commentary, not a measurement. Nothing the session recorded is touched
+     * (ADR-0041).
+     *
+     * @throws IllegalArgumentException for a value outside 1..5. A rating that is not on the scale
+     *                                  is not a rating, and storing it would put a number on a
+     *                                  screen that no scale explains.
+     */
+    public void rate(String sessionId, @Nullable Integer rating, Consumer<Boolean> onDone,
+                     Consumer<Throwable> onError) {
+        if (rating != null && (rating < MIN_RATING || rating > MAX_RATING)) {
+            throw new IllegalArgumentException("Rating out of 1..5: " + rating);
+        }
+        executors.runOnDisk(() -> dao.rateSession(sessionId, rating, clock.millis()) > 0,
                 onDone, onError);
     }
 

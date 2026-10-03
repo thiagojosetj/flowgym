@@ -13,6 +13,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 
@@ -73,7 +74,7 @@ public class ActiveSessionFragment extends Fragment implements SessionRowAdapter
         AppContainer app = ViewModelFactories.container(this);
         String sessionId = requireArguments().getString(ARG_SESSION_ID);
         viewModel = new ViewModelProvider(this, ViewModelFactories.of(ActiveSessionViewModel.class,
-                () -> new ActiveSessionViewModel(app.activeSessions, app.techniques, app.clock,
+                () -> new ActiveSessionViewModel(app.activeSessions, app.techniques, app.history, app.clock,
                         getResources(), sessionId))).get(ActiveSessionViewModel.class);
 
         adapter = new SessionRowAdapter(this, app.executors.diskIO());
@@ -393,11 +394,47 @@ public class ActiveSessionFragment extends Fragment implements SessionRowAdapter
         openDialog = new MaterialAlertDialogBuilder(requireContext())
                 .setTitle(R.string.summary_title)
                 .setMessage(String.join("\n", lines))
+                .setView(ratingView())
                 .setPositiveButton(R.string.summary_close, null)
                 // Dismissing it with back leaves too: staying on a finished session is what let the
                 // user finish it twice.
                 .setOnDismissListener(dialog -> leave())
                 .show();
+    }
+
+    /**
+     * The 1-5 question under the summary. Each number writes as it is tapped and tapping the chosen
+     * one again clears it, so there is nothing to lose when the dialog closes - which it also does
+     * on back.
+     */
+    private View ratingView() {
+        // Inflated against the fragment's own root rather than null, so the layout_* on the
+        // root are read instead of silently dropped; attachToRoot is false because the
+        // dialog is what will hold it.
+        View view = getLayoutInflater().inflate(R.layout.view_session_rating,
+                (ViewGroup) requireView(), false);
+        MaterialButtonToggleGroup group = view.findViewById(R.id.rating_group);
+        int[] buttons = {R.id.rating_1, R.id.rating_2, R.id.rating_3, R.id.rating_4, R.id.rating_5};
+        for (int i = 0; i < buttons.length; i++) {
+            // "4" alone tells a screen reader nothing about what it does.
+            view.findViewById(buttons[i]).setContentDescription(
+                    getString(R.string.summary_rating_spoken, i + 1, buttons.length));
+        }
+        group.addOnButtonCheckedListener((toggleGroup, checkedId, isChecked) -> {
+            if (!isChecked && toggleGroup.getCheckedButtonId() == View.NO_ID) {
+                viewModel.rate(null); // the chosen number was tapped again: no rating
+                return;
+            }
+            if (isChecked) {
+                for (int i = 0; i < buttons.length; i++) {
+                    if (buttons[i] == checkedId) {
+                        viewModel.rate(i + 1);
+                        return;
+                    }
+                }
+            }
+        });
+        return view;
     }
 
     /** Leaves the workout screen, if it is still the one on screen. */

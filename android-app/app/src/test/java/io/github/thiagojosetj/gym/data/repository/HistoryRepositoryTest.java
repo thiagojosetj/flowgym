@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
@@ -612,6 +613,72 @@ public class HistoryRepositoryTest {
         assertNull("delete should not have failed: " + error.get(), error.get());
         assertNotNull("delete should have answered", removed.get());
         return removed.get();
+    }
+
+
+    // ---------------------------------------------------------------- rating a session (HIS-06)
+
+    @Test
+    public void aSessionCanBeRatedAfterItIsFinished() throws Exception {
+        String sessionId = finishedSessionForRating();
+
+        assertTrue(rate(sessionId, 4));
+
+        assertEquals(Integer.valueOf(4), loadDetail(sessionId).rating());
+    }
+
+    @Test
+    public void aRatingCanBeChangedAndTakenBack() throws Exception {
+        String sessionId = finishedSessionForRating();
+        rate(sessionId, 2);
+
+        rate(sessionId, 5);
+        assertEquals(Integer.valueOf(5), loadDetail(sessionId).rating());
+
+        // Null is "no rating", which is not the same as a rating of zero.
+        rate(sessionId, null);
+        assertNull(loadDetail(sessionId).rating());
+    }
+
+    @Test
+    public void aRatingOutsideTheScaleIsRefusedRatherThanStored() throws Exception {
+        String sessionId = finishedSessionForRating();
+
+        assertThrows(IllegalArgumentException.class, () -> rate(sessionId, 0));
+        assertThrows(IllegalArgumentException.class, () -> rate(sessionId, 6));
+        assertNull("nada devia ter sido gravado", loadDetail(sessionId).rating());
+    }
+
+    @Test
+    public void aWorkoutStillRunningCannotBeRated() throws Exception {
+        // Rating a workout that is not over would be rating something that has not happened.
+        String sessionId = start(createTemplate("Push A", "Supino reto com barra"));
+
+        assertFalse("uma sessao em andamento nao e avaliavel", rate(sessionId, 5));
+    }
+
+    @Test
+    public void aRemovedSessionCannotBeRated() throws Exception {
+        String sessionId = finishedSessionForRating();
+        delete(sessionId);
+
+        assertFalse(rate(sessionId, 3));
+    }
+
+    private String finishedSessionForRating() throws Exception {
+        String sessionId = start(createTemplate("Push A", "Supino reto com barra"));
+        confirm(sessionId, firstSetOf(sessionId).id(), lifted(40, 10));
+        finish(sessionId);
+        return sessionId;
+    }
+
+    private boolean rate(String sessionId, Integer rating) {
+        AtomicReference<Boolean> done = new AtomicReference<>();
+        AtomicReference<Throwable> error = new AtomicReference<>();
+        app.history.rate(sessionId, rating, done::set, error::set);
+        assertNull("rate should not have failed: " + error.get(), error.get());
+        assertNotNull("rate should have answered", done.get());
+        return done.get();
     }
 
     private List<SessionHistoryEntry> history() throws Exception {

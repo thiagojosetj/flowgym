@@ -320,6 +320,17 @@ public interface SessionDao {
             + " sync_status = 'PENDING' WHERE id = :sessionId AND deleted_at IS NULL")
     int softDeleteSession(String sessionId, long now);
 
+    /**
+     * How the session felt, 1 to 5. Only on a finished session that still exists: rating a running
+     * workout would be rating something that has not happened yet.
+     *
+     * @return 0 when there was nothing to rate
+     */
+    @Query("UPDATE workout_session SET rating = :rating, updated_at = :now,"
+            + " sync_status = 'PENDING' WHERE id = :sessionId AND deleted_at IS NULL"
+            + " AND status = 'COMPLETED'")
+    int rateSession(String sessionId, Integer rating, long now);
+
 
     /**
      * The drops of a set that is being undone. A drop is part of its set (ADR-0037), so leaving

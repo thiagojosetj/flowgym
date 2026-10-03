@@ -104,6 +104,12 @@ notificação, o serviço em primeiro plano e o alerta com a tela apagada.
 - **HIS-03** Sessão antiga em detalhe, a partir dos snapshots (nunca do template atual).
 - **HIS-04** Tabela de comparação Exercício | Anterior | Atual | Variação (↑ ↓ =), expansível série a série.
 
+- **HIS-06** **Avaliação 1–5** no resumo que aparece ao finalizar: "Como foi o treino?". É
+  **opcional**, e tocar no número escolhido de novo tira a avaliação — ausência de nota não é
+  nota zero. Grava **a cada toque**, não ao fechar: o diálogo também fecha no botão voltar, e
+  uma nota esperando na memória sumiria sem avisar (ADR-0031). Nota fora de 1–5 é recusada em
+  vez de gravada. **Não feito:** observação em texto da sessão (a coluna `notes` existe), e
+  avaliar depois pela tela de detalhe.
 - **HIS-05** **Excluir uma sessão do histórico**, pelo menu da linha, com confirmação que nomeia
   a sessão. Ela sai da lista e deixa de contar nos números; o treino que a gerou continua em
   Treinos. Exclusão é **soft** (`deleted_at`), para poder ser sincronizada. Não fere a

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    How the workout felt, shown with the summary. Each number writes as it is tapped: the dialog
+    closes on back, and a rating kept in memory until a "save" button would be lost without a word
+    (ADR-0031 applied to this screen).
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="@dimen/space_xl"
+    android:paddingTop="@dimen/space_m">
+
+    <TextView
+        android:id="@+id/rating_label"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/summary_rating_question"
+        android:textAppearance="?attr/textAppearanceLabelLarge" />
+
+    <com.google.android.material.button.MaterialButtonToggleGroup
+        android:id="@+id/rating_group"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_s"
+        app:selectionRequired="false"
+        app:singleSelection="true"
+        xmlns:app="http://schemas.android.com/apk/res-auto">
+
+        <Button
+            android:id="@+id/rating_1"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="@dimen/touch_target_min"
+            android:layout_height="@dimen/touch_target_min"
+            android:insetLeft="0dp"
+            android:insetRight="0dp"
+            android:minWidth="0dp"
+            android:paddingHorizontal="0dp"
+            android:text="@string/summary_rating_1" />
+
+        <Button
+            android:id="@+id/rating_2"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="@dimen/touch_target_min"
+            android:layout_height="@dimen/touch_target_min"
+            android:insetLeft="0dp"
+            android:insetRight="0dp"
+            android:minWidth="0dp"
+            android:paddingHorizontal="0dp"
+            android:text="@string/summary_rating_2" />
+
+        <Button
+            android:id="@+id/rating_3"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="@dimen/touch_target_min"
+            android:layout_height="@dimen/touch_target_min"
+            android:insetLeft="0dp"
+            android:insetRight="0dp"
+            android:minWidth="0dp"
+            android:paddingHorizontal="0dp"
+            android:text="@string/summary_rating_3" />
+
+        <Button
+            android:id="@+id/rating_4"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="@dimen/touch_target_min"
+            android:layout_height="@dimen/touch_target_min"
+            android:insetLeft="0dp"
+            android:insetRight="0dp"
+            android:minWidth="0dp"
+            android:paddingHorizontal="0dp"
+            android:text="@string/summary_rating_4" />
+
+        <Button
+            android:id="@+id/rating_5"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="@dimen/touch_target_min"
+            android:layout_height="@dimen/touch_target_min"
+            android:insetLeft="0dp"
+            android:insetRight="0dp"
+            android:minWidth="0dp"
+            android:paddingHorizontal="0dp"
+            android:text="@string/summary_rating_5" />
+    </com.google.android.material.button.MaterialButtonToggleGroup>
+
+    <TextView
+        android:id="@+id/rating_hint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_xs"
+        android:text="@string/summary_rating_optional"
+        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:textColor="?attr/colorOnSurfaceVariant" />
+</LinearLayout>

@@ -457,6 +457,32 @@ public class ActiveWorkoutFlowTest {
         onView(withId(R.id.action_save)).perform(click());
     }
 
+
+    @Test
+    public void ratingTheSessionAtTheEndIsWhatTheHistoryShowsLater() {
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            createTemplate("Push A", "Supino reto com barra");
+            startWorkout();
+            for (int i = 0; i < 3; i++) {
+                scrollToRow(i);
+                onView(setRow(i, R.id.weight_input)).perform(replaceText("40"));
+                onView(setRow(i, R.id.reps_input)).perform(replaceText("10"));
+                onView(setRow(i, R.id.button_done)).perform(click());
+            }
+            onView(withId(R.id.button_finish)).perform(click());
+
+            // The summary asks, and the answer is written as it is tapped - not on "Fechar".
+            onView(withText(R.string.summary_rating_question)).inRoot(isDialog())
+                    .check(matches(isDisplayed()));
+            onView(withId(R.id.rating_4)).inRoot(isDialog()).perform(click());
+            onView(withText(R.string.summary_close)).inRoot(isDialog()).perform(click());
+
+            onView(withId(R.id.historyListFragment)).perform(click());
+            onView(withText("Push A")).perform(click());
+            onView(withText("Avaliação: 4 de 5")).check(matches(isDisplayed()));
+        }
+    }
+
     private void startWorkout() {
         onView(withId(R.id.templateListFragment)).perform(click());
         onView(withId(R.id.button_more)).perform(click());

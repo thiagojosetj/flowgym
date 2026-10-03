@@ -18,6 +18,7 @@ import java.util.Set;
 
 import io.github.thiagojosetj.gym.core.Event;
 import io.github.thiagojosetj.gym.data.repository.ActiveSessionRepository;
+import io.github.thiagojosetj.gym.data.repository.HistoryRepository;
 import io.github.thiagojosetj.gym.data.repository.TechniqueRepository;
 import io.github.thiagojosetj.gym.domain.model.SideMode;
 import io.github.thiagojosetj.gym.domain.model.Weight;
@@ -49,6 +50,8 @@ public final class ActiveSessionViewModel extends ViewModel {
     private static final WeightUnit UNIT = WeightUnit.KILOGRAM;
 
     private final ActiveSessionRepository sessions;
+    /** Rating is a write on a FINISHED session, which is this repository's side of the line. */
+    private final HistoryRepository history;
     private final Clock clock;
     private final String sessionId;
     private final SessionRowBuilder rowBuilder;
@@ -70,8 +73,10 @@ public final class ActiveSessionViewModel extends ViewModel {
     private boolean summaryShown;
 
     public ActiveSessionViewModel(ActiveSessionRepository sessions, TechniqueRepository techniqueRepository,
-                                  Clock clock, Resources resources, String sessionId) {
+                                  HistoryRepository history, Clock clock, Resources resources,
+                                  String sessionId) {
         this.sessions = sessions;
+        this.history = history;
         this.clock = clock;
         this.sessionId = sessionId;
         this.rowBuilder = new SessionRowBuilder(resources, UNIT);
@@ -300,6 +305,21 @@ public final class ActiveSessionViewModel extends ViewModel {
             summary = result;
             events.setValue(new Event<>(SessionEvent.FINISHED));
         }, error -> events.setValue(new Event<>(SessionEvent.FINISH_FAILED)));
+    }
+
+    /**
+     * Records how the session felt, as soon as the number is tapped.
+     *
+     * <p>Written per tap rather than held until the dialog is closed: the summary dialog also
+     * closes on back, and a rating waiting in memory would be lost without a word (ADR-0031).
+     * Failures are silent on purpose - the workout is already saved, and an error toast over a
+     * summary would suggest something worse went wrong than an optional number not sticking.
+     */
+    public void rate(@Nullable Integer rating) {
+        if (summary == null) {
+            return; // nothing finished to rate
+        }
+        history.rate(sessionId, rating, saved -> { }, error -> { });
     }
 
     public void discard() {
