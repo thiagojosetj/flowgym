@@ -594,6 +594,50 @@ public class SegmentLoggingTest {
                 loadSession(sessionId).header().restSetLogId());
     }
 
+
+    @Test
+    public void undoingASetAlsoUndoesItsDrops() throws Exception {
+        // A drop is part of its set. Leaving the drops marked as performed under a set that is no
+        // longer performed makes the database say the reps happened while every total ignores
+        // them - and if the set then ends as skipped, that work is gone without a word.
+        String sessionId = start(createTemplate("Push A", "Supino reto com barra"));
+        String setId = setId(sessionId, 0);
+        setTechnique(sessionId, setId, techniqueId("D"));
+        addSegment(sessionId, setId);
+        String dropId = setAt(sessionId, 0).segments().get(0).id();
+        confirm(sessionId, setId, values(40, 10));
+        confirm(sessionId, dropId, values(30, 8));
+        assertEquals(SetStatus.COMPLETED, database.sessionDao().findSet(dropId).status);
+
+        unconfirm(sessionId, setId);
+
+        assertEquals("a etapa nao pode continuar feita sob uma serie desfeita",
+                SetStatus.PENDING, database.sessionDao().findSet(dropId).status);
+        // The typed values stay: undoing is not erasing (ADR-0031).
+        assertNotNull(database.sessionDao().findSet(dropId).weightGrams);
+    }
+
+
+    @Test
+    public void undoingASetAlsoClearsARestThatOneOfItsDropsOwns() throws Exception {
+        // Since the rest after a drop-set starts on the last drop, the rest is owned by a drop and
+        // not by the set. Checking only the set's own id would leave a countdown running for work
+        // that was just undone.
+        String sessionId = start(createTemplate("Push A", "Supino reto com barra"));
+        String setId = setId(sessionId, 0);
+        setTechnique(sessionId, setId, techniqueId("D"));
+        addSegment(sessionId, setId);
+        String dropId = setAt(sessionId, 0).segments().get(0).id();
+        confirm(sessionId, setId, values(40, 10));
+        confirm(sessionId, dropId, values(30, 8));
+        assertEquals(dropId, loadSession(sessionId).header().restSetLogId());
+
+        unconfirm(sessionId, setId);
+
+        assertNull("o descanso ficou correndo por um trabalho desfeito",
+                loadSession(sessionId).header().restSetLogId());
+    }
+
     private void confirm(String sessionId, String setId, SetValues values) {
         AtomicReference<Boolean> done = new AtomicReference<>(false);
         app.activeSessions.confirmSet(sessionId, setId, values, () -> done.set(true), this::fail);

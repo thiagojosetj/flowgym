@@ -309,6 +309,19 @@ public interface SessionDao {
     @Query("UPDATE set_log SET status = 'PENDING', completed_at = NULL WHERE id = :setId")
     int uncompleteSet(String setId);
 
+    /**
+     * The drops of a set that is being undone. A drop is part of its set (ADR-0037), so leaving
+     * them performed under a set that is not would make the database say reps happened while every
+     * total ignores them.
+     */
+    @Query("UPDATE set_log SET status = 'PENDING', completed_at = NULL"
+            + " WHERE parent_set_id = :parentSetId AND status = 'COMPLETED'")
+    int uncompleteSegmentsOf(String parentSetId);
+
+    /** Ids of the drops of a set, used to find out whether one of them owns the running rest. */
+    @Query("SELECT id FROM set_log WHERE parent_set_id = :parentSetId")
+    List<String> findSegmentIds(String parentSetId);
+
     @Query("UPDATE set_log SET status = 'COMPLETED', completed_at = :completedAt WHERE id IN (:setIds)")
     int completeSets(List<String> setIds, long completedAt);
 

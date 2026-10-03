@@ -304,6 +304,11 @@ A primeira etapa **é** a própria série (a linha com `parent_set_id IS NULL`);
 filhas dela. Por isso toda consulta que conta séries continua filtrando `parent_set_id IS NULL` e
 continua certa sem mudança — e por isso isto **não precisa de migration**: a coluna existe desde a v3.
 
+**Desfazer uma série desfaz as etapas dela.** Etapa é parte da série: deixá-la marcada como feita
+sob uma série desfeita faria o banco dizer que as repetições aconteceram enquanto nenhum total as
+conta — e o descanso, que pertence à última etapa, continuaria correndo por um trabalho que foi
+desfeito. Os valores digitados permanecem, porque desfazer não é apagar (ADR-0031).
+
 **O descanso vem depois da última etapa, e é o da série.** Um drop-set é uma série, então o
 descanso automático é o que a série planejou (ou o da rodada, se ela estiver num grupo) e começa
 quando a última etapa é confirmada. Ler o descanso da própria etapa daria zero — a etapa nasce

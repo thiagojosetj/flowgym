@@ -353,7 +353,14 @@ public final class ActiveSessionRepository {
     public void unconfirmSet(String sessionId, String setLogId, Runnable onDone, Consumer<Throwable> onError) {
         write(sessionId, (session, now) -> {
             dao.uncompleteSet(setLogId);
-            if (setLogId.equals(session.restSetLogId)) {
+            // The drops go back with their set: a drop is part of it (ADR-0037), and a drop left
+            // marked as performed under a set that is not would count for nothing while the
+            // database said it happened (found in review, 03/10/2026).
+            dao.uncompleteSegmentsOf(setLogId);
+            boolean restWasOnThisSet = setLogId.equals(session.restSetLogId)
+                    || (session.restSetLogId != null
+                        && dao.findSegmentIds(setLogId).contains(session.restSetLogId));
+            if (restWasOnThisSet) {
                 clearRest(session);
             }
         }, onDone, onError);
