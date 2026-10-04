@@ -227,6 +227,23 @@ public interface SessionDao {
     @Query(HISTORY_SQL + MINE_SQL + " AND s.status = 'COMPLETED' ORDER BY s.started_at DESC")
     LiveData<List<SessionHistoryRow>> observeCompletedSessions();
 
+    /**
+     * The days that have at least one finished session, as the dates they were lived on
+     * (PRODUCT_SPEC HIS-02).
+     *
+     * <p>Reads {@code local_date} and never derives a day from {@code started_at}: that column was
+     * written in the zone the person was in, and recomputing it would move a workout between
+     * squares of the calendar every time they crossed a time zone.
+     */
+    @Query("SELECT DISTINCT s.local_date FROM workout_session s WHERE " + MINE_SQL
+            + " AND s.status = 'COMPLETED' ORDER BY s.local_date")
+    LiveData<List<String>> observeTrainedDates();
+
+    /** The newest day with a session, so the calendar never hides one by refusing to go there. */
+    @Query("SELECT MAX(s.local_date) FROM workout_session s WHERE " + MINE_SQL
+            + " AND s.status = 'COMPLETED'")
+    LiveData<String> observeLastTrainedDate();
+
     @Query(HISTORY_SQL + MINE_SQL + " AND s.status = 'COMPLETED' ORDER BY s.started_at DESC")
     List<SessionHistoryRow> findCompletedSessions();
 

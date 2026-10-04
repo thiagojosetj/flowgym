@@ -9,6 +9,10 @@ import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
 import android.database.Cursor;
+import java.util.Collections;
+import java.util.Set;
+import java.time.LocalDate;
+import java.time.Instant;
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import androidx.test.core.app.ApplicationProvider;
@@ -679,6 +683,94 @@ public class HistoryRepositoryTest {
         assertNull("rate should not have failed: " + error.get(), error.get());
         assertNotNull("rate should have answered", done.get());
         return done.get();
+    }
+
+
+    // ---------------------------------------------------------------- calendar (HIS-02)
+
+    @Test
+    public void aFinishedSessionPutsItsDayOnTheCalendar() throws Exception {
+        String sessionId = finishedSessionForRating();
+        String storedDay = database.sessionDao().findSession(sessionId).localDate;
+
+        Set<LocalDate> trained = LiveDataTestUtil.getOrAwaitValue(
+                app.history.observeTrainedDates());
+
+        assertEquals(Collections.singleton(LocalDate.parse(storedDay)), trained);
+    }
+
+    @Test
+    public void theCalendarKeepsTheDayTheWorkoutWasLivedOnEvenIfTheInstantSaysAnother() throws Exception {
+        // The rule of section 11. local_date is written in the zone the person was in; started_at
+        // is just an instant. Moving the instant to a day that reads differently in UTC must not
+        // move the square: a workout at 23:30 in Sao Paulo belongs to that day, not to the next
+        // one as the clock in London would have it.
+        String sessionId = finishedSessionForRating();
+        database.getOpenHelper().getWritableDatabase().execSQL(
+                "UPDATE workout_session SET local_date = '2026-03-15',"
+                        + " started_at = " + Instant.parse("2026-03-16T02:00:00Z").toEpochMilli()
+                        + " WHERE id = '" + sessionId + "'");
+
+        Set<LocalDate> trained = LiveDataTestUtil.getOrAwaitValue(
+                app.history.observeTrainedDates());
+
+        assertEquals("o dia e o que foi vivido, nao o que o instante diz agora",
+                Collections.singleton(LocalDate.of(2026, 3, 15)), trained);
+    }
+
+    @Test
+    public void twoSessionsOnTheSameDayAreOneDayOnTheCalendar() throws Exception {
+        String templateId = createTemplate("Push A", "Supino reto com barra");
+        for (int i = 0; i < 2; i++) {
+            String sessionId = start(templateId);
+            confirm(sessionId, firstSetOf(sessionId).id(), lifted(40, 10));
+            finish(sessionId);
+            clock.advanceMinutes(30);
+        }
+
+        assertEquals(1, LiveDataTestUtil.getOrAwaitValue(app.history.observeTrainedDates()).size());
+    }
+
+    @Test
+    public void aRunningOrRemovedSessionIsNotADayOnTheCalendar() throws Exception {
+        String running = start(createTemplate("Push A", "Supino reto com barra"));
+        assertTrue("um treino em andamento nao e um dia treinado",
+                LiveDataTestUtil.getOrAwaitValue(app.history.observeTrainedDates()).isEmpty());
+
+        confirm(running, firstSetOf(running).id(), lifted(40, 10));
+        finish(running);
+        assertEquals(1, LiveDataTestUtil.getOrAwaitValue(app.history.observeTrainedDates()).size());
+
+        delete(running);
+        assertTrue("uma sessao excluida nao deixa marca",
+                LiveDataTestUtil.getOrAwaitValue(app.history.observeTrainedDates()).isEmpty());
+    }
+
+    @Test
+    public void theLastTrainedDayIsKnownSoNothingIsHiddenBeyondIt() throws Exception {
+        assertNull("sem treino, nao ha ultimo dia",
+                LiveDataTestUtil.getOrAwaitValue(app.history.observeLastTrainedDate()));
+
+        String sessionId = finishedSessionForRating();
+        // A device clock running ahead writes a local_date in the future. The calendar has to be
+        // able to reach it, or the session is hidden rather than absent.
+        database.getOpenHelper().getWritableDatabase().execSQL(
+                "UPDATE workout_session SET local_date = '2027-01-20' WHERE id = '"
+                        + sessionId + "'");
+
+        assertEquals(LocalDate.of(2027, 1, 20),
+                LiveDataTestUtil.getOrAwaitValue(app.history.observeLastTrainedDate()));
+    }
+
+    @Test
+    public void aDateThatCannotBeReadIsDroppedRatherThanGuessedAt() throws Exception {
+        String sessionId = finishedSessionForRating();
+        database.getOpenHelper().getWritableDatabase().execSQL(
+                "UPDATE workout_session SET local_date = 'nao-e-uma-data' WHERE id = '"
+                        + sessionId + "'");
+
+        assertTrue("um dia ilegivel nao pode virar um quadrado qualquer",
+                LiveDataTestUtil.getOrAwaitValue(app.history.observeTrainedDates()).isEmpty());
     }
 
     private List<SessionHistoryEntry> history() throws Exception {

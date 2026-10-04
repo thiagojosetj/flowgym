@@ -5,6 +5,11 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Transformations;
 
 import java.time.Clock;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -85,6 +90,53 @@ public final class HistoryRepository {
     public void delete(String sessionId, Consumer<Boolean> onDone, Consumer<Throwable> onError) {
         executors.runOnDisk(() -> dao.softDeleteSession(sessionId, clock.millis()) > 0,
                 onDone, onError);
+    }
+
+    /**
+     * The days with at least one finished session (PRODUCT_SPEC HIS-02).
+     *
+     * <p>Parsed from the stored {@code local_date}, which is the day as it was lived. A row whose
+     * date cannot be parsed is dropped rather than guessed at: a square on the wrong day would be
+     * a quiet lie, and there is nothing to guess from.
+     */
+    public LiveData<Set<LocalDate>> observeTrainedDates() {
+        return Transformations.map(dao.observeTrainedDates(), HistoryRepository::toDates);
+    }
+
+    /**
+     * The newest day with a session, or null when nothing was performed yet.
+     *
+     * <p>The calendar uses it to decide how far forward it may go. Stopping at the current month
+     * would be tidier, but a session recorded while the device clock was ahead would then be
+     * unreachable - hidden, not absent.
+     */
+    public LiveData<LocalDate> observeLastTrainedDate() {
+        return Transformations.map(dao.observeLastTrainedDate(), HistoryRepository::toDate);
+    }
+
+    private static Set<LocalDate> toDates(List<String> stored) {
+        Set<LocalDate> dates = new LinkedHashSet<>();
+        if (stored != null) {
+            for (String value : stored) {
+                LocalDate date = toDate(value);
+                if (date != null) {
+                    dates.add(date);
+                }
+            }
+        }
+        return Collections.unmodifiableSet(dates);
+    }
+
+    @Nullable
+    private static LocalDate toDate(@Nullable String stored) {
+        if (stored == null || stored.isEmpty()) {
+            return null;
+        }
+        try {
+            return LocalDate.parse(stored);
+        } catch (DateTimeParseException malformed) {
+            return null;
+        }
     }
 
     /** The lowest and highest a session can be rated (PRODUCT_SPEC HIS-06). */
