@@ -374,7 +374,7 @@
     <string name="history_set_planned">Planejado: %s</string>
     <string name="history_set_skipped">Não feita</string>
     <string name="history_set_no_value">—</string>
-    <string name="history_rating">Avaliação: %1$d de 5</string>
+    <string name="history_rating_failed">Não foi possível salvar a avaliação.</string>
     <string name="history_load_failed">Não foi possível abrir esta sessão.</string>
 
     <!-- Comparison with the previous session of the same workout (PRODUCT_SPEC §11) -->

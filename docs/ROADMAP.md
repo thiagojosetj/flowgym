@@ -83,9 +83,16 @@ Legenda: ✅ concluído · 🟡 em andamento/parcial · ⬜ não iniciado.
   rodada** — começa quando nenhum exercício do grupo ainda deve a série daquela rodada, e não
   quando o "último por posição" termina (a ordem planejada não é obrigatória, ACT-01). Falta
   validar em aparelho.
-- 🟡 **HIS-06 — avaliação 1–5** no resumo da finalização, gravada a cada toque e removível
-  tocando de novo (ADR-0041 estende a imutabilidade: a nota é comentário de quem treinou,
-  não medição). **Falta:** observação em texto (`notes` existe) e avaliar depois pelo detalhe.
+- 🟡 **HIS-06 — avaliação 1–5** no resumo da finalização **e no detalhe de qualquer sessão
+  concluída**, gravada a cada toque e removível tocando de novo (ADR-0041 estende a
+  imutabilidade: a nota é comentário de quem treinou, não medição). O mesmo
+  `view_session_rating` serve as duas telas; a margem lateral saiu do layout e passou para o
+  diálogo, que é quem precisa dela. Se a gravação falhar, a tela **volta** para o que está no
+  banco e avisa — nota acesa que não está gravada é mentira.
+  - Mutação: mostrar sem gravar, gravar zero ao limpar e **deixar o listener ligado enquanto o
+    valor guardado é aplicado** (que faria cada redesenho regravar o que acabou de ler) — todas
+    matam teste.
+  - **Falta:** observação em texto (`notes` existe).
 - ⬜ **Validar no aparelho**: promoção do serviço com tipo `health` na API 34+, som e vibração com a
   tela apagada, `POST_NOTIFICATIONS` negado, force stop e reboot, teclado real.
 
@@ -188,9 +195,16 @@ achados ao implementar: **salvar** um treino desagrupava tudo (o rascunho não c
     outra — a consulta pede estritamente mais antiga.
 - ⬜ **Validar no aparelho**: a tabela de comparação com um treino longo e a rolagem com todas as
   séries abertas.
-- 🟡 **HIS-06 — avaliação 1–5** no resumo da finalização, gravada a cada toque e removível
-  tocando de novo (ADR-0041 estende a imutabilidade: a nota é comentário de quem treinou,
-  não medição). **Falta:** observação em texto (`notes` existe) e avaliar depois pelo detalhe.
+- 🟡 **HIS-06 — avaliação 1–5** no resumo da finalização **e no detalhe de qualquer sessão
+  concluída**, gravada a cada toque e removível tocando de novo (ADR-0041 estende a
+  imutabilidade: a nota é comentário de quem treinou, não medição). O mesmo
+  `view_session_rating` serve as duas telas; a margem lateral saiu do layout e passou para o
+  diálogo, que é quem precisa dela. Se a gravação falhar, a tela **volta** para o que está no
+  banco e avisa — nota acesa que não está gravada é mentira.
+  - Mutação: mostrar sem gravar, gravar zero ao limpar e **deixar o listener ligado enquanto o
+    valor guardado é aplicado** (que faria cada redesenho regravar o que acabou de ler) — todas
+    matam teste.
+  - **Falta:** observação em texto (`notes` existe).
 - ✅ **HIS-05 — excluir uma sessão do histórico**: menu da linha, confirmação que nomeia a sessão,
   exclusão soft (`deleted_at`) para poder sincronizar (ADR-0041). **Lacuna registrada:** o
   pareamento "anterior" não refiltra, então uma sessão posterior ainda compara com a excluída.

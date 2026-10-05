@@ -9,6 +9,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 import androidx.fragment.app.Fragment;
+
+import com.google.android.material.snackbar.Snackbar;
 import androidx.lifecycle.ViewModelProvider;
 
 import java.util.ArrayList;
@@ -38,7 +40,7 @@ import io.github.thiagojosetj.gym.ui.common.SessionDates;
 import io.github.thiagojosetj.gym.ui.common.ViewModelFactories;
 
 /** Finished-session detail (PRODUCT_SPEC HIS-01, HIS-03, HIS-04): summary, comparison and sets. */
-public class SessionDetailFragment extends Fragment {
+public class SessionDetailFragment extends Fragment implements SessionDetailAdapter.Listener {
 
     private static final String ARG_SESSION_ID = "sessionId";
     /** Units are kg for now; lb support is planned (docs/ROADMAP.md). */
@@ -46,6 +48,8 @@ public class SessionDetailFragment extends Fragment {
 
     private FragmentSessionDetailBinding binding;
     private SessionDetailAdapter adapter;
+    /** A field because a tap on the rating arrives long after onViewCreated has returned. */
+    private SessionDetailViewModel viewModel;
 
     /** Navigation arguments for this screen (ADR-0018). */
     public static Bundle args(String sessionId) {
@@ -65,18 +69,24 @@ public class SessionDetailFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         String sessionId = requireArguments().getString(ARG_SESSION_ID);
         AppContainer app = ViewModelFactories.container(this);
-        SessionDetailViewModel viewModel = new ViewModelProvider(this, ViewModelFactories.of(
+        viewModel = new ViewModelProvider(this, ViewModelFactories.of(
                 SessionDetailViewModel.class,
                 () -> new SessionDetailViewModel(app.history, sessionId)))
                 .get(SessionDetailViewModel.class);
 
-        adapter = new SessionDetailAdapter(viewModel::toggleSets, app.executors.diskIO());
+        adapter = new SessionDetailAdapter(this, app.executors.diskIO());
         binding.list.setAdapter(adapter);
         // The only edit is opening an exercise's sets, and those rows should simply be there when
         // the button is tapped: an insert animation would make them arrive after the tap.
         binding.list.setItemAnimator(null);
 
         viewModel.state().observe(getViewLifecycleOwner(), this::render);
+        viewModel.ratingFailures().observe(getViewLifecycleOwner(), event -> {
+            if (event.consume() != null && binding != null) {
+                Snackbar.make(binding.getRoot(), R.string.history_rating_failed,
+                        Snackbar.LENGTH_LONG).show();
+            }
+        });
     }
 
     private void render(SessionDetailViewModel.State state) {
@@ -90,6 +100,16 @@ public class SessionDetailFragment extends Fragment {
         if (!failed) {
             adapter.submitList(rowsOf(state.detail(), state));
         }
+    }
+
+    @Override
+    public void onToggleSets(String sessionExerciseId) {
+        viewModel.toggleSets(sessionExerciseId);
+    }
+
+    @Override
+    public void onRate(@Nullable Integer rating) {
+        viewModel.rate(rating);
     }
 
     // ------------------------------------------------------------------ rows
@@ -148,17 +168,15 @@ public class SessionDetailFragment extends Fragment {
                     getString(R.string.history_time_under_tension, Durations.clock(millis)),
                     getString(R.string.history_time_under_tension, Durations.spoken(millis)));
         }
-        // Null means no rating at all: it is never drawn as a rating of zero.
-        Integer rating = detail.rating();
-        String ratingText = rating == null ? null : getString(R.string.history_rating, rating);
-
         DetailRow.Comparison comparison = detail.hasComparison() ? comparisonOf(detail) : null;
         String noComparison = comparison == null
                 ? getString(R.string.history_comparison_none) : null;
         String exercisesTitle = detail.exercises().isEmpty()
                 ? null : getString(R.string.history_exercises_title);
         return new DetailRow.Summary("summary", summary.name(), dateTime, duration, sets, volume,
-                outsideVolume, timeUnderTension, ratingText, comparison, noComparison,
+                // Null means no rating at all, and the control shows nothing chosen: it is never
+                // drawn as a rating of zero.
+                outsideVolume, timeUnderTension, detail.rating(), comparison, noComparison,
                 exercisesTitle);
     }
 

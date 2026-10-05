@@ -87,15 +87,16 @@
                 tools:text="Tempo sob tensão: 1:30"
                 tools:visibility="visible" />
 
-            <TextView
+            <!--
+                The same 1-5 control the finish summary shows, and the same rule: each number
+                writes as it is tapped, and tapping the chosen one again clears it. Editable here
+                because nobody rates every workout the moment it ends (PRODUCT_SPEC HIS-06).
+            -->
+            <include
                 android:id="@+id/rating"
+                layout="@layout/view_session_rating"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_xs"
-                android:textAppearance="?attr/textAppearanceBodyLarge"
-                android:visibility="gone"
-                tools:text="Avaliação: 4 de 5"
-                tools:visibility="visible" />
+                android:layout_height="wrap_content" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 

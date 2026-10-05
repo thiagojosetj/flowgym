@@ -14,6 +14,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.util.Objects;
 import java.util.concurrent.Executor;
 
+import com.google.android.material.button.MaterialButtonToggleGroup;
+
+import io.github.thiagojosetj.gym.R;
 import io.github.thiagojosetj.gym.databinding.ItemHistoryComparisonExerciseBinding;
 import io.github.thiagojosetj.gym.databinding.ItemHistoryComparisonNoteBinding;
 import io.github.thiagojosetj.gym.databinding.ItemHistoryComparisonSetBinding;
@@ -26,10 +29,16 @@ import io.github.thiagojosetj.gym.ui.common.ListDiffing;
 /** Rows of the finished-session detail (PRODUCT_SPEC HIS-01, HIS-03, HIS-04), in one flat list. */
 final class SessionDetailAdapter extends ListAdapter<DetailRow, RecyclerView.ViewHolder> {
 
-    /** The only thing the screen can do to this list: open or close one exercise's sets. */
     interface Listener {
         void onToggleSets(String sessionExerciseId);
+
+        /** @param rating 1 to 5, or null when the chosen number was tapped again */
+        void onRate(@Nullable Integer rating);
     }
+
+    /** Left to right, so the index is the rating minus one. */
+    private static final int[] RATING_BUTTONS = {
+            R.id.rating_1, R.id.rating_2, R.id.rating_3, R.id.rating_4, R.id.rating_5};
 
     // Nothing here decides what to say. Every row arrives with its text already written, and a
     // line that has nothing to say is hidden rather than left blank: a blank line would read as a
@@ -75,7 +84,8 @@ final class SessionDetailAdapter extends ListAdapter<DetailRow, RecyclerView.Vie
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         LayoutInflater inflater = LayoutInflater.from(parent.getContext());
         if (viewType == TYPE_SUMMARY) {
-            return new SummaryHolder(ItemHistorySummaryBinding.inflate(inflater, parent, false));
+            return new SummaryHolder(ItemHistorySummaryBinding.inflate(inflater, parent, false),
+                    listener);
         }
         if (viewType == TYPE_EXERCISE) {
             return new ExerciseHolder(ItemHistoryExerciseBinding.inflate(inflater, parent, false));
@@ -125,10 +135,12 @@ final class SessionDetailAdapter extends ListAdapter<DetailRow, RecyclerView.Vie
 
     static final class SummaryHolder extends RecyclerView.ViewHolder {
         private final ItemHistorySummaryBinding views;
+        private final Listener listener;
 
-        SummaryHolder(ItemHistorySummaryBinding views) {
+        SummaryHolder(ItemHistorySummaryBinding views, Listener listener) {
             super(views.getRoot());
             this.views = views;
+            this.listener = listener;
         }
 
         void bind(DetailRow.Summary row) {
@@ -140,9 +152,48 @@ final class SessionDetailAdapter extends ListAdapter<DetailRow, RecyclerView.Vie
             views.volume.setText(row.volume());
             setOptional(views.outsideVolume, row.outsideVolume());
             setLine(views.timeUnderTension, row.timeUnderTension());
-            setOptional(views.rating, row.rating());
+            bindRating(row);
             bindComparison(row);
             setOptional(views.exercisesTitle, row.exercisesTitle());
+        }
+
+        /**
+         * Shows the stored rating and writes a new one on each tap (PRODUCT_SPEC HIS-06).
+         *
+         * <p>The listener is detached while the stored value is applied. Checking a button fires
+         * the same callback a tap does, so leaving it attached would make every redraw write back
+         * what it had just read - and the one case that matters, a failed write being put back,
+         * would write the wrong value again.
+         */
+        private void bindRating(DetailRow.Summary row) {
+            MaterialButtonToggleGroup group = views.rating.ratingGroup;
+            group.clearOnButtonCheckedListeners();
+            Integer rating = row.rating();
+            if (rating == null || rating < 1 || rating > RATING_BUTTONS.length) {
+                group.clearChecked();
+            } else {
+                group.check(RATING_BUTTONS[rating - 1]);
+            }
+            for (int i = 0; i < RATING_BUTTONS.length; i++) {
+                // "4" alone tells a screen reader nothing about what it does.
+                views.rating.getRoot().findViewById(RATING_BUTTONS[i]).setContentDescription(
+                        itemView.getContext().getString(R.string.summary_rating_spoken, i + 1,
+                                RATING_BUTTONS.length));
+            }
+            group.addOnButtonCheckedListener((toggleGroup, checkedId, isChecked) -> {
+                if (!isChecked && toggleGroup.getCheckedButtonId() == View.NO_ID) {
+                    listener.onRate(null); // the chosen number was tapped again: no rating
+                    return;
+                }
+                if (isChecked) {
+                    for (int i = 0; i < RATING_BUTTONS.length; i++) {
+                        if (RATING_BUTTONS[i] == checkedId) {
+                            listener.onRate(i + 1);
+                            return;
+                        }
+                    }
+                }
+            });
         }
 
         private void bindComparison(DetailRow.Summary row) {

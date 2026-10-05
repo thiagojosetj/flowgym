@@ -134,7 +134,7 @@ release (o id de debug termina em `.debug`).
 ./gradlew :domain:test :app:testDebugUnitTest :app:lintDebug
 ```
 
-São **421 testes** (171 no `:domain`, 250 no `:app`), todos na JVM — nenhum emulador necessário.
+São **424 testes** (171 no `:domain`, 253 no `:app`), todos na JVM — nenhum emulador necessário.
 
 - **`:domain`** — regras puras: padrões de treino, validações, cargas, UUID v7, normalização de busca,
   aritmética de tempo do treino (pausas, relógio andando para trás, descanso), volume (com as exclusões

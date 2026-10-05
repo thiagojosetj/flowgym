@@ -12,8 +12,14 @@ import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.not;
+import static androidx.test.espresso.Espresso.pressBack;
+import static androidx.test.espresso.matcher.ViewMatchers.isChecked;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+
+import android.database.Cursor;
 
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.core.app.ApplicationProvider;
@@ -207,7 +213,61 @@ public class HistoryComparisonFlowTest {
         }
     }
 
+    @Test
+    public void aSessionCanBeRatedLaterFromItsOwnScreen() {
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            // Nobody rates every workout the moment it ends; the dialog is dismissed on the way
+            // out of the gym as often as it is answered (PRODUCT_SPEC HIS-06).
+            performWorkout(template(SECOND, SUPINO), 40, 10);
+            openNewestSession();
+            onView(withId(R.id.rating_4)).check(matches(not(isChecked())));
+
+            onView(withId(R.id.rating_4)).perform(click());
+
+            assertEquals("a nota devia estar gravada, nao so na tela",
+                    Integer.valueOf(4), storedRating());
+            onView(withId(R.id.rating_4)).check(matches(isChecked()));
+        }
+    }
+
+    @Test
+    public void tappingTheChosenNumberAgainTakesTheRatingAwayRatherThanZeroingIt() {
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            performWorkout(template(SECOND, SUPINO), 40, 10);
+            openNewestSession();
+            onView(withId(R.id.rating_4)).perform(click());
+
+            onView(withId(R.id.rating_4)).perform(click());
+
+            assertNull("ausencia de nota nao e nota zero", storedRating());
+            onView(withId(R.id.rating_4)).check(matches(not(isChecked())));
+        }
+    }
+
+    @Test
+    public void aRatingWrittenOnThisScreenIsStillThereWhenItIsReopened() {
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            performWorkout(template(SECOND, SUPINO), 40, 10);
+            openNewestSession();
+            onView(withId(R.id.rating_2)).perform(click());
+
+            pressBack();
+            onView(withText(SECOND)).perform(click());
+
+            onView(withId(R.id.rating_2)).check(matches(isChecked()));
+        }
+    }
+
     // ------------------------------------------------------------------ helpers
+
+    /** What the database holds, which is the only thing that survives the screen. */
+    private static Integer storedRating() {
+        try (Cursor cursor = container().database.getOpenHelper().getReadableDatabase()
+                .query("SELECT rating FROM workout_session WHERE deleted_at IS NULL")) {
+            assertTrue("devia haver exatamente uma sessao", cursor.moveToFirst());
+            return cursor.isNull(0) ? null : cursor.getInt(0);
+        }
+    }
 
     /** Scrolls the one expandable exercise into view and opens its sets. */
     private static void openTheSets() {

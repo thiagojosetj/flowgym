@@ -8,6 +8,7 @@ import static androidx.test.espresso.action.ViewActions.scrollTo;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.RootMatchers.isDialog;
 import static androidx.test.espresso.matcher.ViewMatchers.isDescendantOfA;
+import static androidx.test.espresso.matcher.ViewMatchers.isChecked;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription;
 import static androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility;
@@ -479,7 +480,8 @@ public class ActiveWorkoutFlowTest {
 
             onView(withId(R.id.historyListFragment)).perform(click());
             onView(withText("Push A")).perform(click());
-            onView(withText("Avaliação: 4 de 5")).check(matches(isDisplayed()));
+            // The detail shows the same 1-5 control, with the stored answer chosen on it.
+            onView(withId(R.id.rating_4)).check(matches(isChecked()));
         }
     }
 

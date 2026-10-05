@@ -413,6 +413,10 @@ public class ActiveSessionFragment extends Fragment implements SessionRowAdapter
         // dialog is what will hold it.
         View view = getLayoutInflater().inflate(R.layout.view_session_rating,
                 (ViewGroup) requireView(), false);
+        // The layout carries no side padding of its own because the session detail embeds it in
+        // a card that already has some. A dialog does not, so it is added here.
+        int inset = getResources().getDimensionPixelSize(R.dimen.space_xl);
+        view.setPadding(inset, view.getPaddingTop(), inset, view.getPaddingBottom());
         MaterialButtonToggleGroup group = view.findViewById(R.id.rating_group);
         int[] buttons = {R.id.rating_1, R.id.rating_2, R.id.rating_3, R.id.rating_4, R.id.rating_5};
         for (int i = 0; i < buttons.length; i++) {

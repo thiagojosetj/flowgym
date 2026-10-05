@@ -35,7 +35,9 @@ public interface DetailRow {
      * @param outsideVolume    "N sets not included in the volume", or null when nothing was left
      *                         out; PRODUCT_SPEC section 9 requires the line whenever something was
      * @param timeUnderTension null when no timed set was performed
-     * @param rating           null when the person gave none: no rating is not a rating of zero
+     * @param rating           1 to 5, or null when the person gave none - and no rating is not a
+     *                         rating of zero. It is the value, not a sentence, because the row
+     *                         draws it as the same 1-5 control the finish summary offers
      * @param comparison       null when this was the first time the workout was performed
      * @param noComparison     says so in that case, and is null otherwise
      * @param exercisesTitle   heading of the exercises below, null when there are none
@@ -49,7 +51,7 @@ public interface DetailRow {
             String volume,
             String outsideVolume,
             Line timeUnderTension,
-            String rating,
+            Integer rating,
             Comparison comparison,
             String noComparison,
             String exercisesTitle) implements DetailRow {

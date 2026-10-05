@@ -108,8 +108,14 @@ notificação, o serviço em primeiro plano e o alerta com a tela apagada.
   **opcional**, e tocar no número escolhido de novo tira a avaliação — ausência de nota não é
   nota zero. Grava **a cada toque**, não ao fechar: o diálogo também fecha no botão voltar, e
   uma nota esperando na memória sumiria sem avisar (ADR-0031). Nota fora de 1–5 é recusada em
-  vez de gravada. **Não feito:** observação em texto da sessão (a coluna `notes` existe), e
-  avaliar depois pela tela de detalhe.
+  vez de gravada.
+  - **Avaliar depois** pela tela da sessão: o mesmo controle de 1 a 5 aparece no detalhe de
+    qualquer sessão concluída, já marcado com a nota guardada, e aceita mudar ou tirar. Ninguém
+    avalia todo treino na hora em que ele acaba — o diálogo do fim é dispensado na saída da
+    academia com a mesma frequência com que é respondido.
+  - Se a gravação **falhar**, a tela volta para a nota que está no banco e avisa. Uma estrela
+    acesa que não existe no banco é o app afirmando algo que não é verdade.
+  - **Não feito:** observação em texto da sessão (a coluna `notes` existe).
 - **HIS-05** **Excluir uma sessão do histórico**, pelo menu da linha, com confirmação que nomeia
   a sessão. Ela sai da lista e deixa de contar nos números; o treino que a gerou continua em
   Treinos. Exclusão é **soft** (`deleted_at`), para poder ser sincronizada. Não fere a

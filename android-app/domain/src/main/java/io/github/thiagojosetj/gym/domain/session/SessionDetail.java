@@ -67,4 +67,16 @@ public record SessionDetail(
     public boolean hasComparison() {
         return comparison != null;
     }
+
+    /**
+     * The same session, rated differently (PRODUCT_SPEC HIS-06).
+     *
+     * <p>Not a breach of the immutability this record exists to protect: the rating is the
+     * person's own commentary, not a measurement, and it is the one column a finished session
+     * accepts a write to (ADR-0041). Nothing the session recorded is touched.
+     */
+    public SessionDetail withRating(Integer newRating) {
+        return new SessionDetail(session, summary, localDate, timeZone, newRating, exercises,
+                comparison);
+    }
 }
