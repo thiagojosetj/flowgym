@@ -8,11 +8,18 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.PopupMenu;
+import androidx.recyclerview.widget.ConcatAdapter;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.SimpleItemAnimator;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+
+import java.time.LocalDate;
+import java.time.temporal.WeekFields;
+import java.util.Locale;
 
 import io.github.thiagojosetj.gym.AppContainer;
 import io.github.thiagojosetj.gym.R;
@@ -21,11 +28,16 @@ import io.github.thiagojosetj.gym.domain.session.SessionHistoryEntry;
 import io.github.thiagojosetj.gym.ui.common.SafeNavigation;
 import io.github.thiagojosetj.gym.ui.common.ViewModelFactories;
 
-/** "Histórico": finished sessions, newest first, each opening its detail (PRODUCT_SPEC HIS-03). */
-public class HistoryListFragment extends Fragment implements HistoryAdapter.Listener {
+/**
+ * "Histórico": the month of trained days (PRODUCT_SPEC HIS-02) above every finished session,
+ * newest first, each opening its detail (HIS-03).
+ */
+public class HistoryListFragment extends Fragment
+        implements HistoryAdapter.Listener, CalendarHeaderAdapter.Listener {
 
     private FragmentHistoryListBinding binding;
     private HistoryAdapter adapter;
+    private CalendarHeaderAdapter calendarAdapter;
     /** A field because the row's menu arrives long after onViewCreated has returned. */
     private HistoryListViewModel viewModel;
 
@@ -41,15 +53,33 @@ public class HistoryListFragment extends Fragment implements HistoryAdapter.List
         AppContainer app = ViewModelFactories.container(this);
         viewModel = new ViewModelProvider(this,
                 ViewModelFactories.of(HistoryListViewModel.class,
-                        () -> new HistoryListViewModel(app.history)))
+                        () -> new HistoryListViewModel(app.history, app.clock)))
                 .get(HistoryListViewModel.class);
 
-        adapter = new HistoryAdapter(this, app.clock, app.executors.diskIO());
-        binding.list.setAdapter(adapter);
+        // Where the week starts belongs to the locale, and the locale belongs to the screen: the
+        // ViewModel survives a configuration change, so it is told rather than left to guess.
+        Locale locale = getResources().getConfiguration().getLocales().get(0);
+        viewModel.setFirstDayOfWeek(WeekFields.of(locale).getFirstDayOfWeek());
 
-        viewModel.sessions().observe(getViewLifecycleOwner(), sessions -> {
-            adapter.submitList(sessions);
-            binding.emptyState.setVisibility(sessions.isEmpty() ? View.VISIBLE : View.GONE);
+        adapter = new HistoryAdapter(this, app.clock, app.executors.diskIO());
+        calendarAdapter = new CalendarHeaderAdapter(this);
+        binding.list.setAdapter(new ConcatAdapter(calendarAdapter, adapter));
+        // Without this, RecyclerView answers every notifyItemChanged by building a SECOND view
+        // holder and cross-fading the two. For the calendar that means the whole month grid is
+        // thrown away and inflated again on each tap, taking with it the accessibility focus the
+        // person just placed on a day. Off, the same holder is rebound and only the squares that
+        // changed change.
+        RecyclerView.ItemAnimator animator = binding.list.getItemAnimator();
+        if (animator instanceof SimpleItemAnimator) {
+            ((SimpleItemAnimator) animator).setSupportsChangeAnimations(false);
+        }
+
+        viewModel.sessions().observe(getViewLifecycleOwner(), adapter::submitList);
+        viewModel.calendar().observe(getViewLifecycleOwner(), calendar -> {
+            calendarAdapter.submit(calendar);
+            // No calendar means no finished session at all. A day filter that matches nothing is a
+            // different thing and says so inside the header, where the way back out also is.
+            binding.emptyState.setVisibility(calendar == null ? View.VISIBLE : View.GONE);
         });
         viewModel.failures().observe(getViewLifecycleOwner(), event -> {
             if (event.consume() != null && binding != null) {
@@ -57,6 +87,21 @@ public class HistoryListFragment extends Fragment implements HistoryAdapter.List
                         Snackbar.LENGTH_LONG).show();
             }
         });
+    }
+
+    @Override
+    public void onDaySelected(LocalDate date) {
+        viewModel.selectDay(date);
+    }
+
+    @Override
+    public void onMonthStep(int months) {
+        viewModel.stepMonth(months);
+    }
+
+    @Override
+    public void onShowAllDays() {
+        viewModel.showAllDays();
     }
 
     @Override
@@ -115,6 +160,7 @@ public class HistoryListFragment extends Fragment implements HistoryAdapter.List
         super.onDestroyView();
         binding.list.setAdapter(null);
         adapter = null;
+        calendarAdapter = null;
         binding = null;
     }
 }

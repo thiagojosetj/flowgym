@@ -747,22 +747,6 @@ public class HistoryRepositoryTest {
     }
 
     @Test
-    public void theLastTrainedDayIsKnownSoNothingIsHiddenBeyondIt() throws Exception {
-        assertNull("sem treino, nao ha ultimo dia",
-                LiveDataTestUtil.getOrAwaitValue(app.history.observeLastTrainedDate()));
-
-        String sessionId = finishedSessionForRating();
-        // A device clock running ahead writes a local_date in the future. The calendar has to be
-        // able to reach it, or the session is hidden rather than absent.
-        database.getOpenHelper().getWritableDatabase().execSQL(
-                "UPDATE workout_session SET local_date = '2027-01-20' WHERE id = '"
-                        + sessionId + "'");
-
-        assertEquals(LocalDate.of(2027, 1, 20),
-                LiveDataTestUtil.getOrAwaitValue(app.history.observeLastTrainedDate()));
-    }
-
-    @Test
     public void aDateThatCannotBeReadIsDroppedRatherThanGuessedAt() throws Exception {
         String sessionId = finishedSessionForRating();
         database.getOpenHelper().getWritableDatabase().execSQL(

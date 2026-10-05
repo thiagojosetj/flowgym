@@ -142,7 +142,32 @@ achados ao implementar: **salvar** um treino desagrupava tudo (o rascunho não c
   exceção se ninguém checou `hasPercent()`, então esquecer quebra um teste, não a honestidade da tela.
 - ✅ Sem mudança de esquema: o banco continua na **versão 3**. `local_date`, `time_zone` e `rating` já
   existiam desde a v3 e só agora são lidos.
-- ⬜ **HIS-02 — calendário** de dias treinados (`local_date` já está indexado para isso).
+- ✅ **HIS-02 — calendário** do mês acima da lista: dias com sessão concluída marcados, tocar num
+  dia filtra a lista, tocar de novo (ou "Ver todas") desfiltra, e um dia sem treino diz isso em
+  vez de deixar a tela vazia. As setas vão do mês da sessão mais antiga ao da mais recente — o
+  limite é a **última sessão**, não hoje, senão uma sessão gravada com o relógio adiantado ficaria
+  escondida. O dia é sempre o `local_date` vivido, nunca derivado de `started_at`.
+  - A grade e a lista saem da **mesma** LiveData (`observeTrainedDates()` é um `map` da consulta do
+    histórico, não uma consulta própria). Isso é **estrutura, não prova**: os testes usam
+    executores síncronos, então duas consultas separadas também passariam.
+  - Mutação: tirar o filtro, o toggle do mesmo dia, o "Ver todas", a marca de dia treinado, o
+    limite das setas, a limpeza do filtro ao mudar de mês e a leitura do `local_date` **matam**
+    testes. A trava redundante dentro de `stepMonth` **sobreviveu** — a seta desabilitada já
+    impedia o caso — e por isso foi removida em vez de ganhar um teste que a alcançasse.
+  - `android:rotation="180"` numa seta **engolia o clique** no Espresso/Robolectric: os testes
+    falhavam com o mês parado. Trocado por um `ic_chevron_left` de verdade (também o certo para
+    RTL). Medido: com rotação, 2 testes falham; sem ela, 0.
+  - Achado pela mutação: reaproveitar os quadrados da grade (em vez de recriar os 42 a cada toque)
+    **não fazia nada**, porque o RecyclerView responde a `notifyItemChanged` criando um **segundo**
+    holder e fazendo cross-fade — a grade era inflada de novo de qualquer jeito, levando junto o
+    foco de acessibilidade. Com `setSupportsChangeAnimations(false)` o mesmo holder é reusado e as
+    duas mutações ("o quadrado reusado guarda a marca do mês anterior" e "…a data falada anterior")
+    passaram a **matar** teste. O foco do TalkBack em si **não** está provado — o Robolectric não
+    roda TalkBack; o que está provado é o reuso sem resíduo.
+  - Duas asserções minhas passavam por motivo errado: `doesNotExist()` na faixa de filtro só valia
+    porque o holder antigo era destruído. Com o reuso, a faixa fica no hierarquia como `GONE`, que
+    é o que o usuário realmente vê — asserção trocada por `not(isDisplayed())`.
+  - APK de release: 3.346.855 → 3.373.699 bytes (**+26 KB**) com a grade, o header e o chevron.
 - ⬜ Comparação **por exercício** expansível série a série (a parte da HIS-04 que falta; o "anterior"
   de cada série já aparece, vindo do ponteiro congelado).
 - 🟡 **HIS-06 — avaliação 1–5** no resumo da finalização, gravada a cada toque e removível

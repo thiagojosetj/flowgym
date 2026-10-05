@@ -131,6 +131,17 @@ Regras:
   - dado **que muda** (a lista de sessões) → `LiveData`, mas **uma** consulta e um `map`, nunca
     fontes combinadas. Se combinar for inevitável, o teste que prova o comportamento não pode ser
     o que usa executor síncrono.
+- **Quando a tela precisa de duas coisas do mesmo dado, mapeie as duas da mesma `LiveData`.** O
+  calendário do histórico (HIS-02) precisa da lista de sessões *e* do conjunto de dias treinados.
+  Uma segunda consulta (`SELECT DISTINCT local_date`) seria mais barata de ler e colocaria as duas
+  em corrida. Em vez disso o `HistoryRepository` guarda **uma** `LiveData` em campo e
+  `observeTrainedDates()` é um `map` dela: as duas descem na mesma emissão, e a grade não tem como
+  afirmar um dia que as linhas abaixo não têm. **Isso é estrutura, não teste** — com executores
+  síncronos, duas consultas também pareceriam consistentes.
+- Um `MediatorLiveData` com várias fontes **não** é a mesma coisa que combinar consultas, desde que
+  só uma das fontes venha do banco. O ViewModel do histórico junta a consulta com o mês mostrado, o
+  dia selecionado e o primeiro dia da semana: as outras três são estado de UI, escritas na main
+  thread, sem nada para chegar "depois".
 
 ### 5.3 Estado de UI e eventos
 - Estado contínuo (lista, filtros, formulário): `LiveData<Estado>`.

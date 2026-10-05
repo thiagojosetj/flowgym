@@ -7,13 +7,11 @@ import androidx.lifecycle.Transformations;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Set;
-
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import io.github.thiagojosetj.gym.core.AppExecutors;
@@ -43,7 +41,11 @@ import io.github.thiagojosetj.gym.domain.session.SessionSummary;
  *   <li>The <b>list</b> is observed, because a session finishing on another screen must make it
  *       appear. It is one query and one {@code map}, never several sources combined - a screen
  *       assembled from two queries renders whichever answered first, which is how this project
- *       already shipped three bugs.</li>
+ *       already shipped three bugs. The calendar (HIS-02) obeys the same rule the only way that
+ *       actually holds: {@link #observeTrainedDates()} is not a second query but a {@code map} of
+ *       the very LiveData the list is made of, so the grid and the rows below it can only ever
+ *       come from one emission. A {@code SELECT DISTINCT local_date} of its own would have been
+ *       cheaper to read and would have put the two back in a race.</li>
  *   <li>A <b>session</b> is loaded once, not observed, because a finished session cannot change.
  *       There is no second emission to wait for, so there is no half-built state to render.</li>
  * </ul>
@@ -54,16 +56,27 @@ public final class HistoryRepository {
     private final AppExecutors executors;
     /** Injected rather than System.currentTimeMillis, so a test can say when a removal happened. */
     private final Clock clock;
+    /**
+     * The one query the history screen runs. Held as a field, not rebuilt per call, because
+     * everything else that screen shows is mapped off this same instance - see the class note.
+     */
+    private final LiveData<List<SessionHistoryEntry>> history;
+    private final LiveData<Set<LocalDate>> trainedDates;
 
     public HistoryRepository(AppDatabase database, AppExecutors executors, Clock clock) {
         this.dao = database.sessionDao();
         this.executors = executors;
         this.clock = clock;
+        // Nothing touches the database here: a Room LiveData runs its query the first time it is
+        // observed, so building the chain up front costs an object and no disk.
+        this.history = Transformations.map(dao.observeCompletedSessions(),
+                HistoryRepository::toEntries);
+        this.trainedDates = Transformations.map(history, HistoryRepository::toDates);
     }
 
     /** Every finished session, newest first. Empty while nothing has been performed yet. */
     public LiveData<List<SessionHistoryEntry>> observeHistory() {
-        return Transformations.map(dao.observeCompletedSessions(), HistoryRepository::toEntries);
+        return history;
     }
 
     /**
@@ -100,25 +113,14 @@ public final class HistoryRepository {
      * a quiet lie, and there is nothing to guess from.
      */
     public LiveData<Set<LocalDate>> observeTrainedDates() {
-        return Transformations.map(dao.observeTrainedDates(), HistoryRepository::toDates);
+        return trainedDates;
     }
 
-    /**
-     * The newest day with a session, or null when nothing was performed yet.
-     *
-     * <p>The calendar uses it to decide how far forward it may go. Stopping at the current month
-     * would be tidier, but a session recorded while the device clock was ahead would then be
-     * unreachable - hidden, not absent.
-     */
-    public LiveData<LocalDate> observeLastTrainedDate() {
-        return Transformations.map(dao.observeLastTrainedDate(), HistoryRepository::toDate);
-    }
-
-    private static Set<LocalDate> toDates(List<String> stored) {
+    private static Set<LocalDate> toDates(List<SessionHistoryEntry> entries) {
         Set<LocalDate> dates = new LinkedHashSet<>();
-        if (stored != null) {
-            for (String value : stored) {
-                LocalDate date = toDate(value);
+        if (entries != null) {
+            for (SessionHistoryEntry entry : entries) {
+                LocalDate date = toDate(entry.localDate());
                 if (date != null) {
                     dates.add(date);
                 }

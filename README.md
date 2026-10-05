@@ -16,9 +16,9 @@ apenas como referência conceitual: nenhum código, texto, imagem ou identidade 
 🟡 **Em desenvolvimento — já dá para treinar com ele.**
 
 O ciclo completo funciona: montar um treino, iniciá-lo, registrar cada série, descansar com
-cronômetro, finalizar e ver o resumo. Tudo local, sem conta e sem internet. Falta validar em aparelho
-a notificação e o serviço em primeiro plano, e o histórico ainda não tem tela própria. Veja o
-[roadmap](docs/ROADMAP.md).
+cronômetro, finalizar, ver o resumo e reabrir qualquer sessão passada pelo histórico. Tudo local,
+sem conta e sem internet. Falta validar em aparelho a notificação e o serviço em primeiro plano.
+Veja o [roadmap](docs/ROADMAP.md).
 
 ## Screenshots
 
@@ -53,13 +53,18 @@ verificadas por testes de UI automatizados.)
 - **Finalização honesta**: antes de finalizar, o app diz exatamente o que fará com cada série não
   confirmada; nada é descartado em silêncio, e o resumo informa quantas séries **não** entraram no
   volume (peso corporal e exercícios por tempo ficam fora de propósito).
+- **Histórico**: sessões concluídas, mais recentes primeiro, com **calendário do mês** marcando os
+  dias treinados — tocar num dia deixa só as sessões dele. O dia é o que foi vivido (o fuso viaja
+  com a sessão), não o que o relógio diz agora. Cada sessão abre em detalhe montado **só dos
+  snapshots** dela: editar o treino depois não muda o passado. Comparação com a sessão anterior do
+  mesmo treino (volume, séries, repetições, tempo efetivo), avaliação opcional de 1 a 5 e exclusão
+  de uma sessão registrada por engano.
 - **Configurações da conta**: descanso padrão (90 s de fábrica, editável), som e vibração.
 - **Tema** claro, escuro ou seguindo o sistema; paleta própria (Material 3).
 - **Multiusuário desde o banco**: identidade local agora, pronta para contas e sincronização depois.
 
 ### Planejadas
-Histórico e calendário,
-comparação com a sessão anterior, recordes pessoais, gráficos, rotinas semanais e **cíclicas**,
+Recordes pessoais, gráficos, rotinas semanais e **cíclicas**,
 metas e sequências de aderência, conquistas, contas + sincronização entre aparelhos, compartilhamento
 de treinos e dados corporais (peso e bioimpedância). Detalhes em
 [docs/PRODUCT_SPEC.md](docs/PRODUCT_SPEC.md).
@@ -127,16 +132,17 @@ release (o id de debug termina em `.debug`).
 ./gradlew :domain:test :app:testDebugUnitTest :app:lintDebug
 ```
 
-São **339 testes** (140 no `:domain`, 199 no `:app`), todos na JVM — nenhum emulador necessário.
+São **397 testes** (154 no `:domain`, 243 no `:app`), todos na JVM — nenhum emulador necessário.
 
 - **`:domain`** — regras puras: padrões de treino, validações, cargas, UUID v7, normalização de busca,
   aritmética de tempo do treino (pausas, relógio andando para trás, descanso), volume (com as exclusões
   que a especificação exige) e a validação da finalização.
 - **`:app`** (Robolectric) — seed do catálogo, busca e filtros no SQLite real, ida e volta do agregado
   de treino, migrations v1 → v4, ViewModels, o **fluxo completo pela interface** (biblioteca →
-  selecionar exercício → criar treino → editar séries → salvar → reabrir) e o **treino em andamento**
-  (iniciar → registrar série → descanso → pausar → finalizar), incluindo um teste que fecha o banco em
-  arquivo e reabre para provar que um treino sobrevive à morte do processo.
+  selecionar exercício → criar treino → editar séries → salvar → reabrir), o **treino em andamento**
+  (iniciar → registrar série → descanso → pausar → finalizar) e o **histórico** (calendário, filtro
+  por dia, detalhe, avaliação e exclusão), incluindo um teste que fecha o banco em arquivo e reabre
+  para provar que um treino sobrevive à morte do processo.
 - **Lint** do Android com `checkDependencies`, o que inclui o módulo `:domain` contra a API 28.
   O único achado é o `AndroidGradlePluginVersion` (pergunta a uma lista remota se existe algo mais
   novo, então muda sozinho sem ninguém commitar nada); o CI o trata como aviso e barra qualquer outro.

@@ -342,6 +342,17 @@
     <!-- History (PRODUCT_SPEC HIS-01, HIS-03, HIS-04) -->
     <string name="history_empty_title">Nenhum treino no histórico</string>
     <string name="history_empty_body">Quando você finalizar um treino, ele aparece aqui com duração, exercícios e séries.</string>
+    <string name="calendar_previous_month">Mês anterior</string>
+    <string name="calendar_next_month">Próximo mês</string>
+    <plurals name="calendar_trained_days">
+        <item quantity="one">%d dia treinado neste mês</item>
+        <item quantity="other">%d dias treinados neste mês</item>
+    </plurals>
+    <string name="calendar_day_trained">%s · treinou</string>
+    <string name="calendar_day_free">%s · sem treino</string>
+    <string name="history_filtered_by_day">Mostrando %s</string>
+    <string name="history_show_all_days">Ver todas</string>
+    <string name="history_empty_day">Nenhuma sessão neste dia.</string>
     <string name="history_session_options">Opções da sessão</string>
     <string name="history_session_options_of">Opções de \"%s\"</string>
     <string name="history_delete_action">Excluir do histórico</string>

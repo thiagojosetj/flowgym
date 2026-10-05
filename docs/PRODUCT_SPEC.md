@@ -116,8 +116,24 @@ notificação, o serviço em primeiro plano e o alerta com a tela apagada.
   imutabilidade: a sessão sai inteira, nada que ela registrou é reescrito (ADR-0041).
   **Lacuna conhecida:** uma sessão posterior ainda compara com a sessão excluída, porque o
   pareamento é gravado no início e não refiltra.
+- **HIS-02** **Calendário do mês** acima da lista: cada dia com pelo menos uma sessão concluída
+  aparece marcado, e tocar nele deixa na lista só as sessões daquele dia. Tocar no mesmo dia de
+  novo, ou em "Ver todas", mostra o histórico inteiro — o gesto que filtra é o que desfiltra, e o
+  filtro não tem como ficar preso. Tocar num dia **sem** treino responde "Nenhuma sessão neste
+  dia" em vez de deixar a tela vazia, que se lê como defeito.
+  - O dia é o `local_date` gravado pela sessão, **nunca** derivado de `started_at`: um treino às
+    23:30 em São Paulo é daquele dia mesmo depois que o telefone muda de fuso (§11).
+  - As setas param onde o treino para — do mês da sessão mais antiga ao da mais recente, incluindo
+    sempre o mês atual. O limite é a **última sessão**, não hoje: um aparelho com o relógio
+    adiantado grava um dia no futuro, e parar em hoje esconderia essa sessão em vez de mostrá-la.
+  - Mudar de mês limpa o filtro de dia: as linhas não podem continuar mostrando um dia que a grade
+    acima não tem mais.
+  - A grade e a lista saem da **mesma** emissão (a mesma LiveData, mapeada), não de duas consultas.
+    É estrutural, não testável aqui: os testes rodam com executores síncronos, onde duas consultas
+    também pareceriam consistentes.
+
 **Implementado (28/09/2026):** HIS-01 (menos recordes e medalhas, que dependem das Fases 5 e 7),
-HIS-03 e a comparação de sessão do HIS-04. **HIS-02 (calendário) não foi feito.**
+HIS-03 e a comparação de sessão do HIS-04. **HIS-02 (calendário) foi feito em 05/10/2026.**
 
 A comparação do resumo é com a **sessão anterior do mesmo template**; a comparação série a série
 continua sendo a do ponteiro congelado no início da sessão (a última sessão concluída que tem aquele
