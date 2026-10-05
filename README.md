@@ -60,7 +60,7 @@ verificadas por testes de UI automatizados.)
   mesmo treino — totais (volume, séries, repetições, tempo efetivo) e **exercício por exercício**,
   cada um abrindo a comparação série a série. Exercício que só uma das duas sessões teve é
   **nomeado**, nunca comparado com zero. Avaliação opcional de 1 a 5 e exclusão de uma sessão
-  registrada por engano.
+  registrada por engano, além de uma **observação em texto** sobre a sessão.
 - **Configurações da conta**: descanso padrão (90 s de fábrica, editável), som e vibração.
 - **Tema** claro, escuro ou seguindo o sistema; paleta própria (Material 3).
 - **Multiusuário desde o banco**: identidade local agora, pronta para contas e sincronização depois.
@@ -134,7 +134,7 @@ release (o id de debug termina em `.debug`).
 ./gradlew :domain:test :app:testDebugUnitTest :app:lintDebug
 ```
 
-São **424 testes** (171 no `:domain`, 253 no `:app`), todos na JVM — nenhum emulador necessário.
+São **434 testes** (171 no `:domain`, 263 no `:app`), todos na JVM — nenhum emulador necessário.
 
 - **`:domain`** — regras puras: padrões de treino, validações, cargas, UUID v7, normalização de busca,
   aritmética de tempo do treino (pausas, relógio andando para trás, descanso), volume (com as exclusões

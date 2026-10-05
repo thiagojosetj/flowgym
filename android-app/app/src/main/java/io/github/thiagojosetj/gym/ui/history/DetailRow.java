@@ -38,6 +38,9 @@ public interface DetailRow {
      * @param rating           1 to 5, or null when the person gave none - and no rating is not a
      *                         rating of zero. It is the value, not a sentence, because the row
      *                         draws it as the same 1-5 control the finish summary offers
+     * @param notes            what the person wrote about the session, or null when nothing. It is
+     *                         the stored text, not a rendering of it: the row holds an editable
+     *                         field
      * @param comparison       null when this was the first time the workout was performed
      * @param noComparison     says so in that case, and is null otherwise
      * @param exercisesTitle   heading of the exercises below, null when there are none
@@ -52,6 +55,7 @@ public interface DetailRow {
             String outsideVolume,
             Line timeUnderTension,
             Integer rating,
+            String notes,
             Comparison comparison,
             String noComparison,
             String exercisesTitle) implements DetailRow {

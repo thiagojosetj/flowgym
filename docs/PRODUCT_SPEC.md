@@ -115,7 +115,14 @@ notificação, o serviço em primeiro plano e o alerta com a tela apagada.
     academia com a mesma frequência com que é respondido.
   - Se a gravação **falhar**, a tela volta para a nota que está no banco e avisa. Uma estrela
     acesa que não existe no banco é o app afirmando algo que não é verdade.
-  - **Não feito:** observação em texto da sessão (a coluna `notes` existe).
+  - **Observação em texto** da sessão, no mesmo card: campo livre ("Como foi, o que doeu, o que
+    mudar da próxima vez…"). Grava quando o campo **perde o foco** e quando a **tela pausa** —
+    nunca a cada tecla, que seria uma transação por caractere num texto que não é resultado de
+    nada. O que ainda está sendo digitado quando o processo morre se perde, que é exatamente a
+    regra que a ADR-0031 já dá para texto em digitação (e a §6.5 para valores não confirmados de
+    uma série). Texto em branco é **nenhuma** observação, gravado como `NULL`: "apaguei a minha"
+    e "nunca escrevi" têm de continuar sendo a mesma coisa. Abrir e sair da tela sem mudar nada
+    **não grava** — visitar não é editar, e gravar marcaria a linha para sincronizar à toa.
 - **HIS-05** **Excluir uma sessão do histórico**, pelo menu da linha, com confirmação que nomeia
   a sessão. Ela sai da lista e deixa de contar nos números; o treino que a gerou continua em
   Treinos. Exclusão é **soft** (`deleted_at`), para poder ser sincronizada. Não fere a

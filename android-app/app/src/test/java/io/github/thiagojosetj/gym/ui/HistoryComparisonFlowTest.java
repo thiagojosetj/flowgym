@@ -2,10 +2,12 @@ package io.github.thiagojosetj.gym.ui;
 
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
+import static androidx.test.espresso.action.ViewActions.replaceText;
 import static androidx.test.espresso.assertion.ViewAssertions.doesNotExist;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.contrib.RecyclerViewActions.scrollTo;
 import static androidx.test.espresso.matcher.ViewMatchers.hasDescendant;
+import static androidx.test.espresso.matcher.ViewMatchers.isAssignableFrom;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
@@ -20,11 +22,17 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.database.Cursor;
+import android.view.View;
+import android.widget.EditText;
 
 import androidx.test.core.app.ActivityScenario;
+import androidx.test.espresso.UiController;
+import androidx.test.espresso.ViewAction;
 import androidx.test.core.app.ApplicationProvider;
+import androidx.lifecycle.Lifecycle;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
+import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.annotation.Config;
@@ -258,7 +266,160 @@ public class HistoryComparisonFlowTest {
         }
     }
 
+    @Test
+    public void aNoteAboutTheSessionIsWrittenWhenTheFieldStopsBeingEdited() {
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            performWorkout(template(SECOND, SUPINO), 40, 10);
+            openNewestSession();
+
+            // Tapped first, as a person would: the field has to hold the focus before it can
+            // lose it.
+            onView(withId(R.id.note_input)).perform(click(), replaceText("Ombro esquerdo incomodou"));
+            assertNull("ainda digitando nao e resultado", storedNote());
+
+            onView(withId(R.id.note_input)).perform(stopEditing());
+
+            assertEquals("Ombro esquerdo incomodou", storedNote());
+        }
+    }
+
+    @Test
+    public void leavingTheScreenWritesWhatWasTypedEvenWithoutLosingFocus() {
+        try (ActivityScenario<MainActivity> scenario =
+                     ActivityScenario.launch(MainActivity.class)) {
+            performWorkout(template(SECOND, SUPINO), 40, 10);
+            openNewestSession();
+            onView(withId(R.id.note_input)).perform(replaceText("Treinei em jejum"));
+
+            // Home, recents or back never take focus away, and the text would leave with the
+            // screen.
+            scenario.moveToState(Lifecycle.State.STARTED);
+
+            assertEquals("Treinei em jejum", storedNote());
+        }
+    }
+
+    @Test
+    public void anEmptyNoteIsNoNoteRatherThanAnEmptyOne() {
+        try (ActivityScenario<MainActivity> scenario =
+                     ActivityScenario.launch(MainActivity.class)) {
+            performWorkout(template(SECOND, SUPINO), 40, 10);
+            openNewestSession();
+            onView(withId(R.id.note_input)).perform(replaceText("Alguma coisa"));
+            scenario.moveToState(Lifecycle.State.STARTED);
+            scenario.moveToState(Lifecycle.State.RESUMED);
+
+            onView(withId(R.id.note_input)).perform(replaceText("   "));
+            scenario.moveToState(Lifecycle.State.STARTED);
+
+            assertNull("espaco em branco nao e observacao", storedNote());
+        }
+    }
+
+    @Test
+    public void typingOnlySpacesOnASessionWithNoNoteWritesNothingAtAll() {
+        try (ActivityScenario<MainActivity> scenario =
+                     ActivityScenario.launch(MainActivity.class)) {
+            performWorkout(template(SECOND, SUPINO), 40, 10);
+            openNewestSession();
+            long before = lastWrittenAt();
+            // The clock has to move, or a write would land on the same updated_at and look like
+            // no write at all.
+            aWeekLater();
+
+            onView(withId(R.id.note_input)).perform(click(), replaceText("   "));
+            scenario.moveToState(Lifecycle.State.STARTED);
+
+            // Blank is the same "no note" the session already had, so there is nothing to write.
+            // Writing anyway would touch updated_at and mark the row for sync over nothing.
+            assertEquals("nao havia o que gravar", before, lastWrittenAt());
+            assertNull(storedNote());
+        }
+    }
+
+    @Test
+    public void theNoteIsStillThereWhenTheSessionIsOpenedAgain() {
+        try (ActivityScenario<MainActivity> scenario =
+                     ActivityScenario.launch(MainActivity.class)) {
+            performWorkout(template(SECOND, SUPINO), 40, 10);
+            openNewestSession();
+            onView(withId(R.id.note_input)).perform(replaceText("Peguei 45 na ultima"));
+            scenario.moveToState(Lifecycle.State.STARTED);
+            scenario.moveToState(Lifecycle.State.RESUMED);
+
+            pressBack();
+            onView(withText(SECOND)).perform(click());
+
+            onView(withId(R.id.note_input)).check(matches(withText("Peguei 45 na ultima")));
+        }
+    }
+
+    @Test
+    public void aNoteThatDidNotChangeIsNotWrittenAgainOnTheWayOut() {
+        try (ActivityScenario<MainActivity> scenario =
+                     ActivityScenario.launch(MainActivity.class)) {
+            performWorkout(template(SECOND, SUPINO), 40, 10);
+            openNewestSession();
+            onView(withId(R.id.note_input)).perform(click(), replaceText("Tudo certo"));
+            scenario.moveToState(Lifecycle.State.STARTED);
+            scenario.moveToState(Lifecycle.State.RESUMED);
+            long afterTheNote = lastWrittenAt();
+            aWeekLater();
+
+            // Visiting the screen and leaving it again is not a change. Writing anyway would
+            // touch updated_at and queue the row for sync every time it is merely looked at.
+            scenario.moveToState(Lifecycle.State.STARTED);
+
+            assertEquals("visitar nao e editar", afterTheNote, lastWrittenAt());
+        }
+    }
+
     // ------------------------------------------------------------------ helpers
+
+    /**
+     * The field stops being edited - what happens when another field takes the focus.
+     *
+     * <p>There is no Espresso action for it, and tapping elsewhere on this screen does not do it:
+     * a button is not focusable in touch mode, so it takes nothing away from a text field. On
+     * this screen the note's real safety net is the write on pause, which the next test covers.
+     */
+    private static ViewAction stopEditing() {
+        return new ViewAction() {
+            @Override
+            public Matcher<View> getConstraints() {
+                return isAssignableFrom(EditText.class);
+            }
+
+            @Override
+            public String getDescription() {
+                return "clear focus";
+            }
+
+            @Override
+            public void perform(UiController controller, View view) {
+                view.clearFocus();
+                controller.loopMainThreadUntilIdle();
+            }
+        };
+    }
+
+    /** When the row was last touched, so a test can say that nothing was written. */
+    private static long lastWrittenAt() {
+        try (Cursor cursor = container().database.getOpenHelper().getReadableDatabase()
+                .query("SELECT updated_at FROM workout_session WHERE deleted_at IS NULL")) {
+            assertTrue("devia haver exatamente uma sessao", cursor.moveToFirst());
+            return cursor.getLong(0);
+        }
+    }
+
+    /** What the database holds for the note, which is the only thing that outlives the screen. */
+    private static String storedNote() {
+        try (Cursor cursor = container().database.getOpenHelper().getReadableDatabase()
+                .query("SELECT notes FROM workout_session WHERE deleted_at IS NULL")) {
+            assertTrue("devia haver exatamente uma sessao", cursor.moveToFirst());
+            return cursor.isNull(0) ? null : cursor.getString(0);
+        }
+    }
 
     /** What the database holds, which is the only thing that survives the screen. */
     private static Integer storedRating() {

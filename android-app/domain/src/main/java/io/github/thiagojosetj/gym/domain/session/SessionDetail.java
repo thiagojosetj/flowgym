@@ -79,4 +79,22 @@ public record SessionDetail(
         return new SessionDetail(session, summary, localDate, timeZone, newRating, exercises,
                 comparison);
     }
+
+    /**
+     * The same session with a different note.
+     *
+     * <p>The note lives on the session header, where it was already carried, rather than being
+     * copied onto this record: one fact, one place. Allowed on a finished session for the same
+     * reason the rating is - it is what the person wrote, not what the session measured
+     * (ADR-0041).
+     */
+    public SessionDetail withNotes(String newNotes) {
+        return new SessionDetail(session.withNotes(newNotes), summary, localDate, timeZone,
+                rating, exercises, comparison);
+    }
+
+    /** What the person wrote about this session, or null when they wrote nothing. */
+    public String notes() {
+        return session.header().notes();
+    }
 }

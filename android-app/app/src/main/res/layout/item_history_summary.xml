@@ -5,6 +5,7 @@
     an empty line would read as a value nobody entered.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -97,6 +98,31 @@
                 layout="@layout/view_session_rating"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />
+
+            <!--
+                Free text about the session. Written when the field loses focus and when the
+                screen pauses, never per keystroke: there is no result riding on it, and ADR-0031
+                already treats text in typing as not yet a result.
+            -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/note_layout"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_m"
+                android:hint="@string/history_note_label"
+                app:placeholderText="@string/history_note_hint">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/note_input"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="top|start"
+                    android:importantForAutofill="no"
+                    android:inputType="textMultiLine|textCapSentences"
+                    android:minLines="2"
+                    tools:ignore="TextFields" />
+            </com.google.android.material.textfield.TextInputLayout>
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 

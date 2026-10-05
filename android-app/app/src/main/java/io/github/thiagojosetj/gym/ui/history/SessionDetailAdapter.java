@@ -3,6 +3,7 @@ package io.github.thiagojosetj.gym.ui.history;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -34,6 +35,9 @@ final class SessionDetailAdapter extends ListAdapter<DetailRow, RecyclerView.Vie
 
         /** @param rating 1 to 5, or null when the chosen number was tapped again */
         void onRate(@Nullable Integer rating);
+
+        /** The note as it stands now; called when the field stops being edited. */
+        void onNote(@Nullable String notes);
     }
 
     /** Left to right, so the index is the rating minus one. */
@@ -153,6 +157,7 @@ final class SessionDetailAdapter extends ListAdapter<DetailRow, RecyclerView.Vie
             setOptional(views.outsideVolume, row.outsideVolume());
             setLine(views.timeUnderTension, row.timeUnderTension());
             bindRating(row);
+            bindNote(row);
             bindComparison(row);
             setOptional(views.exercisesTitle, row.exercisesTitle());
         }
@@ -194,6 +199,36 @@ final class SessionDetailAdapter extends ListAdapter<DetailRow, RecyclerView.Vie
                     }
                 }
             });
+        }
+
+        /**
+         * Shows the stored note and reports it when the field stops being edited.
+         *
+         * <p>The text is only pushed into the field when it actually differs from what is there.
+         * Re-setting it on every redraw would move the cursor to the start while the person is
+         * still typing - and a redraw happens on every tap of the rating beside it.
+         */
+        private void bindNote(DetailRow.Summary row) {
+            String stored = row.notes() == null ? "" : row.notes();
+            EditText input = views.noteInput;
+            String shown = input.getText() == null ? "" : input.getText().toString();
+            if (!shown.equals(stored) && !input.hasFocus()) {
+                input.setText(stored);
+            }
+            input.setOnFocusChangeListener((v, hasFocus) -> {
+                if (!hasFocus) {
+                    listener.onNote(text(input));
+                }
+            });
+        }
+
+        /** Whatever is in the note field right now, for the screen to write on its way out. */
+        String noteText() {
+            return text(views.noteInput);
+        }
+
+        private static String text(EditText input) {
+            return input.getText() == null ? null : input.getText().toString();
         }
 
         private void bindComparison(DetailRow.Summary row) {

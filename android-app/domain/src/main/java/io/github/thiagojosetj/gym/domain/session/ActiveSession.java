@@ -30,6 +30,11 @@ public record ActiveSession(SessionHeader header, List<SessionExercise> exercise
                 : Collections.unmodifiableMap(new LinkedHashMap<>(groupByExerciseId));
     }
 
+    /** The same session carrying a different note on its header. */
+    public ActiveSession withNotes(String newNotes) {
+        return new ActiveSession(header.withNotes(newNotes), exercises, groupByExerciseId);
+    }
+
     /** A session in which every exercise stands alone. */
     public ActiveSession(SessionHeader header, List<SessionExercise> exercises) {
         this(header, exercises, null);

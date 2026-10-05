@@ -686,6 +686,56 @@ public class HistoryRepositoryTest {
     }
 
 
+    // ---------------------------------------------------------------- session note (HIS-06)
+
+    @Test
+    public void aNoteIsStoredAndComesBackWithTheSession() throws Exception {
+        String sessionId = finishedSessionForRating();
+
+        assertTrue(note(sessionId, "Ombro esquerdo incomodou na terceira"));
+
+        assertEquals("Ombro esquerdo incomodou na terceira", loadDetail(sessionId).notes());
+    }
+
+    @Test
+    public void blankTextIsNoNoteAtAllAndIsStoredAsNull() throws Exception {
+        // "I deleted my note" and "I never wrote one" have to stay the same thing, or a screen
+        // showing "has a note" would be telling the difference where there is none.
+        String sessionId = finishedSessionForRating();
+        note(sessionId, "Alguma coisa");
+
+        note(sessionId, "   ");
+
+        assertNull(loadDetail(sessionId).notes());
+        assertEquals("a coluna tem de ficar NULL, nao uma string vazia",
+                1L, count("SELECT COUNT(*) FROM workout_session WHERE notes IS NULL"));
+    }
+
+    @Test
+    public void aNoteIsTrimmedBeforeItIsStored() throws Exception {
+        String sessionId = finishedSessionForRating();
+
+        note(sessionId, "  Treinei em jejum  ");
+
+        assertEquals("Treinei em jejum", loadDetail(sessionId).notes());
+    }
+
+    @Test
+    public void thereIsNothingToNoteOnASessionThatIsNotThere() throws Exception {
+        // Said, not thrown: writing twice on a session someone deleted meanwhile is not an error,
+        // and the screen has nothing different to do about it.
+        assertFalse(note("nao-existe", "qualquer coisa"));
+    }
+
+    private boolean note(String sessionId, String text) {
+        AtomicReference<Boolean> done = new AtomicReference<>();
+        AtomicReference<Throwable> error = new AtomicReference<>();
+        app.history.note(sessionId, text, done::set, error::set);
+        assertNull("note should not have failed: " + error.get(), error.get());
+        assertNotNull("note should have answered", done.get());
+        return done.get();
+    }
+
     // ---------------------------------------------------------------- calendar (HIS-02)
 
     @Test

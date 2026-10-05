@@ -166,6 +166,21 @@ public final class HistoryRepository {
                 onDone, onError);
     }
 
+    /**
+     * Records what the person wrote about the session, or removes it when the text is empty.
+     *
+     * <p>Commentary, like the rating, and the same reasoning (ADR-0041): nothing the session
+     * measured is touched. Blank text is stored as NULL rather than as "", so "I deleted my note"
+     * and "I never wrote one" stay the same thing, which is what the screen shows either way.
+     */
+    public void note(String sessionId, @Nullable String notes, Consumer<Boolean> onDone,
+                     Consumer<Throwable> onError) {
+        String trimmed = notes == null ? null : notes.trim();
+        String stored = trimmed == null || trimmed.isEmpty() ? null : trimmed;
+        executors.runOnDisk(() -> dao.noteSession(sessionId, stored, clock.millis()) > 0,
+                onDone, onError);
+    }
+
     private SessionDetail detailOf(String sessionId) throws Exception {
         WorkoutSessionEntity entity = dao.findSession(sessionId);
         SessionHeaderRow header = dao.findHeader(sessionId);

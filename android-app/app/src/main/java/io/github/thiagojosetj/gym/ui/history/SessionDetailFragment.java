@@ -12,6 +12,7 @@ import androidx.fragment.app.Fragment;
 
 import com.google.android.material.snackbar.Snackbar;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -20,6 +21,7 @@ import java.util.Locale;
 import java.util.function.LongFunction;
 
 import io.github.thiagojosetj.gym.AppContainer;
+import io.github.thiagojosetj.gym.core.Event;
 import io.github.thiagojosetj.gym.R;
 import io.github.thiagojosetj.gym.databinding.FragmentSessionDetailBinding;
 import io.github.thiagojosetj.gym.domain.model.TrackingType;
@@ -81,12 +83,10 @@ public class SessionDetailFragment extends Fragment implements SessionDetailAdap
         binding.list.setItemAnimator(null);
 
         viewModel.state().observe(getViewLifecycleOwner(), this::render);
-        viewModel.ratingFailures().observe(getViewLifecycleOwner(), event -> {
-            if (event.consume() != null && binding != null) {
-                Snackbar.make(binding.getRoot(), R.string.history_rating_failed,
-                        Snackbar.LENGTH_LONG).show();
-            }
-        });
+        viewModel.ratingFailures().observe(getViewLifecycleOwner(), event ->
+                sayItFailed(event, R.string.history_rating_failed));
+        viewModel.noteFailures().observe(getViewLifecycleOwner(), event ->
+                sayItFailed(event, R.string.history_note_failed));
     }
 
     private void render(SessionDetailViewModel.State state) {
@@ -110,6 +110,38 @@ public class SessionDetailFragment extends Fragment implements SessionDetailAdap
     @Override
     public void onRate(@Nullable Integer rating) {
         viewModel.rate(rating);
+    }
+
+    @Override
+    public void onNote(@Nullable String notes) {
+        viewModel.note(notes);
+    }
+
+    /**
+     * Writes whatever is in the note field before the screen stops being used.
+     *
+     * <p>Losing focus is not enough on its own: leaving by the back button, by the recents
+     * screen or by the home button never takes focus away, and the text would go with the
+     * screen. What a kill takes while the keyboard is still open is accepted, and is the same
+     * rule ADR-0031 sets for text in typing.
+     */
+    @Override
+    public void onPause() {
+        super.onPause();
+        if (binding == null || viewModel == null) {
+            return;
+        }
+        RecyclerView.ViewHolder holder = binding.list.findViewHolderForAdapterPosition(0);
+        if (holder instanceof SessionDetailAdapter.SummaryHolder summary) {
+            viewModel.note(summary.noteText());
+        }
+    }
+
+    /** The screen is showing what IS stored again; this says why it changed back. */
+    private void sayItFailed(Event<Boolean> event, @StringRes int message) {
+        if (event.consume() != null && binding != null) {
+            Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_LONG).show();
+        }
     }
 
     // ------------------------------------------------------------------ rows
@@ -176,8 +208,8 @@ public class SessionDetailFragment extends Fragment implements SessionDetailAdap
         return new DetailRow.Summary("summary", summary.name(), dateTime, duration, sets, volume,
                 // Null means no rating at all, and the control shows nothing chosen: it is never
                 // drawn as a rating of zero.
-                outsideVolume, timeUnderTension, detail.rating(), comparison, noComparison,
-                exercisesTitle);
+                outsideVolume, timeUnderTension, detail.rating(), detail.notes(), comparison,
+                noComparison, exercisesTitle);
     }
 
     // ------------------------------------------------------------------ comparison

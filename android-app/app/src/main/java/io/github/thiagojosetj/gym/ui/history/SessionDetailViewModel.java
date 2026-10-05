@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel;
 
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.Objects;
 import java.util.Set;
 
 import io.github.thiagojosetj.gym.core.Event;
@@ -44,6 +45,7 @@ public final class SessionDetailViewModel extends ViewModel {
 
     private final MutableLiveData<State> state = new MutableLiveData<>(State.loadingState());
     private final MutableLiveData<Event<Boolean>> ratingFailures = new MutableLiveData<>();
+    private final MutableLiveData<Event<Boolean>> noteFailures = new MutableLiveData<>();
     private final HistoryRepository history;
     private final String sessionId;
 
@@ -66,6 +68,11 @@ public final class SessionDetailViewModel extends ViewModel {
         return ratingFailures;
     }
 
+    /** The same, for the note. */
+    public LiveData<Event<Boolean>> noteFailures() {
+        return noteFailures;
+    }
+
     /**
      * Records how the workout felt, or clears it when given null (PRODUCT_SPEC HIS-06).
      *
@@ -86,6 +93,47 @@ public final class SessionDetailViewModel extends ViewModel {
                 failed(previous);
             }
         }, error -> failed(previous));
+    }
+
+    /**
+     * Records what the person wrote about the session, or removes it when the text is empty.
+     *
+     * <p>Called when the field loses focus and again when the screen pauses, never on every
+     * keystroke: a write per character would be a transaction per character, and the field is
+     * free text with no result riding on it. What is still being typed when the process is killed
+     * is lost, which is the rule ADR-0031 already sets for text in typing - a set's unconfirmed
+     * values are treated the same way (PRODUCT_SPEC section 6.5).
+     *
+     * <p>Does nothing when the text has not changed, so pausing the screen does not write on
+     * every visit.
+     */
+    public void note(@Nullable String text) {
+        State current = state.getValue();
+        if (current == null || current.detail() == null) {
+            return;
+        }
+        String trimmed = text == null ? "" : text.trim();
+        String wanted = trimmed.isEmpty() ? null : trimmed;
+        String stored = current.detail().notes();
+        if (Objects.equals(wanted, stored)) {
+            return;
+        }
+        state.setValue(new State(false, current.detail().withNotes(wanted), false,
+                current.expandedExercises()));
+        history.note(sessionId, wanted, saved -> {
+            if (!Boolean.TRUE.equals(saved)) {
+                noteFailed(stored);
+            }
+        }, error -> noteFailed(stored));
+    }
+
+    private void noteFailed(String previous) {
+        State current = state.getValue();
+        if (current != null && current.detail() != null) {
+            state.setValue(new State(false, current.detail().withNotes(previous), false,
+                    current.expandedExercises()));
+        }
+        noteFailures.setValue(new Event<>(true));
     }
 
     private void failed(Integer previous) {

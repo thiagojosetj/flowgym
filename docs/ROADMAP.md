@@ -92,7 +92,19 @@ Legenda: ✅ concluído · 🟡 em andamento/parcial · ⬜ não iniciado.
   - Mutação: mostrar sem gravar, gravar zero ao limpar e **deixar o listener ligado enquanto o
     valor guardado é aplicado** (que faria cada redesenho regravar o que acabou de ler) — todas
     matam teste.
-  - **Falta:** observação em texto (`notes` existe).
+- ✅ **Observação em texto da sessão** no mesmo card (a coluna `notes` já existia desde a v1 —
+  **sem migração**). Grava ao perder o foco e ao pausar a tela; em branco vira `NULL`; visitar a
+  tela e sair não grava nada.
+  - A observação **não** ganhou campo próprio em `SessionDetail`: ela já viajava no
+    `SessionHeader`, e duplicá-la criaria duas fontes para o mesmo fato. `withNotes` reconstrói
+    pelo header.
+  - Mutação: não gravar ao sair, não gravar ao perder o foco, guardar branco como string vazia
+    (no repositório **e** no ViewModel, cada um provado no seu nível) e regravar uma observação
+    inalterada a cada pausa — **todas matam** teste.
+  - APK de release: 3.390.827 → 3.394.563 bytes (**+4 KB**).
+  - Dois sobreviventes ensinaram algo: as duas normalizações de branco se **mascaravam**
+    mutuamente, e a asserção sobre `updated_at` só vale com o relógio andando entre a gravação e
+    a verificação. Ambas as coisas foram corrigidas nos testes, não no código.
 - ⬜ **Validar no aparelho**: promoção do serviço com tipo `health` na API 34+, som e vibração com a
   tela apagada, `POST_NOTIFICATIONS` negado, force stop e reboot, teclado real.
 
@@ -204,7 +216,19 @@ achados ao implementar: **salvar** um treino desagrupava tudo (o rascunho não c
   - Mutação: mostrar sem gravar, gravar zero ao limpar e **deixar o listener ligado enquanto o
     valor guardado é aplicado** (que faria cada redesenho regravar o que acabou de ler) — todas
     matam teste.
-  - **Falta:** observação em texto (`notes` existe).
+- ✅ **Observação em texto da sessão** no mesmo card (a coluna `notes` já existia desde a v1 —
+  **sem migração**). Grava ao perder o foco e ao pausar a tela; em branco vira `NULL`; visitar a
+  tela e sair não grava nada.
+  - A observação **não** ganhou campo próprio em `SessionDetail`: ela já viajava no
+    `SessionHeader`, e duplicá-la criaria duas fontes para o mesmo fato. `withNotes` reconstrói
+    pelo header.
+  - Mutação: não gravar ao sair, não gravar ao perder o foco, guardar branco como string vazia
+    (no repositório **e** no ViewModel, cada um provado no seu nível) e regravar uma observação
+    inalterada a cada pausa — **todas matam** teste.
+  - APK de release: 3.390.827 → 3.394.563 bytes (**+4 KB**).
+  - Dois sobreviventes ensinaram algo: as duas normalizações de branco se **mascaravam**
+    mutuamente, e a asserção sobre `updated_at` só vale com o relógio andando entre a gravação e
+    a verificação. Ambas as coisas foram corrigidas nos testes, não no código.
 - ✅ **HIS-05 — excluir uma sessão do histórico**: menu da linha, confirmação que nomeia a sessão,
   exclusão soft (`deleted_at`) para poder sincronizar (ADR-0041). **Lacuna registrada:** o
   pareamento "anterior" não refiltra, então uma sessão posterior ainda compara com a excluída.

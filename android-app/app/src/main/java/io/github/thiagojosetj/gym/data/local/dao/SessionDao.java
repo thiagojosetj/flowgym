@@ -331,6 +331,19 @@ public interface SessionDao {
             + " AND status = 'COMPLETED'")
     int rateSession(String sessionId, Integer rating, long now);
 
+    /**
+     * What the person wrote about the session. Same conditions as the rating: a finished session
+     * that still exists.
+     *
+     * @param notes null to remove the note. Empty text is not a note, and storing "" would make a
+     *              deleted note indistinguishable from one nobody ever wrote
+     * @return 0 when there was nothing to write to
+     */
+    @Query("UPDATE workout_session SET notes = :notes, updated_at = :now,"
+            + " sync_status = 'PENDING' WHERE id = :sessionId AND deleted_at IS NULL"
+            + " AND status = 'COMPLETED'")
+    int noteSession(String sessionId, String notes, long now);
+
 
     /**
      * The drops of a set that is being undone. A drop is part of its set (ADR-0037), so leaving
