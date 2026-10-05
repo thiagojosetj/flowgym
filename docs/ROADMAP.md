@@ -168,8 +168,26 @@ achados ao implementar: **salvar** um treino desagrupava tudo (o rascunho não c
     porque o holder antigo era destruído. Com o reuso, a faixa fica no hierarquia como `GONE`, que
     é o que o usuário realmente vê — asserção trocada por `not(isDisplayed())`.
   - APK de release: 3.346.855 → 3.373.699 bytes (**+26 KB**) com a grade, o header e o chevron.
-- ⬜ Comparação **por exercício** expansível série a série (a parte da HIS-04 que falta; o "anterior"
-  de cada série já aparece, vindo do ponteiro congelado).
+- ✅ Comparação **por exercício**, expansível série a série (a parte da HIS-04 que faltava).
+  Emparelha pelo exercício e pela *n*-ésima vez que ele aparece, nunca pela posição; séries por
+  ordem entre as válidas (§11), aquecimento fora. Exercício só de um lado é **nomeado**, não
+  comparado com zero. Cada lado é formatado e medido com o **snapshot da própria sessão**.
+  - Sem consulta nova: a sessão anterior já era carregada inteira para o resumo, e agora os
+    `SessionExercise` dela seguem junto.
+  - Mutação: tirar o emparelhamento por ordinal, comparar aquecimento, emparelhar por posição,
+    pagar os dois blocos do mesmo exercício com o primeiro, sumir com o exercício largado, ler a
+    série anterior com o snapshot de hoje (volume **e** texto), comparar série inexistente contra
+    zero, abrir/fechar as séries e esconder a linha de volume de um exercício sem carga — **todas
+    matam** teste.
+  - Achado pela mutação: formatar a série anterior com o snapshot de hoje não quebrava nada até
+    existir um teste com halteres de um lado e barra do outro. Sem ele, o "/halter" sumia da linha
+    de antes sem ninguém notar.
+  - APK de release: 3.373.699 → 3.390.427 bytes (**+16 KB**).
+  - `TestGymApplication` passou a ter um **relógio móvel** (no mesmo instante do fixo). Sem isso
+    duas sessões do mesmo treino num teste compartilham o `started_at` e nenhuma é "a anterior" da
+    outra — a consulta pede estritamente mais antiga.
+- ⬜ **Validar no aparelho**: a tabela de comparação com um treino longo e a rolagem com todas as
+  séries abertas.
 - 🟡 **HIS-06 — avaliação 1–5** no resumo da finalização, gravada a cada toque e removível
   tocando de novo (ADR-0041 estende a imutabilidade: a nota é comentário de quem treinou,
   não medição). **Falta:** observação em texto (`notes` existe) e avaliar depois pelo detalhe.

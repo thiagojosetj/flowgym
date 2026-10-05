@@ -57,8 +57,10 @@ verificadas por testes de UI automatizados.)
   dias treinados — tocar num dia deixa só as sessões dele. O dia é o que foi vivido (o fuso viaja
   com a sessão), não o que o relógio diz agora. Cada sessão abre em detalhe montado **só dos
   snapshots** dela: editar o treino depois não muda o passado. Comparação com a sessão anterior do
-  mesmo treino (volume, séries, repetições, tempo efetivo), avaliação opcional de 1 a 5 e exclusão
-  de uma sessão registrada por engano.
+  mesmo treino — totais (volume, séries, repetições, tempo efetivo) e **exercício por exercício**,
+  cada um abrindo a comparação série a série. Exercício que só uma das duas sessões teve é
+  **nomeado**, nunca comparado com zero. Avaliação opcional de 1 a 5 e exclusão de uma sessão
+  registrada por engano.
 - **Configurações da conta**: descanso padrão (90 s de fábrica, editável), som e vibração.
 - **Tema** claro, escuro ou seguindo o sistema; paleta própria (Material 3).
 - **Multiusuário desde o banco**: identidade local agora, pronta para contas e sincronização depois.
@@ -132,7 +134,7 @@ release (o id de debug termina em `.debug`).
 ./gradlew :domain:test :app:testDebugUnitTest :app:lintDebug
 ```
 
-São **397 testes** (154 no `:domain`, 243 no `:app`), todos na JVM — nenhum emulador necessário.
+São **421 testes** (171 no `:domain`, 250 no `:app`), todos na JVM — nenhum emulador necessário.
 
 - **`:domain`** — regras puras: padrões de treino, validações, cargas, UUID v7, normalização de busca,
   aritmética de tempo do treino (pausas, relógio andando para trás, descanso), volume (com as exclusões

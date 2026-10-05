@@ -72,6 +72,10 @@ public final class SessionVolume {
     /**
      * One set, including the drops it was taken through (PRODUCT_SPEC section 9.1, ADR-0037).
      *
+     * <p>Public so that a comparison can put two sets side by side under exactly these rules. A
+     * second implementation of them would eventually disagree with this one, and the figure the
+     * person saw when they finished the workout is the one they would trust.
+     *
      * <p>A drop-set is {@code 40 kg x 10 -> 30 kg x 8 -> 20 kg x 6}. The load and the repetitions of
      * every drop are summed in, because they were performed and dropping them would be discarding
      * real work. The set itself still counts as <b>one</b> set: a drop-set is one set taken past
@@ -81,7 +85,7 @@ public final class SessionVolume {
      * <p>That is also why "counted or excluded" is decided once, on the total: otherwise a drop-set
      * with one unloaded drop would appear inside and outside the volume at the same time.
      */
-    private static Totals ofSet(SessionExercise exercise, LoggedSet set) {
+    public static Totals ofSet(SessionExercise exercise, LoggedSet set) {
         long load = setLoadGrams(exercise, set);
         int reps = repsOf(exercise, set);
         int duration = durationOf(set);

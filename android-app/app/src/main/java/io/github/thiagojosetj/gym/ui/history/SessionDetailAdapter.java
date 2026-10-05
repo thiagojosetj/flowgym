@@ -14,7 +14,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.util.Objects;
 import java.util.concurrent.Executor;
 
+import io.github.thiagojosetj.gym.databinding.ItemHistoryComparisonExerciseBinding;
+import io.github.thiagojosetj.gym.databinding.ItemHistoryComparisonNoteBinding;
+import io.github.thiagojosetj.gym.databinding.ItemHistoryComparisonSetBinding;
 import io.github.thiagojosetj.gym.databinding.ItemHistoryExerciseBinding;
+import io.github.thiagojosetj.gym.databinding.ItemHistorySectionTitleBinding;
 import io.github.thiagojosetj.gym.databinding.ItemHistorySetBinding;
 import io.github.thiagojosetj.gym.databinding.ItemHistorySummaryBinding;
 import io.github.thiagojosetj.gym.ui.common.ListDiffing;
@@ -22,15 +26,27 @@ import io.github.thiagojosetj.gym.ui.common.ListDiffing;
 /** Rows of the finished-session detail (PRODUCT_SPEC HIS-01, HIS-03, HIS-04), in one flat list. */
 final class SessionDetailAdapter extends ListAdapter<DetailRow, RecyclerView.ViewHolder> {
 
+    /** The only thing the screen can do to this list: open or close one exercise's sets. */
+    interface Listener {
+        void onToggleSets(String sessionExerciseId);
+    }
+
     // Nothing here decides what to say. Every row arrives with its text already written, and a
     // line that has nothing to say is hidden rather than left blank: a blank line would read as a
     // value nobody entered.
     private static final int TYPE_SUMMARY = 0;
     private static final int TYPE_EXERCISE = 1;
     private static final int TYPE_SET = 2;
+    private static final int TYPE_SECTION_TITLE = 3;
+    private static final int TYPE_COMPARISON_EXERCISE = 4;
+    private static final int TYPE_COMPARISON_SET = 5;
+    private static final int TYPE_COMPARISON_NOTE = 6;
 
-    SessionDetailAdapter(Executor diffExecutor) {
+    private final Listener listener;
+
+    SessionDetailAdapter(Listener listener, Executor diffExecutor) {
         super(ListDiffing.config(DIFF, diffExecutor));
+        this.listener = listener;
     }
 
     @Override
@@ -38,6 +54,18 @@ final class SessionDetailAdapter extends ListAdapter<DetailRow, RecyclerView.Vie
         DetailRow row = getItem(position);
         if (row instanceof DetailRow.Summary) {
             return TYPE_SUMMARY;
+        }
+        if (row instanceof DetailRow.SectionTitle) {
+            return TYPE_SECTION_TITLE;
+        }
+        if (row instanceof DetailRow.ExerciseComparisonRow) {
+            return TYPE_COMPARISON_EXERCISE;
+        }
+        if (row instanceof DetailRow.SetComparisonRow) {
+            return TYPE_COMPARISON_SET;
+        }
+        if (row instanceof DetailRow.ComparisonNote) {
+            return TYPE_COMPARISON_NOTE;
         }
         return row instanceof DetailRow.ExerciseHeader ? TYPE_EXERCISE : TYPE_SET;
     }
@@ -52,6 +80,21 @@ final class SessionDetailAdapter extends ListAdapter<DetailRow, RecyclerView.Vie
         if (viewType == TYPE_EXERCISE) {
             return new ExerciseHolder(ItemHistoryExerciseBinding.inflate(inflater, parent, false));
         }
+        if (viewType == TYPE_SECTION_TITLE) {
+            return new TitleHolder(ItemHistorySectionTitleBinding.inflate(inflater, parent, false));
+        }
+        if (viewType == TYPE_COMPARISON_EXERCISE) {
+            return new ComparisonExerciseHolder(
+                    ItemHistoryComparisonExerciseBinding.inflate(inflater, parent, false), listener);
+        }
+        if (viewType == TYPE_COMPARISON_SET) {
+            return new ComparisonSetHolder(
+                    ItemHistoryComparisonSetBinding.inflate(inflater, parent, false));
+        }
+        if (viewType == TYPE_COMPARISON_NOTE) {
+            return new NoteHolder(
+                    ItemHistoryComparisonNoteBinding.inflate(inflater, parent, false));
+        }
         return new SetHolder(ItemHistorySetBinding.inflate(inflater, parent, false));
     }
 
@@ -65,6 +108,16 @@ final class SessionDetailAdapter extends ListAdapter<DetailRow, RecyclerView.Vie
             ((ExerciseHolder) holder).bind(header);
         } else if (holder instanceof SetHolder && row instanceof DetailRow.SetRow set) {
             ((SetHolder) holder).bind(set);
+        } else if (holder instanceof TitleHolder && row instanceof DetailRow.SectionTitle title) {
+            ((TitleHolder) holder).bind(title);
+        } else if (holder instanceof ComparisonExerciseHolder
+                && row instanceof DetailRow.ExerciseComparisonRow comparison) {
+            ((ComparisonExerciseHolder) holder).bind(comparison);
+        } else if (holder instanceof ComparisonSetHolder
+                && row instanceof DetailRow.SetComparisonRow pair) {
+            ((ComparisonSetHolder) holder).bind(pair);
+        } else if (holder instanceof NoteHolder && row instanceof DetailRow.ComparisonNote note) {
+            ((NoteHolder) holder).bind(note);
         }
     }
 
@@ -134,6 +187,77 @@ final class SessionDetailAdapter extends ListAdapter<DetailRow, RecyclerView.Vie
             views.setNumber.setText(row.number());
             views.performed.setText(row.performed());
             setOptional(views.planned, row.planned());
+        }
+    }
+
+    static final class TitleHolder extends RecyclerView.ViewHolder {
+        private final ItemHistorySectionTitleBinding views;
+
+        TitleHolder(ItemHistorySectionTitleBinding views) {
+            super(views.getRoot());
+            this.views = views;
+        }
+
+        void bind(DetailRow.SectionTitle row) {
+            views.title.setText(row.text());
+        }
+    }
+
+    static final class ComparisonExerciseHolder extends RecyclerView.ViewHolder {
+        private final ItemHistoryComparisonExerciseBinding views;
+        /** Set on bind; the button exists before the row it belongs to is known. */
+        @Nullable
+        private String sessionExerciseId;
+
+        ComparisonExerciseHolder(ItemHistoryComparisonExerciseBinding views, Listener listener) {
+            super(views.getRoot());
+            this.views = views;
+            views.buttonComparisonSets.setOnClickListener(v -> {
+                if (sessionExerciseId != null) {
+                    listener.onToggleSets(sessionExerciseId);
+                }
+            });
+        }
+
+        void bind(DetailRow.ExerciseComparisonRow row) {
+            sessionExerciseId = row.sessionExerciseId();
+            views.comparisonExerciseName.setText(row.name());
+            setLine(views.comparisonExerciseVolume, row.volume());
+            setOptional(views.comparisonExerciseNoVolume, row.noVolume());
+            setLine(views.comparisonExerciseSets, row.sets());
+            setLine(views.comparisonExerciseReps, row.reps());
+            setOptional(views.buttonComparisonSets, row.expandLabel());
+        }
+    }
+
+    static final class ComparisonSetHolder extends RecyclerView.ViewHolder {
+        private final ItemHistoryComparisonSetBinding views;
+
+        ComparisonSetHolder(ItemHistoryComparisonSetBinding views) {
+            super(views.getRoot());
+            this.views = views;
+        }
+
+        void bind(DetailRow.SetComparisonRow row) {
+            views.comparisonSetNumber.setText(row.number());
+            views.comparisonSetPrevious.setText(row.previous());
+            views.comparisonSetCurrent.setText(row.current());
+            views.comparisonSetChange.setText(row.change());
+            // The cells are marked unimportant in the layout, so this is the whole row's voice.
+            views.getRoot().setContentDescription(row.spoken());
+        }
+    }
+
+    static final class NoteHolder extends RecyclerView.ViewHolder {
+        private final ItemHistoryComparisonNoteBinding views;
+
+        NoteHolder(ItemHistoryComparisonNoteBinding views) {
+            super(views.getRoot());
+            this.views = views;
+        }
+
+        void bind(DetailRow.ComparisonNote row) {
+            views.note.setText(row.text());
         }
     }
 

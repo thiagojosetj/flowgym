@@ -23,6 +23,7 @@ import io.github.thiagojosetj.gym.data.local.row.SessionHistoryRow;
 import io.github.thiagojosetj.gym.domain.session.ActiveSession;
 import io.github.thiagojosetj.gym.domain.session.SessionClock;
 import io.github.thiagojosetj.gym.domain.session.SessionDetail;
+import io.github.thiagojosetj.gym.domain.session.SessionExercise;
 import io.github.thiagojosetj.gym.domain.session.SessionHistoryEntry;
 import io.github.thiagojosetj.gym.domain.session.SessionStatus;
 import io.github.thiagojosetj.gym.domain.session.SessionSummary;
@@ -177,6 +178,7 @@ public final class HistoryRepository {
                 dao.findPreviousSets(sessionId));
 
         SessionSummary previousSummary = null;
+        List<SessionExercise> previousExercises = null;
         long previousStartedAt = 0L;
         String previousTimeZone = entity.timeZone;
         // A session started from a template that was deleted since keeps its templateId, so the
@@ -194,6 +196,9 @@ public final class HistoryRepository {
                     SessionClock clock = previous.header().clock();
                     long end = clock.endedAt() == null ? clock.startedAt() : clock.endedAt();
                     previousSummary = SessionSummary.of(previous, end);
+                    // The same read, not another one: the exercise-by-exercise comparison
+                    // (HIS-04) needs that session's own snapshots, and they are already here.
+                    previousExercises = previous.exercises();
                     previousStartedAt = previousHeader.startedAt;
                     // That session's OWN zone. Naming its day in this session's zone is how the
                     // summary ends up claiming a day the workout did not happen on - and
@@ -204,7 +209,7 @@ public final class HistoryRepository {
             }
         }
         return SessionDetail.of(session, entity.localDate, entity.timeZone, entity.rating,
-                previousSummary, previousStartedAt, previousTimeZone);
+                previousSummary, previousExercises, previousStartedAt, previousTimeZone);
     }
 
     private static List<SessionHistoryEntry> toEntries(List<SessionHistoryRow> rows) {

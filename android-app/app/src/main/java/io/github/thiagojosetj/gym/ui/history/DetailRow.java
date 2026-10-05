@@ -62,6 +62,43 @@ public interface DetailRow {
     record ExerciseHeader(String id, String name, String sets, String volume) implements DetailRow {
     }
 
+    /** Title of a section, and nothing else. */
+    record SectionTitle(String id, String text) implements DetailRow {
+    }
+
+    /**
+     * One exercise of this session next to the same exercise last time (PRODUCT_SPEC HIS-04).
+     *
+     * @param volume      null when this exercise has no load volume on either side
+     * @param noVolume    says so in that case, and is null otherwise
+     * @param expandLabel what the button offers ("Ver 3 series" / "Ocultar series")
+     * @param expanded    whether the set rows below it are showing
+     */
+    record ExerciseComparisonRow(String id, String sessionExerciseId, String name, Line volume,
+                                 String noVolume, Line sets, Line reps, String expandLabel,
+                                 boolean expanded) implements DetailRow {
+    }
+
+    /**
+     * One set of that exercise next to the set it pairs with.
+     *
+     * @param previous what was done last time, or a dash when there was no such set
+     * @param current  what was done this time, or a dash when there is none
+     * @param change   the arrow, or null when there is nothing honest to put there
+     * @param spoken   the whole row as one sentence, because four cells read aloud separately
+     *                 do not say which is which
+     */
+    record SetComparisonRow(String id, String number, String previous, String current,
+                            String change, String spoken) implements DetailRow {
+    }
+
+    /**
+     * An exercise only one of the two sessions had (HIS-04). It is a line of text and not a
+     * comparison, because there is nothing on the other side to compare it with.
+     */
+    record ComparisonNote(String id, String text) implements DetailRow {
+    }
+
     /**
      * @param number    working-set number, or the warm-up badge
      * @param performed what was done ("10 reps - 40 kg"), or that the set was not done

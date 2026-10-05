@@ -379,6 +379,18 @@
 
     <!-- Comparison with the previous session of the same workout (PRODUCT_SPEC §11) -->
     <string name="history_comparison_title">Comparação com a sessão anterior</string>
+    <string name="history_comparison_by_exercise">Exercício por exercício</string>
+    <plurals name="history_comparison_show_sets">
+        <item quantity="one">Ver a série</item>
+        <item quantity="other">Ver as %d séries</item>
+    </plurals>
+    <string name="history_comparison_hide_sets">Ocultar as séries</string>
+    <string name="history_comparison_added">Só nesta sessão: %s</string>
+    <string name="history_comparison_dropped">Estava na sessão anterior e não nesta: %s</string>
+    <string name="history_comparison_set_number">Série %d</string>
+    <string name="history_comparison_set_spoken">%1$s: antes %2$s, agora %3$s. %4$s</string>
+    <string name="history_comparison_set_absent">não havia</string>
+    <string name="history_comparison_no_change_to_show">sem variação de carga a mostrar</string>
     <string name="history_comparison_subtitle">Anterior: %s</string>
     <string name="history_comparison_none">Primeira vez que você fez este treino: não há sessão anterior para comparar.</string>
     <string name="history_comparison_volume">Volume</string>

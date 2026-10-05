@@ -23,6 +23,7 @@ import io.github.thiagojosetj.gym.databinding.FragmentSessionDetailBinding;
 import io.github.thiagojosetj.gym.domain.model.TrackingType;
 import io.github.thiagojosetj.gym.domain.model.Weight;
 import io.github.thiagojosetj.gym.domain.model.WeightUnit;
+import io.github.thiagojosetj.gym.domain.session.ExerciseComparison;
 import io.github.thiagojosetj.gym.domain.session.LoggedSet;
 import io.github.thiagojosetj.gym.domain.session.MetricChange;
 import io.github.thiagojosetj.gym.domain.session.SessionComparison;
@@ -69,9 +70,10 @@ public class SessionDetailFragment extends Fragment {
                 () -> new SessionDetailViewModel(app.history, sessionId)))
                 .get(SessionDetailViewModel.class);
 
-        adapter = new SessionDetailAdapter(app.executors.diskIO());
+        adapter = new SessionDetailAdapter(viewModel::toggleSets, app.executors.diskIO());
         binding.list.setAdapter(adapter);
-        // Drawn once and never edited: an insert animation would only make it arrive late.
+        // The only edit is opening an exercise's sets, and those rows should simply be there when
+        // the button is tapped: an insert animation would make them arrive after the tap.
         binding.list.setItemAnimator(null);
 
         viewModel.state().observe(getViewLifecycleOwner(), this::render);
@@ -86,16 +88,20 @@ public class SessionDetailFragment extends Fragment {
         binding.loadFailed.setVisibility(failed ? View.VISIBLE : View.GONE);
         binding.list.setVisibility(failed ? View.GONE : View.VISIBLE);
         if (!failed) {
-            adapter.submitList(rowsOf(state.detail()));
+            adapter.submitList(rowsOf(state.detail(), state));
         }
     }
 
     // ------------------------------------------------------------------ rows
 
-    /** The whole screen as one flat list: summary, then each exercise followed by its sets. */
-    private List<DetailRow> rowsOf(SessionDetail detail) {
+    /**
+     * The whole screen as one flat list: summary, the exercise-by-exercise comparison, then each
+     * exercise followed by its sets.
+     */
+    private List<DetailRow> rowsOf(SessionDetail detail, SessionDetailViewModel.State state) {
         List<DetailRow> rows = new ArrayList<>();
         rows.add(summaryRow(detail));
+        addComparisonRows(rows, detail, state);
         for (SessionExerciseSummary summary : detail.exercises()) {
             rows.add(exerciseRow(summary));
             SessionExercise exercise = detail.session().exerciseById(summary.sessionExerciseId());
@@ -248,6 +254,122 @@ public class SessionDetailFragment extends Fragment {
             case DOWN -> R.string.history_comparison_direction_down;
             case SAME -> R.string.history_comparison_direction_same;
         };
+    }
+
+    // ------------------------------------------------- the comparison, exercise by exercise
+
+    /**
+     * The HIS-04 table: one row per exercise both sessions had, its sets underneath when opened,
+     * and a line naming the exercises only one of them had.
+     *
+     * <p>Nothing here is drawn when there is no previous session: the summary already says so, and
+     * an empty table under a sentence explaining the emptiness is noise.
+     */
+    private void addComparisonRows(List<DetailRow> rows, SessionDetail detail,
+                                   SessionDetailViewModel.State state) {
+        SessionComparison comparison = detail.comparison();
+        if (comparison == null) {
+            return;
+        }
+        boolean anything = !comparison.exercises().isEmpty()
+                || !comparison.addedExercises().isEmpty()
+                || !comparison.droppedExercises().isEmpty();
+        if (!anything) {
+            return;
+        }
+        rows.add(new DetailRow.SectionTitle("comparison:title",
+                getString(R.string.history_comparison_by_exercise)));
+        for (ExerciseComparison exercise : comparison.exercises()) {
+            boolean expanded = state.isExpanded(exercise.current().id());
+            rows.add(comparisonRow(exercise, expanded));
+            if (expanded) {
+                for (ExerciseComparison.SetPair pair : exercise.sets()) {
+                    rows.add(setComparisonRow(exercise, pair));
+                }
+            }
+        }
+        // Named, never dropped: an exercise that is in one session and not the other is a fact
+        // about the workout, and leaving it out would make the table look like the whole story.
+        addNote(rows, "comparison:added", R.string.history_comparison_added,
+                comparison.addedExercises());
+        addNote(rows, "comparison:dropped", R.string.history_comparison_dropped,
+                comparison.droppedExercises());
+    }
+
+    private void addNote(List<DetailRow> rows, String id, @StringRes int label,
+                         List<String> names) {
+        if (!names.isEmpty()) {
+            rows.add(new DetailRow.ComparisonNote(id, getString(label, joined(names))));
+        }
+    }
+
+    private DetailRow.ExerciseComparisonRow comparisonRow(ExerciseComparison exercise,
+                                                          boolean expanded) {
+        int sets = exercise.sets().size();
+        String expandLabel = null;
+        if (sets > 0) {
+            expandLabel = expanded
+                    ? getString(R.string.history_comparison_hide_sets)
+                    : getResources().getQuantityString(
+                            R.plurals.history_comparison_show_sets, sets, sets);
+        }
+        // A bodyweight or timed exercise has no load volume on either side. "=" there would read
+        // as "the same amount of load", when the truth is that load is not what moved.
+        boolean hasVolume = exercise.hasVolume();
+        return new DetailRow.ExerciseComparisonRow(
+                "comparison:" + exercise.current().id(),
+                exercise.current().id(),
+                exercise.name(),
+                hasVolume ? metricLine(R.string.history_comparison_volume, exercise.volumeGrams(),
+                        this::loadText, this::loadText) : null,
+                hasVolume ? null : getString(R.string.history_exercise_no_volume),
+                metricLine(R.string.history_comparison_sets, exercise.performedSets(),
+                        Long::toString, Long::toString),
+                metricLine(R.string.history_comparison_reps, exercise.totalReps(),
+                        Long::toString, Long::toString),
+                expandLabel,
+                expanded);
+    }
+
+    private DetailRow.SetComparisonRow setComparisonRow(ExerciseComparison exercise,
+                                                        ExerciseComparison.SetPair pair) {
+        // Spelled out, not the bare "1" the set list uses: here the number sits next to two sets
+        // of values and a column of its own would be the only thing saying what it is.
+        String number = getString(R.string.history_comparison_set_number, pair.number());
+        // Each side read with ITS OWN snapshot: the same exercise can have been logged with
+        // dumbbells then and a barbell now, and the two numbers are not the same measurement.
+        String previous = cellOf(exercise.previous(), pair.previous());
+        String current = cellOf(exercise.current(), pair.current());
+        String change = pair.volumeGrams() == null
+                ? null
+                : getString(arrowOf(pair.volumeGrams().direction()));
+        String spokenChange = pair.volumeGrams() == null
+                ? getString(R.string.history_comparison_no_change_to_show)
+                : getString(wordOf(pair.volumeGrams().direction()));
+        String spoken = getString(R.string.history_comparison_set_spoken, number,
+                spokenCellOf(exercise.previous(), pair.previous()),
+                spokenCellOf(exercise.current(), pair.current()),
+                spokenChange);
+        return new DetailRow.SetComparisonRow(
+                "comparison:set:" + exercise.current().id() + ":" + pair.number()
+                        + (pair.current() == null ? ":previous-only" : ""),
+                number, previous, current, change, spoken);
+    }
+
+    /** What one side of a set row shows: what was done, that it was not done, or that it is absent. */
+    private String cellOf(SessionExercise exercise, @Nullable LoggedSet set) {
+        if (set == null) {
+            return getString(R.string.history_set_no_value);
+        }
+        return set.isCompleted()
+                ? performedText(exercise, set.values())
+                : getString(R.string.history_set_skipped);
+    }
+
+    /** The same, spoken: a dash is not a word, and "nothing" is not the same as "not done". */
+    private String spokenCellOf(SessionExercise exercise, @Nullable LoggedSet set) {
+        return set == null ? getString(R.string.history_comparison_set_absent)
+                : cellOf(exercise, set);
     }
 
     // ------------------------------------------------------------------ exercises and sets

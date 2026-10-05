@@ -25,7 +25,7 @@ public class SessionDetailTest {
     @Test
     public void theFirstTimeAWorkoutIsPerformedThereIsNothingToCompareWith() {
         SessionDetail detail = SessionDetail.of(session(bench(completed("s1", kg(40), 10))),
-                "2026-09-28", "America/Sao_Paulo", null, null, 0L, "America/Sao_Paulo");
+                "2026-09-28", "America/Sao_Paulo", null, null, null, 0L, "America/Sao_Paulo");
 
         assertFalse(detail.hasComparison());
         assertNull(detail.comparison());
@@ -35,7 +35,7 @@ public class SessionDetailTest {
     public void theSummaryUsesTheSameVolumeRuleTheFinishDialogUsed() {
         // 40 kg x 10 = 400 kg, in grams. Not recomputed here: SessionVolume is the only implementation.
         SessionDetail detail = SessionDetail.of(session(bench(completed("s1", kg(40), 10))),
-                "2026-09-28", "America/Sao_Paulo", null, null, 0L, "America/Sao_Paulo");
+                "2026-09-28", "America/Sao_Paulo", null, null, null, 0L, "America/Sao_Paulo");
 
         assertEquals(400_000L, detail.summary().volumeGrams());
         assertEquals(1, detail.summary().performedSets());
@@ -50,7 +50,7 @@ public class SessionDetailTest {
                 Collections.singletonList(completed("s2", null, 8)));
 
         SessionDetail detail = SessionDetail.of(session(bench(completed("s1", kg(40), 10)), pullUps),
-                "2026-09-28", "America/Sao_Paulo", null, null, 0L, "America/Sao_Paulo");
+                "2026-09-28", "America/Sao_Paulo", null, null, null, 0L, "America/Sao_Paulo");
 
         assertEquals(400_000L, detail.summary().volumeGrams());
         assertEquals(1, detail.summary().setsOutsideVolume());
@@ -65,7 +65,7 @@ public class SessionDetailTest {
                 Arrays.asList(completed("s2", kg(30), 12), skipped("s3")));
 
         SessionDetail detail = SessionDetail.of(session(bench(completed("s1", kg(40), 10)), rows),
-                "2026-09-28", "America/Sao_Paulo", null, null, 0L, "America/Sao_Paulo");
+                "2026-09-28", "America/Sao_Paulo", null, null, null, 0L, "America/Sao_Paulo");
 
         assertEquals(2, detail.exercises().size());
         SessionExerciseSummary first = detail.exercises().get(0);
@@ -87,7 +87,7 @@ public class SessionDetailTest {
                 Collections.singletonList(completed("s1", kg(40), 10)));
 
         SessionDetail detail = SessionDetail.of(session(asItWasNamedThen),
-                "2026-09-28", "America/Sao_Paulo", null, null, 0L, "America/Sao_Paulo");
+                "2026-09-28", "America/Sao_Paulo", null, null, null, 0L, "America/Sao_Paulo");
 
         assertEquals("Supino reto", detail.exercises().get(0).name());
     }
@@ -98,7 +98,7 @@ public class SessionDetailTest {
                 1, 3, 0, 30, 0, 300_000L, 0);
 
         SessionDetail detail = SessionDetail.of(session(bench(completed("s1", kg(40), 10))),
-                "2026-09-28", "America/Sao_Paulo", null, lastWeek, 1_700_000_000_000L, "America/Sao_Paulo");
+                "2026-09-28", "America/Sao_Paulo", null, lastWeek, null, 1_700_000_000_000L, "America/Sao_Paulo");
 
         assertTrue(detail.hasComparison());
         SessionComparison comparison = detail.comparison();
@@ -116,7 +116,7 @@ public class SessionDetailTest {
                 1, 3, 0, 30, 0, 0L, 3);
 
         SessionDetail detail = SessionDetail.of(session(bench(completed("s1", kg(40), 10))),
-                "2026-09-28", "America/Sao_Paulo", null, bodyweightOnly, 1L, "America/Sao_Paulo");
+                "2026-09-28", "America/Sao_Paulo", null, bodyweightOnly, null, 1L, "America/Sao_Paulo");
 
         MetricChange volume = detail.comparison().volumeGrams();
         assertEquals(MetricChange.Direction.UP, volume.direction());
@@ -134,7 +134,7 @@ public class SessionDetailTest {
                 Collections.singletonList(bench(completed("s1", kg(40), 10))));
 
         SessionDetail detail = SessionDetail.of(finished, "2026-09-28", "America/Sao_Paulo",
-                null, null, 0L, "America/Sao_Paulo");
+                null, null, null, 0L, "America/Sao_Paulo");
 
         assertEquals(3_600_000L, detail.summary().totalMs());
         assertEquals(3_000_000L, detail.summary().effectiveMs()); // total minus the 10 min paused
@@ -143,9 +143,9 @@ public class SessionDetailTest {
     @Test
     public void aRatingThatWasNeverGivenStaysNullInsteadOfBecomingZero() {
         SessionDetail withoutRating = SessionDetail.of(session(bench(completed("s1", kg(40), 10))),
-                "2026-09-28", "America/Sao_Paulo", null, null, 0L, "America/Sao_Paulo");
+                "2026-09-28", "America/Sao_Paulo", null, null, null, 0L, "America/Sao_Paulo");
         SessionDetail withRating = SessionDetail.of(session(bench(completed("s1", kg(40), 10))),
-                "2026-09-28", "America/Sao_Paulo", 4, null, 0L, "America/Sao_Paulo");
+                "2026-09-28", "America/Sao_Paulo", 4, null, null, 0L, "America/Sao_Paulo");
 
         assertNull(withoutRating.rating());
         assertEquals(Integer.valueOf(4), withRating.rating());
@@ -154,7 +154,7 @@ public class SessionDetailTest {
     @Test
     public void theExerciseListHandedOutCannotBeModifiedByTheScreen() {
         SessionDetail detail = SessionDetail.of(session(bench(completed("s1", kg(40), 10))),
-                "2026-09-28", "America/Sao_Paulo", null, null, 0L, "America/Sao_Paulo");
+                "2026-09-28", "America/Sao_Paulo", null, null, null, 0L, "America/Sao_Paulo");
 
         assertThrows(UnsupportedOperationException.class, () -> detail.exercises().clear());
     }
@@ -169,7 +169,7 @@ public class SessionDetailTest {
                 1, 3, 0, 30, 0, 300_000L, 0);
 
         SessionDetail viewedInBrazil = SessionDetail.of(session(bench(completed("s1", kg(40), 10))),
-                "2026-09-28", "America/Sao_Paulo", null, inTokyo, 1_700_000_000_000L, "Asia/Tokyo");
+                "2026-09-28", "America/Sao_Paulo", null, inTokyo, null, 1_700_000_000_000L, "Asia/Tokyo");
 
         assertEquals("Asia/Tokyo", viewedInBrazil.comparison().previousTimeZone());
         assertEquals("America/Sao_Paulo", viewedInBrazil.timeZone());
@@ -179,7 +179,7 @@ public class SessionDetailTest {
     public void theZoneTheWorkoutHappenedInIsCarriedAlongWithTheDate() {
         // Section 11 and the calendar group by the day as it was lived, not by the phone's zone now.
         SessionDetail detail = SessionDetail.of(session(bench(completed("s1", kg(40), 10))),
-                "2026-09-28", "America/Sao_Paulo", null, null, 0L, "America/Sao_Paulo");
+                "2026-09-28", "America/Sao_Paulo", null, null, null, 0L, "America/Sao_Paulo");
 
         assertEquals("2026-09-28", detail.localDate());
         assertEquals("America/Sao_Paulo", detail.timeZone());

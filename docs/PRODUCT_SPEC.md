@@ -132,8 +132,29 @@ notificação, o serviço em primeiro plano e o alerta com a tela apagada.
     É estrutural, não testável aqui: os testes rodam com executores síncronos, onde duas consultas
     também pareceriam consistentes.
 
+- **HIS-04 (parte por exercício)** Abaixo dos totais, **exercício por exercício**: volume, séries e
+  repetições de cada um ao lado do mesmo exercício da sessão anterior, e um botão que abre a
+  comparação **série a série**.
+  - Os exercícios se emparelham pelo **exercício em si**, e pela *n*-ésima vez que ele aparece
+    quando o treino o repete — nunca pela posição, porque reordenar um treino não muda o que cada
+    exercício é.
+  - Três listas, não uma: o que estava nas duas sessões é comparado; o que **só** está nesta é
+    nomeado ("Só nesta sessão: …") em vez de comparado com zero, que anunciaria como ganho o
+    simples fato de ser novo; o que estava **só na anterior** também é nomeado — trabalho que a
+    pessoa deixou de fazer é exatamente o que ela iria querer saber.
+  - As séries se emparelham por ordem **entre as séries válidas** (§11): um aquecimento a mais hoje
+    não desloca todas as linhas. Aquecimento não é comparado — não é resultado.
+  - Cada lado é lido com o **snapshot da própria sessão**. O mesmo exercício pode ter sido
+    registrado com halteres antes e com barra agora: 20 kg por halter e 20 kg na barra não são a
+    mesma medida, e a linha de antes continua dizendo "/halter".
+  - Série **não feita** conta como zero: o trabalho não foi feito, e isso é uma medição. Série que
+    **não existe** do outro lado não gera variação nenhuma — o traço já diz o que houve.
+  - Exercício **sem carga** (peso corporal, por tempo) não mostra linha de volume: "= igual" ali
+    leria como "a mesma quantidade de carga", quando carga não é o que se mediu.
+
 **Implementado (28/09/2026):** HIS-01 (menos recordes e medalhas, que dependem das Fases 5 e 7),
-HIS-03 e a comparação de sessão do HIS-04. **HIS-02 (calendário) foi feito em 05/10/2026.**
+HIS-03 e a comparação de sessão do HIS-04. **HIS-02 (calendário) foi feito em 05/10/2026, e a
+comparação por exercício do HIS-04 em 05/10/2026.**
 
 A comparação do resumo é com a **sessão anterior do mesmo template**; a comparação série a série
 continua sendo a do ponteiro congelado no início da sessão (a última sessão concluída que tem aquele

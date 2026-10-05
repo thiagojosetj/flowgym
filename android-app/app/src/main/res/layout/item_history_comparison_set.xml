@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    One set beside the set it pairs with. The whole row carries its own description: read cell by
+    cell, "1", "35 kg", "40 kg" and an arrow do not say which number is which.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:baselineAligned="false"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="@dimen/space_m"
+    android:paddingEnd="0dp"
+    android:paddingVertical="@dimen/space_xs">
+
+    <TextView
+        android:id="@+id/comparison_set_number"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:importantForAccessibility="no"
+        android:minWidth="64dp"
+        android:textAppearance="?attr/textAppearanceLabelMedium"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        tools:text="Série 1" />
+
+    <TextView
+        android:id="@+id/comparison_set_previous"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:importantForAccessibility="no"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        tools:text="35 kg · 10 reps" />
+
+    <TextView
+        android:id="@+id/comparison_set_current"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:importantForAccessibility="no"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        tools:text="40 kg · 10 reps" />
+
+    <TextView
+        android:id="@+id/comparison_set_change"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:importantForAccessibility="no"
+        android:minWidth="24dp"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        tools:text="↑" />
+</LinearLayout>
