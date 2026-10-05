@@ -83,28 +83,9 @@ Legenda: ✅ concluído · 🟡 em andamento/parcial · ⬜ não iniciado.
   rodada** — começa quando nenhum exercício do grupo ainda deve a série daquela rodada, e não
   quando o "último por posição" termina (a ordem planejada não é obrigatória, ACT-01). Falta
   validar em aparelho.
-- 🟡 **HIS-06 — avaliação 1–5** no resumo da finalização **e no detalhe de qualquer sessão
-  concluída**, gravada a cada toque e removível tocando de novo (ADR-0041 estende a
-  imutabilidade: a nota é comentário de quem treinou, não medição). O mesmo
-  `view_session_rating` serve as duas telas; a margem lateral saiu do layout e passou para o
-  diálogo, que é quem precisa dela. Se a gravação falhar, a tela **volta** para o que está no
-  banco e avisa — nota acesa que não está gravada é mentira.
-  - Mutação: mostrar sem gravar, gravar zero ao limpar e **deixar o listener ligado enquanto o
-    valor guardado é aplicado** (que faria cada redesenho regravar o que acabou de ler) — todas
-    matam teste.
-- ✅ **Observação em texto da sessão** no mesmo card (a coluna `notes` já existia desde a v1 —
-  **sem migração**). Grava ao perder o foco e ao pausar a tela; em branco vira `NULL`; visitar a
-  tela e sair não grava nada.
-  - A observação **não** ganhou campo próprio em `SessionDetail`: ela já viajava no
-    `SessionHeader`, e duplicá-la criaria duas fontes para o mesmo fato. `withNotes` reconstrói
-    pelo header.
-  - Mutação: não gravar ao sair, não gravar ao perder o foco, guardar branco como string vazia
-    (no repositório **e** no ViewModel, cada um provado no seu nível) e regravar uma observação
-    inalterada a cada pausa — **todas matam** teste.
-  - APK de release: 3.390.827 → 3.394.563 bytes (**+4 KB**).
-  - Dois sobreviventes ensinaram algo: as duas normalizações de branco se **mascaravam**
-    mutuamente, e a asserção sobre `updated_at` só vale com o relógio andando entre a gravação e
-    a verificação. Ambas as coisas foram corrigidas nos testes, não no código.
+- ✅ **HIS-06 (parte desta tela) — avaliação 1–5** no resumo que aparece ao finalizar, gravada a
+  cada toque e removível tocando de novo (ADR-0041 estende a imutabilidade: a nota é comentário
+  de quem treinou, não medição). Avaliar depois e a observação em texto são da Fase 4.
 - ⬜ **Validar no aparelho**: promoção do serviço com tipo `health` na API 34+, som e vibração com a
   tela apagada, `POST_NOTIFICATIONS` negado, force stop e reboot, teclado real.
 
@@ -207,7 +188,7 @@ achados ao implementar: **salvar** um treino desagrupava tudo (o rascunho não c
     outra — a consulta pede estritamente mais antiga.
 - ⬜ **Validar no aparelho**: a tabela de comparação com um treino longo e a rolagem com todas as
   séries abertas.
-- 🟡 **HIS-06 — avaliação 1–5** no resumo da finalização **e no detalhe de qualquer sessão
+- ✅ **HIS-06 — avaliação 1–5** no resumo da finalização **e no detalhe de qualquer sessão
   concluída**, gravada a cada toque e removível tocando de novo (ADR-0041 estende a
   imutabilidade: a nota é comentário de quem treinou, não medição). O mesmo
   `view_session_rating` serve as duas telas; a margem lateral saiu do layout e passou para o
@@ -281,6 +262,14 @@ Métricas flexíveis sobre o modelo de medições da Fase 5.
   agrupar com muitos exercícios na lista — nada disso roda em Robolectric de forma que prove a tela.
 - **Etapas de drop-set no aparelho:** os dois campos da etapa com teclado real, e a linha da série
   com quatro botões no cabeçalho a 360 dp com fonte ampliada.
+- **Calendário no aparelho:** a grade de 42 quadrados a 360 dp com fonte ampliada, e o **foco do
+  TalkBack** ao tocar num dia — o reuso dos quadrados existe para preservá-lo, mas o Robolectric
+  não roda TalkBack, então isso é raciocínio, não prova.
+- **Comparação por exercício no aparelho:** a tabela com um treino longo, a rolagem com todas as
+  séries abertas, e as quatro colunas da linha de série a 360 dp com fonte ampliada.
+- **Observação da sessão no aparelho:** o campo de texto com teclado real, e se o que foi digitado
+  sobrevive a sair pelo botão início (o `onPause` grava, mas só um aparelho mostra o caminho
+  inteiro com o teclado aberto).
 - **O APK encolhido pelo R8 nunca foi aberto.** O portão prova que o `assembleRelease` **compila**;
   não prova que o app sobe depois de o R8 renomear e remover código. Uma regra `keep` faltando só
   aparece em tempo de execução, e o caminho mais provável é Room com reflexão. Agora que o CI
