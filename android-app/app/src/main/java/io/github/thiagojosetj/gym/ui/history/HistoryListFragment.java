@@ -53,7 +53,7 @@ public class HistoryListFragment extends Fragment
         AppContainer app = ViewModelFactories.container(this);
         viewModel = new ViewModelProvider(this,
                 ViewModelFactories.of(HistoryListViewModel.class,
-                        () -> new HistoryListViewModel(app.history, app.clock)))
+                        () -> new HistoryListViewModel(app.history, app.clock, app.zone)))
                 .get(HistoryListViewModel.class);
 
         // Where the week starts belongs to the locale, and the locale belongs to the screen: the

@@ -36,6 +36,11 @@
     </fragment>
 
     <fragment
+        android:id="@+id/progressFragment"
+        android:name="io.github.thiagojosetj.gym.ui.progress.ProgressFragment"
+        android:label="@string/nav_progress" />
+
+    <fragment
         android:id="@+id/exerciseLibraryFragment"
         android:name="io.github.thiagojosetj.gym.ui.library.ExerciseLibraryFragment"
         android:label="@string/nav_library">

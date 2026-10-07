@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Default language: pt-BR (ADR-0020). Other languages go in values-xx. -->
+<!--
+    Default language: pt-BR (ADR-0020). Other languages go in values-xx.
+
+    No tools:locale here, and that is a known compromise. Declaring it is the documented way to
+    stop lint spellchecking this file as English (it reports "eles" as a misspelling of "eels"),
+    but with the language declared lint then requires a "many" quantity in EVERY plurals resource,
+    which pt's CLDR rules do ask for and none of them has - see docs/ROADMAP.md. Until that is
+    done, the file stays undeclared and Portuguese words that look like English typos are worded
+    around.
+-->
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Provisional product name (ADR-0026). This is the ONLY place the brand appears in the app. -->
     <string name="app_name" translatable="false">FlowGym</string>
@@ -9,6 +18,7 @@
     <string name="nav_templates">Treinos</string>
     <string name="nav_library">Exercícios</string>
     <string name="nav_history">Histórico</string>
+    <string name="nav_progress">Progresso</string>
     <string name="title_exercise_detail">Exercício</string>
     <string name="title_template_new">Novo treino</string>
     <string name="title_template_edit">Editar treino</string>
@@ -378,6 +388,40 @@
     <string name="history_note_label">Observação</string>
     <string name="history_note_hint">Como foi, o que doeu, o que mudar da próxima vez…</string>
     <string name="history_note_failed">Não foi possível salvar a observação.</string>
+
+    <!-- Progresso (PRG-04) -->
+    <string name="progress_week">Semana</string>
+    <string name="progress_month">Mês</string>
+    <string name="progress_previous_period">Período anterior</string>
+    <string name="progress_next_period">Próximo período</string>
+    <string name="progress_range">%1$s – %2$s</string>
+    <plurals name="progress_sessions">
+        <item quantity="one">%d treino</item>
+        <item quantity="other">%d treinos</item>
+    </plurals>
+    <string name="progress_sets">Séries feitas: %1$d · repetições: %2$d</string>
+    <plurals name="progress_warm_ups">
+        <item quantity="one">Dessas, %d foi de aquecimento</item>
+        <item quantity="other">Dessas, %d foram de aquecimento</item>
+    </plurals>
+    <string name="progress_volume">Volume de carga: %s</string>
+    <string name="progress_no_volume">Sem volume de carga neste período</string>
+    <string name="progress_effective_time">Tempo efetivo: %s</string>
+    <string name="progress_muscles_title">Séries por grupo muscular</string>
+    <string name="progress_muscles_note">Aquecimento não entra. Uma série conta para todos os músculos do exercício, então os números abaixo não somam as séries feitas: cada um diz quanto aquele músculo recebeu.</string>
+    <plurals name="progress_muscle_primary">
+        <item quantity="one">%d série como principal</item>
+        <item quantity="other">%d séries como principal</item>
+    </plurals>
+    <plurals name="progress_muscle_secondary">
+        <item quantity="one">%d série como auxiliar</item>
+        <item quantity="other">%d séries como auxiliar</item>
+    </plurals>
+    <!-- The counts are composed in code: only the roles that happened are said at all. -->
+    <string name="progress_muscle_spoken">%1$s: %2$s</string>
+    <string name="progress_empty_period">Nenhum treino neste período.</string>
+    <string name="progress_empty_title">Nada para medir ainda</string>
+    <string name="progress_empty_body">Finalize um treino e esta tela passa a mostrar o que você fez na semana e em cada grupo muscular.</string>
     <string name="history_load_failed">Não foi possível abrir esta sessão.</string>
 
     <!-- Comparison with the previous session of the same workout (PRODUCT_SPEC §11) -->

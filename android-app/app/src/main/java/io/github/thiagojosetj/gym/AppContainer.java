@@ -12,6 +12,7 @@ import io.github.thiagojosetj.gym.data.prefs.UiPreferences;
 import io.github.thiagojosetj.gym.data.repository.ActiveSessionRepository;
 import io.github.thiagojosetj.gym.data.repository.ExerciseRepository;
 import io.github.thiagojosetj.gym.data.repository.HistoryRepository;
+import io.github.thiagojosetj.gym.data.repository.ProgressRepository;
 import io.github.thiagojosetj.gym.data.repository.SettingsRepository;
 import io.github.thiagojosetj.gym.data.repository.TechniqueRepository;
 import io.github.thiagojosetj.gym.data.repository.TemplateRepository;
@@ -32,6 +33,8 @@ public final class AppContainer {
 
     public final AppExecutors executors;
     public final Clock clock;
+    /** Where the person is. Named beside the clock because a date needs both (see Today). */
+    public final ZoneId zone;
     public final AppDatabase database;
     public final IdGenerator ids;
     public final UiPreferences uiPreferences;
@@ -42,6 +45,7 @@ public final class AppContainer {
     public final SettingsRepository settings;
     public final ActiveSessionRepository activeSessions;
     public final HistoryRepository history;
+    public final ProgressRepository progress;
     private final CatalogSeeder catalogSeeder;
 
     /** Production wiring. */
@@ -50,7 +54,12 @@ public final class AppContainer {
         return new AppContainer(
                 AppDatabase.open(app),
                 AppExecutors.create(),
-                Clock.systemUTC(),
+                // The device's zone, not UTC. Every instant this clock produces is the same
+                // either way - millis() does not know about zones - but "today" does: a screen
+                // asking LocalDate.now(clock) under a UTC clock would roll over to tomorrow at
+                // 21:00 in Sao Paulo, and the calendar would open on a month the person is not
+                // in yet. The day always means the day where the person is (section 11).
+                Clock.systemDefaultZone(),
                 ZoneId.systemDefault(),
                 IdGenerator.UUID_V7,
                 () -> app.getAssets().open(CatalogSeeder.ASSET_PATH),
@@ -63,6 +72,7 @@ public final class AppContainer {
         this.database = database;
         this.executors = executors;
         this.clock = clock;
+        this.zone = zone;
         this.ids = ids;
         this.uiPreferences = uiPreferences;
         this.users = new UserRepository(database, clock, ids);
@@ -74,6 +84,7 @@ public final class AppContainer {
         this.activeSessions = new ActiveSessionRepository(database, users, executors, clock,
                 () -> zone, ids);
         this.history = new HistoryRepository(database, executors, clock);
+        this.progress = new ProgressRepository(database, executors);
         this.catalogSeeder = new CatalogSeeder(database, catalogSource, clock);
     }
 

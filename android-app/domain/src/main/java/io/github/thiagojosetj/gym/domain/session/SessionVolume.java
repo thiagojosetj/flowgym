@@ -1,5 +1,6 @@
 package io.github.thiagojosetj.gym.domain.session;
 
+import java.util.Collection;
 import java.util.List;
 
 import io.github.thiagojosetj.gym.domain.model.TrackingType;
@@ -46,6 +47,23 @@ public final class SessionVolume {
     }
 
     private SessionVolume() {
+    }
+
+    /**
+     * Several finished sessions added up, for a week or a month (PRODUCT_SPEC PRG-04).
+     *
+     * <p>Here rather than in the caller so that a period's volume is produced by the same code as
+     * a session's. Two implementations of the section 9 rules would eventually disagree, and the
+     * one the person saw when they finished the workout is the one they would trust.
+     */
+    public static Totals ofSessions(Collection<ActiveSession> sessions) {
+        Totals totals = Totals.EMPTY;
+        if (sessions != null) {
+            for (ActiveSession session : sessions) {
+                totals = totals.plus(of(session.exercises()));
+            }
+        }
+        return totals;
     }
 
     public static Totals of(List<SessionExercise> exercises) {

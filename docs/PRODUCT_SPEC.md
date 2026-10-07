@@ -189,6 +189,38 @@ quando o treino foi finalizado.
 - **PRG-04** Estatísticas semanais/mensais e por grupamento muscular.
 - **PRG-05** Registro de peso corporal e gráfico (antecipado da Fase 11 — ver ROADMAP).
 
+**PRG-04 implementado (07/10/2026)** na aba **Progresso**: uma semana ou um mês por vez, com setas
+que param onde o treino para.
+
+- **Totais do período:** treinos, séries feitas, repetições, volume de carga e tempo efetivo. Tudo
+  calculado pelo mesmo `SessionVolume` que a tela de finalização usa — e, como lá, o período diz
+  quantas séries **não** entraram no volume (§9).
+- **Séries por grupo muscular**, e **dois números, nunca um**: quantas o grupo recebeu como
+  **principal** e quantas como **auxiliar**. Não há peso honesto para um músculo auxiliar — somar
+  com peso 1 afirmaria que o tríceps trabalhou tanto quanto o peito no supino, e com peso ½ seria
+  um número que o app inventou. Os dois aparecem lado a lado e quem lê decide.
+  - Papel que **não aconteceu não é dito**: um músculo sem trabalho auxiliar não fala de trabalho
+    auxiliar (além de que a regra do CLDR para pt põe zero no singular, e "0 série" estaria errado
+    duas vezes).
+  - **Sem volume em kg por músculo.** Os 400 kg de um supino não são "400 kg de peito + 400 kg de
+    tríceps", e não existe divisão honesta. Séries por músculo por semana é o número que o treino
+    usa de verdade, e é um que este app consegue afirmar sem adivinhar.
+  - **Aquecimento fora** (§6.2), e o total de séries diz quantas eram de aquecimento, para os dois
+    números fecharem. Os números por músculo **não somam** as séries feitas e não podem: uma série
+    de supino conta para o peito *e* para o tríceps. É "quanto cada músculo recebeu", não uma
+    divisão das séries em pilhas.
+  - **Drop-set conta como UMA série** (ADR-0037), senão a figura de séries por semana — que é
+    exatamente a que as pessoas usam para ajustar o treino — inflaria.
+  - O grupo é o **grupo**, não o subgrupo: um exercício que cita latíssimo e romboides fez **uma**
+    série de costas. Quando o mesmo grupo aparece com papéis diferentes no mesmo exercício, o papel
+    **principal** vence — senão a mesma série cairia nas duas colunas da mesma linha.
+  - O mapa muscular é lido da **biblioteca de hoje**, não do snapshot da sessão: classificação não é
+    medição, e corrigir o catálogo deve poder corrigir as semanas passadas também.
+- **Período vazio** entre dois com treino diz "Nenhum treino neste período" em vez de uma coluna de
+  zeros; **sem histórico nenhum** é outra coisa e tem o seu próprio estado.
+- O dia é sempre o `local_date` **vivido**, e "hoje" é o dia **onde a pessoa está** — não o dia do
+  relógio, que é UTC (ver `ui/common/Today`).
+
 ### 4.6 Rotinas, metas e notificações (Fase 6)
 - **ROU-01** Rotina semanal fixa (segunda → Push...).
 - **ROU-02** Ciclo de N dias independente do dia da semana (ex.: A, B, C, descanso, D, E, descanso).

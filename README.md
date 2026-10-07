@@ -61,12 +61,16 @@ verificadas por testes de UI automatizados.)
   cada um abrindo a comparação série a série. Exercício que só uma das duas sessões teve é
   **nomeado**, nunca comparado com zero. Avaliação opcional de 1 a 5 e exclusão de uma sessão
   registrada por engano, além de uma **observação em texto** sobre a sessão.
+- **Progresso**: uma semana ou um mês por vez, com treinos, séries, repetições, volume e tempo
+  efetivo do período, e **séries por grupo muscular** separadas em *principal* e *auxiliar* — nunca
+  somadas, porque não existe peso honesto para um músculo auxiliar. Aquecimento fora; drop-set conta
+  como uma série. Sem kg por músculo: os 400 kg de um supino não se dividem entre peito e tríceps.
 - **Configurações da conta**: descanso padrão (90 s de fábrica, editável), som e vibração.
 - **Tema** claro, escuro ou seguindo o sistema; paleta própria (Material 3).
 - **Multiusuário desde o banco**: identidade local agora, pronta para contas e sincronização depois.
 
 ### Planejadas
-Recordes pessoais, gráficos, rotinas semanais e **cíclicas**,
+Recordes pessoais, gráficos (biblioteca a decidir), rotinas semanais e **cíclicas**,
 metas e sequências de aderência, conquistas, contas + sincronização entre aparelhos, compartilhamento
 de treinos e dados corporais (peso e bioimpedância). Detalhes em
 [docs/PRODUCT_SPEC.md](docs/PRODUCT_SPEC.md).
@@ -134,7 +138,7 @@ release (o id de debug termina em `.debug`).
 ./gradlew :domain:test :app:testDebugUnitTest :app:lintDebug
 ```
 
-São **434 testes** (171 no `:domain`, 263 no `:app`), todos na JVM — nenhum emulador necessário.
+São **478 testes** (194 no `:domain`, 284 no `:app`), todos na JVM — nenhum emulador necessário.
 
 - **`:domain`** — regras puras: padrões de treino, validações, cargas, UUID v7, normalização de busca,
   aritmética de tempo do treino (pausas, relógio andando para trás, descanso), volume (com as exclusões

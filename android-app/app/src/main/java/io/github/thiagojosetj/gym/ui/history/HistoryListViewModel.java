@@ -10,6 +10,7 @@ import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -20,6 +21,7 @@ import io.github.thiagojosetj.gym.core.Event;
 import io.github.thiagojosetj.gym.data.repository.HistoryRepository;
 import io.github.thiagojosetj.gym.domain.session.SessionHistoryEntry;
 import io.github.thiagojosetj.gym.domain.session.TrainingCalendar;
+import io.github.thiagojosetj.gym.ui.common.Today;
 
 /**
  * State of "Histórico": the calendar of trained days (PRODUCT_SPEC HIS-02) above every finished
@@ -47,6 +49,8 @@ public final class HistoryListViewModel extends ViewModel {
     private final HistoryRepository history;
     /** The current month is a question about now, so the clock is injected rather than read. */
     private final Clock clock;
+    /** And about WHERE: a date taken off a UTC clock is tomorrow's from 21:00 in Sao Paulo. */
+    private final ZoneId zone;
     private final LiveData<List<SessionHistoryEntry>> all;
     private final LiveData<Set<LocalDate>> trainedDates;
 
@@ -57,13 +61,14 @@ public final class HistoryListViewModel extends ViewModel {
     private final MediatorLiveData<List<SessionHistoryEntry>> visible = new MediatorLiveData<>();
     private final MediatorLiveData<CalendarState> calendar = new MediatorLiveData<>();
 
-    public HistoryListViewModel(HistoryRepository history, Clock clock) {
+    public HistoryListViewModel(HistoryRepository history, Clock clock, ZoneId zone) {
         this.history = history;
         this.clock = clock;
+        this.zone = zone;
         this.all = history.observeHistory();
         this.trainedDates = history.observeTrainedDates();
 
-        month.setValue(YearMonth.now(clock));
+        month.setValue(Today.monthOf(clock, zone));
 
         visible.addSource(all, sessions -> refilter());
         visible.addSource(selectedDay, day -> refilter());
@@ -207,7 +212,7 @@ public final class HistoryListViewModel extends ViewModel {
 
     /** The first month worth showing: the oldest session's, or this one while it is older still. */
     private YearMonth earliest(Set<LocalDate> dates) {
-        YearMonth earliest = YearMonth.now(clock);
+        YearMonth earliest = Today.monthOf(clock, zone);
         for (LocalDate date : dates) {
             YearMonth of = YearMonth.from(date);
             if (of.isBefore(earliest)) {
@@ -225,7 +230,7 @@ public final class HistoryListViewModel extends ViewModel {
      * showing it where it was recorded.
      */
     private YearMonth latest(Set<LocalDate> dates) {
-        YearMonth latest = YearMonth.now(clock);
+        YearMonth latest = Today.monthOf(clock, zone);
         for (LocalDate date : dates) {
             YearMonth of = YearMonth.from(date);
             if (of.isAfter(latest)) {

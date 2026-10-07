@@ -17,9 +17,11 @@ import io.github.thiagojosetj.gym.data.local.entity.SessionPauseEntity;
 import io.github.thiagojosetj.gym.data.local.entity.SetLogEntity;
 import io.github.thiagojosetj.gym.data.local.entity.WorkoutSessionEntity;
 import io.github.thiagojosetj.gym.data.local.row.ActiveSetRow;
+import io.github.thiagojosetj.gym.data.local.row.ExerciseMuscleGroupRow;
 import io.github.thiagojosetj.gym.data.local.row.PreviousSetRow;
 import io.github.thiagojosetj.gym.data.local.row.SessionHeaderRow;
 import io.github.thiagojosetj.gym.data.local.row.SessionHistoryRow;
+import io.github.thiagojosetj.gym.data.local.row.TrainedDayBoundsRow;
 
 /**
  * Sessions of the current user. The current user is resolved inside the SQL (ADR-0006), so a query
@@ -229,6 +231,56 @@ public interface SessionDao {
 
     @Query(HISTORY_SQL + MINE_SQL + " AND s.status = 'COMPLETED' ORDER BY s.started_at DESC")
     List<SessionHistoryRow> findCompletedSessions();
+
+    /**
+     * Ids of the finished sessions of a period (PRODUCT_SPEC PRG-04), by the day each was LIVED
+     * on - never by {@code started_at}, which would move a workout between weeks the moment the
+     * phone crossed a time zone.
+     *
+     * <p>Ids only. What a period adds up to is decided set by set by the section 9 rules, which
+     * SQL cannot express; this query says WHICH sessions, and the domain says what they come to.
+     *
+     * @param from inclusive ISO day
+     * @param to   inclusive ISO day
+     */
+    @Query("SELECT s.id FROM workout_session s WHERE " + MINE_SQL
+            + " AND s.status = 'COMPLETED' AND s.local_date >= :from AND s.local_date <= :to"
+            + " ORDER BY s.local_date, s.started_at")
+    LiveData<List<String>> observeSessionIdsBetween(String from, String to);
+
+    /**
+     * The muscle GROUPS trained by the exercises of a period, with the role each has.
+     *
+     * <p>Resolved to the group ({@code COALESCE(parent_id, id)}) rather than the subgroup, because
+     * "did I train back enough" is a question about the back; an exercise naming two subgroups of
+     * one group did one set of it, not two. DISTINCT collapses exactly that case here, and the
+     * domain decides what to do when the two subgroups have different roles.
+     *
+     * <p>Read from the library as it stands today rather than from the session's snapshot: a
+     * muscle map is a classification, not a measurement of what happened, so correcting the
+     * catalogue is allowed to correct past weeks too.
+     */
+    @Query("SELECT DISTINCT se.exercise_id AS exerciseId, g.id AS muscleGroupId,"
+            + " g.name AS name, g.sort_order AS sortOrder, em.role AS role"
+            + " FROM session_exercise se"
+            + " JOIN workout_session s ON s.id = se.session_id"
+            + " JOIN exercise_muscle em ON em.exercise_id = se.exercise_id"
+            + " JOIN muscle m ON m.id = em.muscle_id"
+            + " JOIN muscle g ON g.id = COALESCE(m.parent_id, m.id)"
+            + " WHERE " + MINE_SQL + " AND s.status = 'COMPLETED'"
+            + " AND s.local_date >= :from AND s.local_date <= :to")
+    List<ExerciseMuscleGroupRow> findMuscleGroupsBetween(String from, String to);
+
+    /**
+     * The first and last day there is anything to see, so the period arrows know where to stop.
+     *
+     * <p>Read in the same pass as a period's statistics rather than observed on its own: an arrow
+     * enabled by one read while the numbers beside it came from another is the disagreement
+     * ARCHITECTURE section 5.2 is about.
+     */
+    @Query("SELECT MIN(s.local_date) AS firstDay, MAX(s.local_date) AS lastDay"
+            + " FROM workout_session s WHERE " + MINE_SQL + " AND s.status = 'COMPLETED'")
+    TrainedDayBoundsRow findTrainedDayBounds();
 
     /**
      * The previous time this same workout was performed, for the comparison in PRODUCT_SPEC

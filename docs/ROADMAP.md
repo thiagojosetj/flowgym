@@ -215,9 +215,41 @@ achados ao implementar: **salvar** um treino desagrupava tudo (o rascunho não c
   pareamento "anterior" não refiltra, então uma sessão posterior ainda compara com a excluída.
 - ⬜ **Validar no aparelho**: a lista com muitas sessões e a rolagem do detalhe de uma sessão longa.
 
-### Fase 5 — Progresso ⬜
-Gráficos (biblioteca a decidir — ADR pendente), PRs, estatísticas semanais/mensais e por grupo
-muscular, **peso corporal**.
+### Fase 5 — Progresso 🟡
+- ✅ **PRG-04 — aba Progresso** com estatísticas de uma semana ou de um mês: treinos, séries,
+  repetições, volume de carga, tempo efetivo, e **séries por grupo muscular** separadas em
+  *principal* e *auxiliar*. Setas limitadas pelos dados (do primeiro ao último dia treinado), e o
+  mês/semana sempre pelo `local_date` vivido.
+  - **Sem esquema novo e sem dependência nova.** Nada de kg por músculo: os 400 kg de um supino não
+    se dividem entre peito e tríceps de forma honesta, e séries por semana é o número que o treino
+    usa.
+  - **Uma consulta observada.** Só "quais sessões estão neste período" é observado; o resto é
+    calculado dela na thread de disco, e o `switchMap` garante que um cálculo lento não caia em
+    cima de um mais novo. Os **limites das setas** são lidos no **mesmo** passe que os números
+    (`ProgressSnapshot`), então nunca há seta habilitada por uma leitura com números de outra.
+  - **Uma consulta por sessão do período**, de propósito: o total honesto é a §9 aplicada série a
+    série, que o SQL não expressa, e uma segunda implementação em SQL acabaria discordando do
+    número que cada tela de finalização mostrou. Uma semana são três a seis sessões.
+  - Mutação: aquecimento contando para o músculo, série não feita contando, drop-set contando como
+    três, parear por posição, resolver para o subgrupo em vez do grupo, papel "último vence" em vez
+    de "principal vence" (provado **nas duas ordens**, porque o SQL não promete ordem), extremos do
+    período excluídos, agrupar por `started_at`, ler só a primeira sessão, setas sempre habilitadas,
+    o botão Semana/Mês inerte, e um papel que não aconteceu sendo dito — **todas matam** teste.
+  - Dois sobreviventes **mantidos com motivo**: (a) o filtro `deleted_at` em
+    `observeSessionIdsBetween` é redundante, porque a leitura do cabeçalho já descarta a sessão
+    excluída — mas é a mesma regra enunciada na sua própria camada, como todo o resto do DAO, e uma
+    consulta que devolvesse sessões excluídas seria uma armadilha para o próximo a usá-la; (b) o
+    `DISTINCT` da consulta de músculos é redução de linhas, não garantia de correção — quem garante
+    é o domínio, que indexa por (exercício, grupo).
+  - **Gráficos (PRG-01) não entraram**: nem uma barra proporcional, que já é gráfico. Falta a
+    decisão de **biblioteca de gráficos ou `Canvas` próprio** (ADR pendente) — um gráfico de linha
+    de volume por sessão é ~150 linhas de Canvas, zero dependência e zero APK, mas é decisão do
+    dono do produto.
+- ⬜ **PRG-01/02/03** — gráficos, filtros de janela e tela por exercício.
+- ⬜ **PRG-05** — peso corporal (tabelas novas → migração v5).
+- ⬜ Recordes pessoais (§10) — `personal_record`, migração v5.
+- ⬜ **Validar no aparelho**: a lista de grupos musculares com fonte ampliada a 360 dp, e o
+  desempenho de um mês com muitas sessões (uma consulta por sessão).
 
 ### Fase 6 — Rotinas ⬜
 Semanal e cíclica (engine no `:domain`), ajustes como eventos, metas, sequências de aderência,
@@ -270,6 +302,8 @@ Métricas flexíveis sobre o modelo de medições da Fase 5.
 - **Observação da sessão no aparelho:** o campo de texto com teclado real, e se o que foi digitado
   sobrevive a sair pelo botão início (o `onPause` grava, mas só um aparelho mostra o caminho
   inteiro com o teclado aberto).
+- **Progresso no aparelho:** a lista de grupos musculares com fonte ampliada a 360 dp, e quanto
+  demora um mês com muitas sessões (é uma consulta por sessão).
 - **O APK encolhido pelo R8 nunca foi aberto.** O portão prova que o `assembleRelease` **compila**;
   não prova que o app sobe depois de o R8 renomear e remover código. Uma regra `keep` faltando só
   aparece em tempo de execução, e o caminho mais provável é Room com reflexão. Agora que o CI
@@ -292,8 +326,19 @@ Levantadas pela revisão de 22/09/2026 e **não corrigidas às cegas**, porque d
   vibração de fim de descanso com a tela apagada, `POST_NOTIFICATIONS` negado, force stop e reboot no
   meio do treino, e rolagem/foco com o teclado real numa sessão de 20 × 5 séries.
 
+## Pendências de qualidade (não precisam de aparelho)
+
+- **Plurais em pt sem a categoria `many`.** O arquivo `values/strings.xml` é pt-BR mas não declara
+  `tools:locale`, porque declarar faz o lint exigir um item `many` em **todos** os ~23 `<plurals>`
+  (a regra do CLDR para pt pede, para valores como 1.000.000). Sem declarar, o lint corrige a
+  ortografia deste arquivo como se fosse inglês e acusa palavras portuguesas de serem erros
+  ("eles" → "eels"), o que hoje é contornado reescrevendo a frase. O conserto de verdade é
+  **adicionar `many` aos plurais e então declarar o locale**, em um passo só.
+
 ## Próxima etapa recomendada
-**Rodar a Fase 3 no aparelho** (`./gradlew :app:connectedDebugAndroidTest` + uso real no S24+): é o
-único jeito de provar a notificação, o serviço em primeiro plano na API 34+, o alerta de descanso com
-a tela apagada e o teclado. Depois disso, **Fase 4 — histórico** (resumo completo, calendário, sessão
-antiga e comparação), que é o que dá sentido ao que a Fase 3 grava.
+**Rodar as Fases 3 e 4 no aparelho** (`./gradlew :app:connectedDebugAndroidTest` + uso real no
+S24+): é o único jeito de provar a notificação, o serviço em primeiro plano na API 34+, o alerta de
+descanso com a tela apagada, o teclado, e a migração v3→v4 com dados reais — que convém exercitar
+**antes** de a Fase 5 empilhar uma v5 em cima. Depois disso, dentro da **Fase 5**: decidir
+gráficos (biblioteca ou `Canvas`, com ADR) e os **recordes pessoais** (§10), que fecham a lacuna
+que o resumo de finalização ainda anuncia.
