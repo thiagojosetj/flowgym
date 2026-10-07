@@ -50,8 +50,8 @@ public class MigrationOnDeviceTest {
         db.close();
 
         // Validates every table, column, index and foreign key against the exported schema.
-        SupportSQLiteDatabase migrated = helper.runMigrationsAndValidate(DB_NAME, 3, true,
-                AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3);
+        SupportSQLiteDatabase migrated = helper.runMigrationsAndValidate(DB_NAME, 4, true,
+                AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4);
 
         try (Cursor cursor = migrated.query(
                 "SELECT target_reps_min, technique_id FROM template_set WHERE id = '" + SET_ID + "'")) {
@@ -71,7 +71,8 @@ public class MigrationOnDeviceTest {
         db.close();
 
         SupportSQLiteDatabase migrated =
-                helper.runMigrationsAndValidate(name, 3, true, AppDatabase.MIGRATION_2_3);
+                helper.runMigrationsAndValidate(name, 4, true, AppDatabase.MIGRATION_2_3,
+                AppDatabase.MIGRATION_3_4);
 
         // The session tables exist and the rows that were there are untouched.
         try (Cursor cursor = migrated.query("SELECT COUNT(*) FROM workout_session")) {

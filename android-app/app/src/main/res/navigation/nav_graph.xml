@@ -36,6 +36,11 @@
     </fragment>
 
     <fragment
+        android:id="@+id/progressFragment"
+        android:name="io.github.thiagojosetj.gym.ui.progress.ProgressFragment"
+        android:label="@string/nav_progress" />
+
+    <fragment
         android:id="@+id/exerciseLibraryFragment"
         android:name="io.github.thiagojosetj.gym.ui.library.ExerciseLibraryFragment"
         android:label="@string/nav_library">
@@ -90,6 +95,29 @@
         android:id="@+id/activeSessionFragment"
         android:name="io.github.thiagojosetj.gym.ui.session.ActiveSessionFragment"
         android:label="@string/session_title">
+        <argument
+            android:name="sessionId"
+            app:argType="string" />
+    </fragment>
+
+    <!--
+        History. A finished session is read-only: this screen has no action that writes, and the
+        detail is reached only from the list (SafeNavigation does nothing for an action that is not
+        declared inside the current destination).
+    -->
+    <fragment
+        android:id="@+id/historyListFragment"
+        android:name="io.github.thiagojosetj.gym.ui.history.HistoryListFragment"
+        android:label="@string/nav_history">
+        <action
+            android:id="@+id/action_history_to_detail"
+            app:destination="@id/sessionDetailFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/sessionDetailFragment"
+        android:name="io.github.thiagojosetj.gym.ui.history.SessionDetailFragment"
+        android:label="@string/history_detail_title">
         <argument
             android:name="sessionId"
             app:argType="string" />

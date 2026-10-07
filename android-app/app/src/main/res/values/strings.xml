@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Default language: pt-BR (ADR-0020). Other languages go in values-xx. -->
+<!--
+    Default language: pt-BR (ADR-0020). Other languages go in values-xx.
+
+    No tools:locale here, and that is a known compromise. Declaring it is the documented way to
+    stop lint spellchecking this file as English (it reports "eles" as a misspelling of "eels"),
+    but with the language declared lint then requires a "many" quantity in EVERY plurals resource,
+    which pt's CLDR rules do ask for and none of them has - see docs/ROADMAP.md. Until that is
+    done, the file stays undeclared and Portuguese words that look like English typos are worded
+    around.
+-->
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Provisional product name (ADR-0026). This is the ONLY place the brand appears in the app. -->
     <string name="app_name" translatable="false">FlowGym</string>
@@ -8,6 +17,8 @@
     <string name="nav_home">Início</string>
     <string name="nav_templates">Treinos</string>
     <string name="nav_library">Exercícios</string>
+    <string name="nav_history">Histórico</string>
+    <string name="nav_progress">Progresso</string>
     <string name="title_exercise_detail">Exercício</string>
     <string name="title_template_new">Novo treino</string>
     <string name="title_template_edit">Editar treino</string>
@@ -141,6 +152,25 @@
     <string name="editor_moved">%1$s movido para a posição %2$d</string>
     <string name="editor_move_down">Mover para baixo</string>
     <string name="editor_remove">Remover do treino</string>
+    <!-- Groups (supersets): made at once, in the database, not by the editor's Salvar -->
+    <string name="editor_group_with">Agrupar com…</string>
+    <string name="editor_ungroup">Desagrupar</string>
+    <string name="editor_group_intro">%s entra no grupo. Marque pelo menos mais um exercício.</string>
+    <string name="editor_group_candidate_unsaved">%s (salve o treino antes)</string>
+    <string name="editor_group_rest">Descanso depois de cada rodada (s)</string>
+    <string name="editor_group_rest_helper">Começa quando todos os exercícios do grupo terminam a série. 0 = sem descanso automático.</string>
+    <string name="editor_group_saved_now">O grupo é gravado na hora, sem esperar o botão Salvar do treino.</string>
+    <string name="editor_group_confirm">Agrupar</string>
+    <plurals name="editor_group_error_too_small">
+        <item quantity="one">Um grupo precisa de pelo menos %d exercício</item>
+        <item quantity="other">Um grupo precisa de pelo menos %d exercícios</item>
+    </plurals>
+    <string name="editor_group_error_unsaved">Salve o treino antes de agrupar exercícios que você acabou de adicionar.</string>
+    <string name="editor_grouped">Exercícios agrupados</string>
+    <string name="editor_ungrouped">Exercícios desagrupados</string>
+    <!-- "A1 Supino reto": the group's letter, the place inside the group, the name. -->
+    <string name="editor_group_exercise_name">%1$s%2$d %3$s</string>
+    <string name="editor_group_exercise_description">Grupo %1$s, exercício %2$d: %3$s</string>
 
     <!-- Plan summary (template exercise card) -->
     <plurals name="plan_sets">
@@ -156,6 +186,8 @@
     <string name="plan_bodyweight_plus">peso corporal + %s</string>
     <string name="plan_bodyweight_assisted">peso corporal − %s (assistência)</string>
     <string name="plan_per_side">cada lado registrado separadamente</string>
+    <!-- The rest of an exercise in a group is the group's, taken once the round is over. -->
+    <string name="plan_group_rest">descanso %s depois da rodada</string>
 
     <!-- Loads -->
     <string name="weight_value">%1$s %2$s</string>
@@ -193,6 +225,7 @@
     <string name="plan_sheet_bodyweight_assisted">Assistência (−)</string>
     <string name="plan_sheet_rest">Descanso após cada série (s)</string>
     <string name="plan_sheet_rest_helper">0 = sem cronômetro de descanso automático.</string>
+    <string name="plan_sheet_rest_grouped">Neste grupo vale o descanso do grupo, depois de cada rodada.</string>
     <string name="plan_sheet_side_mode">Registro dos lados</string>
     <string name="plan_sheet_side_combined">Mesmo valor por lado</string>
     <string name="plan_sheet_side_per_side">Cada lado separado</string>
@@ -228,6 +261,12 @@
     <string name="session_weight_hint">kg</string>
     <string name="session_weight_hint_per_implement">kg/halter</string>
     <string name="session_reps_hint">reps</string>
+    <!-- Per-side logging: short labels, because two fields share the row with the weight. -->
+    <string name="session_reps_left_hint">E</string>
+    <string name="session_reps_right_hint">D</string>
+    <string name="session_reps_left_description">Repetições do lado esquerdo</string>
+    <string name="session_reps_right_description">Repetições do lado direito</string>
+    <string name="session_per_side_incomplete">Preencha os dois lados para concluir a série.</string>
     <string name="session_duration_hint">seg</string>
     <string name="session_confirm_set">Série %d: marcar como feita</string>
     <string name="session_undo_set">Série %d: desfazer</string>
@@ -236,6 +275,12 @@
     <string name="session_add_set">Adicionar série</string>
     <string name="session_remove_set">Remover série %d</string>
     <string name="session_technique_of_set">Técnica da série %d</string>
+    <!-- Drop-set (PRODUCT_SPEC 9.1): "Etapa 1" is the first DROP; the set itself is not counted. -->
+    <string name="session_segment_label">Etapa %d</string>
+    <string name="session_add_segment_of_set">Adicionar etapa à série %d</string>
+    <string name="session_remove_segment">Remover etapa %1$d da série %2$d</string>
+    <string name="session_confirm_segment">Etapa %1$d da série %2$d: marcar como feita</string>
+    <string name="session_undo_segment">Etapa %1$d da série %2$d: desfazer</string>
     <string name="session_collapse">Recolher %s</string>
     <string name="session_expand">Expandir %s</string>
     <string name="session_exercise_progress">%1$d/%2$d</string>
@@ -266,6 +311,12 @@
         <item quantity="one">%d série está preenchida pela metade e ficará como não feita (os valores continuam salvos).</item>
         <item quantity="other">%d séries estão preenchidas pela metade e ficarão como não feitas (os valores continuam salvos).</item>
     </plurals>
+    <!-- The drops of a drop-set. Counted apart from the sets, because a drop-set is one set
+         taken past failure (ADR-0037) and folding the drops into the set count would say "3". -->
+    <plurals name="finish_segments_resolved">
+        <item quantity="one">1 etapa de drop-set também será resolvida.</item>
+        <item quantity="other">%d etapas de drop-set também serão resolvidas.</item>
+    </plurals>
     <plurals name="finish_will_skip_empty">
         <item quantity="one">%d série vazia ficará como não feita.</item>
         <item quantity="other">%d séries vazias ficarão como não feitas.</item>
@@ -288,7 +339,124 @@
         <item quantity="one">%d série não incluída no volume</item>
         <item quantity="other">%d séries não incluídas no volume</item>
     </plurals>
+    <string name="summary_rating_question">Como foi o treino?</string>
+    <string name="summary_rating_optional">Opcional. Toque de novo para tirar.</string>
+    <string name="summary_rating_1">1</string>
+    <string name="summary_rating_2">2</string>
+    <string name="summary_rating_3">3</string>
+    <string name="summary_rating_4">4</string>
+    <string name="summary_rating_5">5</string>
+    <string name="summary_rating_spoken">Avaliar com %1$d de %2$d</string>
     <string name="summary_close">Fechar</string>
+
+    <!-- History (PRODUCT_SPEC HIS-01, HIS-03, HIS-04) -->
+    <string name="history_empty_title">Nenhum treino no histórico</string>
+    <string name="history_empty_body">Quando você finalizar um treino, ele aparece aqui com duração, exercícios e séries.</string>
+    <string name="calendar_previous_month">Mês anterior</string>
+    <string name="calendar_next_month">Próximo mês</string>
+    <plurals name="calendar_trained_days">
+        <item quantity="one">%d dia treinado neste mês</item>
+        <item quantity="other">%d dias treinados neste mês</item>
+    </plurals>
+    <string name="calendar_day_trained">%s · treinou</string>
+    <string name="calendar_day_free">%s · sem treino</string>
+    <string name="history_filtered_by_day">Mostrando %s</string>
+    <string name="history_show_all_days">Ver todas</string>
+    <string name="history_empty_day">Nenhuma sessão neste dia.</string>
+    <string name="history_session_options">Opções da sessão</string>
+    <string name="history_session_options_of">Opções de \"%s\"</string>
+    <string name="history_delete_action">Excluir do histórico</string>
+    <string name="history_delete_title">Excluir esta sessão?</string>
+    <!-- Says what is lost and what is not. The numbers are gone for good; the workout that
+         produced them is a different thing and stays. -->
+    <string name="history_delete_message">\"%s\" sai do histórico e deixa de contar nos seus números. O treino em si continua na aba Treinos.</string>
+    <string name="history_delete_failed">Não foi possível excluir. Tente novamente.</string>
+    <string name="history_day_today">Hoje</string>
+    <string name="history_day_yesterday">Ontem</string>
+    <string name="history_detail_title">Sessão</string>
+    <string name="history_session_date">%1$s · %2$s</string>
+    <string name="history_open_session">Abrir a sessão de %1$s</string>
+    <string name="history_effective_time">%s efetivos</string>
+    <string name="history_time_under_tension">Tempo sob tensão: %s</string>
+    <string name="history_no_volume">Sem volume de carga nesta sessão</string>
+    <string name="history_exercises_title">Exercícios</string>
+    <string name="history_exercise_no_volume">Sem volume de carga</string>
+    <string name="history_set_planned">Planejado: %s</string>
+    <string name="history_set_skipped">Não feita</string>
+    <string name="history_set_no_value">—</string>
+    <string name="history_rating_failed">Não foi possível salvar a avaliação.</string>
+    <string name="history_note_label">Observação</string>
+    <string name="history_note_hint">Como foi, o que doeu, o que mudar da próxima vez…</string>
+    <string name="history_note_failed">Não foi possível salvar a observação.</string>
+
+    <!-- Progresso (PRG-04) -->
+    <string name="progress_week">Semana</string>
+    <string name="progress_month">Mês</string>
+    <string name="progress_previous_period">Período anterior</string>
+    <string name="progress_next_period">Próximo período</string>
+    <string name="progress_range">%1$s – %2$s</string>
+    <plurals name="progress_sessions">
+        <item quantity="one">%d treino</item>
+        <item quantity="other">%d treinos</item>
+    </plurals>
+    <string name="progress_sets">Séries feitas: %1$d · repetições: %2$d</string>
+    <plurals name="progress_warm_ups">
+        <item quantity="one">Dessas, %d foi de aquecimento</item>
+        <item quantity="other">Dessas, %d foram de aquecimento</item>
+    </plurals>
+    <string name="progress_volume">Volume de carga: %s</string>
+    <string name="progress_no_volume">Sem volume de carga neste período</string>
+    <string name="progress_effective_time">Tempo efetivo: %s</string>
+    <string name="progress_muscles_title">Séries por grupo muscular</string>
+    <string name="progress_muscles_note">Aquecimento não entra. Uma série conta para todos os músculos do exercício, então os números abaixo não somam as séries feitas: cada um diz quanto aquele músculo recebeu.</string>
+    <plurals name="progress_muscle_primary">
+        <item quantity="one">%d série como principal</item>
+        <item quantity="other">%d séries como principal</item>
+    </plurals>
+    <plurals name="progress_muscle_secondary">
+        <item quantity="one">%d série como auxiliar</item>
+        <item quantity="other">%d séries como auxiliar</item>
+    </plurals>
+    <!-- The counts are composed in code: only the roles that happened are said at all. -->
+    <string name="progress_muscle_spoken">%1$s: %2$s</string>
+    <string name="progress_empty_period">Nenhum treino neste período.</string>
+    <string name="progress_empty_title">Nada para medir ainda</string>
+    <string name="progress_empty_body">Finalize um treino e esta tela passa a mostrar o que você fez na semana e em cada grupo muscular.</string>
+    <string name="history_load_failed">Não foi possível abrir esta sessão.</string>
+
+    <!-- Comparison with the previous session of the same workout (PRODUCT_SPEC §11) -->
+    <string name="history_comparison_title">Comparação com a sessão anterior</string>
+    <string name="history_comparison_by_exercise">Exercício por exercício</string>
+    <plurals name="history_comparison_show_sets">
+        <item quantity="one">Ver a série</item>
+        <item quantity="other">Ver as %d séries</item>
+    </plurals>
+    <string name="history_comparison_hide_sets">Ocultar as séries</string>
+    <string name="history_comparison_added">Só nesta sessão: %s</string>
+    <string name="history_comparison_dropped">Estava na sessão anterior e não nesta: %s</string>
+    <string name="history_comparison_set_number">Série %d</string>
+    <string name="history_comparison_set_spoken">%1$s: antes %2$s, agora %3$s. %4$s</string>
+    <string name="history_comparison_set_absent">não havia</string>
+    <string name="history_comparison_no_change_to_show">sem variação de carga a mostrar</string>
+    <string name="history_comparison_subtitle">Anterior: %s</string>
+    <string name="history_comparison_none">Primeira vez que você fez este treino: não há sessão anterior para comparar.</string>
+    <string name="history_comparison_volume">Volume</string>
+    <string name="history_comparison_sets">Séries</string>
+    <string name="history_comparison_reps">Repetições</string>
+    <string name="history_comparison_time">Tempo efetivo</string>
+    <!-- Metric line: label, current value, arrow + variation. -->
+    <string name="history_comparison_line">%1$s: %2$s (%3$s)</string>
+    <string name="history_comparison_up">↑</string>
+    <string name="history_comparison_down">↓</string>
+    <string name="history_comparison_same">=</string>
+    <!-- Percentage only when the previous value was above zero (PRODUCT_SPEC §11). -->
+    <string name="history_comparison_change_percent">%1$s %2$s · %3$s</string>
+    <string name="history_comparison_change_absolute">%1$s %2$s</string>
+    <string name="history_comparison_percent_value">%s%%</string>
+    <string name="history_comparison_unchanged">igual</string>
+    <string name="history_comparison_direction_up">aumentou</string>
+    <string name="history_comparison_direction_down">diminuiu</string>
+    <string name="history_comparison_direction_same">sem mudança</string>
 
     <!-- Settings -->
     <string name="settings_workout">Treino</string>

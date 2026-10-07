@@ -122,7 +122,7 @@ final class EditorExerciseAdapter extends RecyclerView.Adapter<EditorExerciseAda
 
         void bind(TemplateExerciseItem item) {
             Resources res = binding.getRoot().getResources();
-            binding.name.setText(item.name());
+            bindName(item, res);
             binding.muscle.setText(item.primaryMuscleName());
             binding.muscle.setVisibility(item.primaryMuscleName() == null ? View.GONE : View.VISIBLE);
             binding.plan.setText(formatter.planLine(item));
@@ -150,6 +150,22 @@ final class EditorExerciseAdapter extends RecyclerView.Adapter<EditorExerciseAda
                 }
             });
             bindAccessibilityActions(item, res);
+        }
+
+        /** "A1 Supino reto" for an exercise in a group (PRODUCT_SPEC 6.3), its name otherwise. */
+        private void bindName(TemplateExerciseItem item, Resources res) {
+            TemplateExerciseItem.GroupMark group = item.group();
+            if (group == null) {
+                binding.name.setText(item.name());
+                binding.name.setContentDescription(null); // a recycled card may have had one
+                return;
+            }
+            binding.name.setText(res.getString(R.string.editor_group_exercise_name,
+                    group.label(), group.number(), item.name()));
+            // A screen reader would otherwise spell "A1" out as a code, like it would "AQ".
+            binding.name.setContentDescription(res.getString(
+                    R.string.editor_group_exercise_description, group.label(), group.number(),
+                    item.name()));
         }
 
         /**
