@@ -239,6 +239,12 @@ Apague o `.b64` depois. Enquanto os secrets não existirem, nada quebra: o CI av
 há chave, o release sai sem assinatura e o portão continua verde — é o que acontece também em
 qualquer fork, que por regra do GitHub não recebe secrets.
 
+> **Sem os secrets não existe artefato nenhum para baixar.** O CI *de propósito* não publica um
+> APK sem assinatura, porque o Android recusa instalá-lo e oferecer o arquivo seria oferecer algo
+> que não funciona. Então a execução fica verde e simplesmente **não aparece a seção Artifacts**.
+> Se você for na 8.3 antes de fazer a 8.1 e a 8.2, não vai achar nada — e não é falha do CI.
+> Enquanto isso, o caminho para pôr a versão nova no celular é a **Parte 6** (cabo, APK de debug).
+
 ### 8.3 Baixar no celular
 
 1. No celular, abra o repositório no GitHub e entre em **Actions**.
@@ -247,6 +253,9 @@ qualquer fork, que por regra do GitHub não recebe secrets.
    para saber qual versão é).
 4. Descompacte e toque no `app-release.apk`. O Android vai pedir para permitir **"instalar apps
    desconhecidos"** para o navegador ou o gerenciador de arquivos — permita.
+5. Confirme que instalou o que você queria: **Ajustes do app → "Versão 0.2.0 (2)"**. O número entre
+   parênteses é o `versionCode`, e é ele que o Android compara ao instalar por cima. Duas compilações
+   podem ter o mesmo nome; se o código não mudou, você provavelmente está vendo a antiga.
 
 Baixar artefato do Actions **exige estar logado no GitHub** no navegador do celular, e o artefato
 expira depois de alguns meses. Se isso incomodar, dá para publicar em *Releases*, que é link
@@ -279,6 +288,8 @@ Esse APK é o **release**, não o debug. Então:
 | `Unsupported Android Gradle Plugin version` | Studio mais velho que o projeto | atualize o Studio, ou compile pelo terminal |
 | `Failed to install the following SDK components: platforms;android-37` | plataforma não instalada | Parte 2, item 3 |
 | APK baixado: "app não instalado" | é o `app-release-unsigned.apk`, ou a chave mudou | baixe o artefato `flowgym-apk-…`, não o APK do seu próprio build; se a chave mudou, desinstale (**apaga o banco**) |
+| Actions verde mas **sem seção Artifacts** | os secrets da chave não existem ainda | Parte 8.1 e 8.2; até lá, instale por cabo (Parte 6) |
+| Instalou mas parece a versão antiga | duas compilações com o mesmo nome | confira o `versionCode` entre parênteses em Ajustes |
 | O release abre e fecha, mas o debug funciona | regra `keep` faltando no R8 | `adb logcat -d \| grep -iE "AndroidRuntime"` e me mande o stack trace |
 | O app instala mas fecha ao abrir | pode ser a migration do banco | `adb logcat -d \| grep -iE "room\|migration\|flowgym" \| tail -40` e me mande esse trecho |
 
