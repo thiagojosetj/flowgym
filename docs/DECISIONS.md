@@ -40,6 +40,10 @@ são respondidos aqui quando mudam ou confirmam uma decisão.
 | 0032 | Uma sessão ativa garantida pela transação, não por índice | Aceita |
 | 0033 | Pareamento com a sessão anterior é derivado, não armazenado | Aceita |
 | 0034 | Foreground service é projeção, nunca pré-requisito | Aceita |
+| 0035 | CI no GitHub Actions; o job falha em qualquer achado de lint | Aceita |
+| 0036 | Sessão do histórico é carregada uma vez, não observada | Aceita |
+| 0037 | Segmento de drop-set soma volume, mas conta como uma série só | Aceita |
+| 0038 | Grupo é gravado na hora, fora do rascunho do editor | Aceita (com ressalva) |
 
 ---
 
@@ -319,3 +323,167 @@ try/catch; o serviço não guarda estado, observa o banco e se encerra sozinho q
 **Consequências:** o pior caso é treinar sem notificação, nunca perder uma série. Falta validar em
 aparelho (ROADMAP, pendências).
 
+### ADR-0035 — CI no GitHub Actions, e o job falha em **qualquer** achado de lint
+**Contexto:** o portão verde (`:domain:test`, `:app:testDebugUnitTest`, `:app:lintDebug` e
+`assembleRelease`) só existia na máquina de quem desenvolve; o repositório é público e não havia como
+provar que o `main` compila. A régua do projeto é **zero** achado de lint, mas `abortOnError = true`
+só derruba o build em achados de severidade *erro*: um *warning* novo entraria sem ninguém ver.
+**Decisão:** um workflow em `push` e `pull_request` roda as quatro tarefas na ordem em que dão
+retorno mais rápido, e um passo seguinte lê `app/build/reports/lint-results-debug.xml` e falha se
+houver **qualquer** `<issue>`. Esse passo também falha quando o relatório **não existe** — um passo
+que não acha o que conferir não pode passar em silêncio. A plataforma `android-37.0` é instalada
+explicitamente (`packages:`), em vez de confiar no que a imagem do runner traz naquele mês.
+**Por que não `lint { warningsAsErrors = true }`:** seria uma linha em vez de um passo, mas mudaria
+também o build local e o de release — uma regra nova de lint numa versão futura do AGP passaria a
+quebrar o trabalho do dia em vez de aparecer como falha de CI. A régua de zero achado é do
+repositório, não do compilador de quem está codando; o lugar de cobrá-la é o job.
+**Consequências:** quem roda o portão localmente continua vendo *warnings* de lint sem falhar, e é o
+CI que reprova. Se o caminho ou o formato do relatório mudar numa versão futura do AGP, o passo falha
+com "relatório não encontrado" — ruidoso de propósito, porque o jeito errado de falhar é passar.
+`assembleRelease` fica no job para que uma regra de *keep* faltando no R8 apareça aqui, e não na
+véspera de publicar.
+
+### ADR-0036 — Uma sessão do histórico é **carregada uma vez**, não observada
+**Contexto:** todo o resto do app observa o banco por LiveData, e foi o certo em toda tela até aqui.
+Mas as três piores falhas da Fase 3 foram da mesma família: uma tela montada a partir de **duas ou
+três** consultas renderizava com o que respondesse primeiro (o `MediatorLiveData` de `observeSession`
+ainda emite uma sessão com a lista de exercícios vazia se o cabeçalho chega antes das linhas). Os
+testes não pegam isso, porque usam executores síncronos — nenhuma consulta chega "depois".
+**Decisão:** a tela de uma sessão concluída usa `loadDetail(...)`, uma leitura única na thread de
+disco que devolve tudo pronto. A **lista** continua observada, porque ela muda de verdade: um treino
+finalizado em outra tela precisa aparecer nela — mas é **uma** consulta e um `map`, nunca fontes
+combinadas.
+**Por que isto não é inconsistência com a ADR-0006:** LiveData existe para refletir dado que muda.
+Uma sessão concluída **não muda** — o histórico é imutável (PRODUCT_SPEC §2.3). Observá-la seria
+esperar por uma segunda emissão que nunca vem, e pagar por isso com um estado intermediário que pode
+ser desenhado. Carregar uma vez elimina a classe de bug inteira em vez de testá-la.
+**Consequências:** rotacionar não relê o banco (o ViewModel sobrevive, como em `ExerciseDetailViewModel`).
+Se algum dia o histórico ganhar edição (avaliação 1–5, observação da sessão), esta ADR precisa ser
+revista — aí passa a haver o que observar, e a escolha certa muda junto.
+
+### ADR-0037 — Um segmento soma no volume, mas o drop-set inteiro conta como **uma** série
+**Contexto:** `set_log.parent_set_id` existe desde a v3 e nunca foi escrito. Antes de escrever a
+primeira linha era preciso decidir o que cada etapa de um drop-set (`40×10 → 30×8 → 20×6`) faz com os
+números, porque a escolha muda o valor em toda tela que mostra volume — e mudar depois reescreveria
+sessões passadas.
+**Decisão:** volume e repetições **somam todos os segmentos**; a contagem de **séries** conta **uma**.
+**Por que não contar 3 séries:** "séries feitas" viraria uma métrica inflada, e as estatísticas de
+séries por grupo muscular por semana (Fase 5) — que é métrica de treino de verdade, usada para
+programar volume semanal — passariam a contar um drop-set como o triplo de um exercício feito em
+séries normais. Duas pessoas com o mesmo treino teriam números incomparáveis por causa da técnica
+escolhida.
+**Por que não contar só a carga do topo no volume:** descartaria as 8 repetições a 30 kg e as 6 a
+20 kg, que foram executadas. O §9 já proíbe descartar em silêncio; somar os segmentos é a mesma regra
+de sempre aplicada a cada etapa, não uma regra nova.
+**Consequências:** a linha "N séries não incluídas no volume" passa a contar **séries-pai**, senão um
+drop-set com um segmento sem carga apareceria dentro e fora do volume ao mesmo tempo. Nenhuma
+consulta que conta séries muda: todas já filtram `parent_set_id IS NULL`, e a primeira etapa **é** a
+série-pai. Sem mudança de esquema — o banco continua na v3.
+**Em aberto (Fase 5):** para recordes, o segmento de maior carga é o que vale para "maior carga".
+Anotado no PRODUCT_SPEC §9.1; não implementado aqui.
+
+### ADR-0038 — Grupo é gravado **na hora**, e não no "Salvar" do editor
+**Contexto:** a ADR-0019 diz que o editor de treino trabalha com **rascunho** e só grava no "Salvar"
+explícito. Os grupos de exercícios fogem disso: `TemplateRepository.createGroup`/`removeGroup`
+gravam imediatamente, e o editor chama os dois na hora.
+**Por quê:** o rótulo (A, B, C) é **derivado** e renumerado pela camada de dados a partir da ordem
+dos exercícios — criar um grupo acima de outro renumera, apagar o A promove o B. Um grupo que
+existisse só no rascunho não teria rótulo até salvar, ou obrigaria a UI a derivar letras por conta
+própria, que é exatamente a duplicação que `GroupLabels` existe para impedir. O editor diz isso
+antes de confirmar ("O grupo é gravado na hora").
+**Consequência, e ela é real:** descartar o editor **não desfaz** um grupo. Isso é inconsistente com
+o resto da tela e o usuário pode se surpreender. Fica assim por ora porque a alternativa — modelar
+grupos no rascunho e reconciliar no salvar — é uma camada inteira a mais, e a parte que importa
+(perder supersérie em silêncio ao editar ou duplicar o treino) já foi resolvida na camada de dados.
+**Quando revisar:** se aparecer mais alguma coisa que precise ser gravada na hora, ou se o
+"descartar" passar a confundir de verdade, o certo é levar os grupos para o rascunho reutilizando
+`GroupLabels.forIndex` em vez de recalcular letras na UI.
+**Também não feito ainda:** editar descanso ou técnica de um grupo depois de criado (`updateGroup`
+existe, sem interface) e escolher a técnica do grupo (SS/BI/TRI/GS continuam sem uso).
+
+### ADR-0039 — O APK que vai para o celular é o **release assinado**, e a chave mora fora do repositório
+**Contexto:** até aqui, pôr uma versão nova no aparelho exigia cabo e `./gradlew :app:installDebug`.
+O `assembleRelease` produzia `app-release-unsigned.apk`, que o Android recusa instalar.
+**Decisão:** o `build.gradle.kts` ganha um `signingConfig` de release lido de **variáveis de
+ambiente** (`FLOWGYM_KEYSTORE_FILE`, `..._PASSWORD`, `..._KEY_ALIAS`, `..._KEY_PASSWORD`). Sem elas,
+o release sai sem assinatura, exatamente como antes. O CI preenche essas variáveis a partir de
+*secrets* do repositório, e publica o APK assinado como artefato de cada execução.
+**Por que o release e não o debug:** o debug fica na chave que o próprio SDK gera. Assiná-lo com
+outra chave faria o build instalado pelo cabo e o baixado se recusarem mutuamente — mesmo
+`applicationId`, assinaturas diferentes — e a única saída seria desinstalar, **apagando o histórico
+de treinos**. Como o release não tem o sufixo `.debug`, os dois **convivem** no aparelho, com bancos
+separados: o do cabo para desenvolver, o baixado para usar de verdade.
+**Efeito colateral que é na verdade o maior ganho:** o release passa pelo R8 (`isMinifyEnabled`), e
+rodar esse APK no aparelho é a única forma de descobrir uma regra `keep` faltando. O gate só provava
+que o R8 **compila**; nada ali prova que o app abre depois de encolhido.
+**Segredo:** a chave **não** é versionada e eu nunca a vejo — quem a gera e a guarda como secret é o
+dono do repositório (`docs/DEVICE_SETUP.md` tem os comandos). Um fork, ou um pull request vindo de um
+fork, não recebe secrets: lá o passo anuncia que não há chave, o release sai sem assinatura e o
+portão continua verde. Perder essa chave significa não conseguir mais atualizar por cima de um APK
+já instalado, então ela precisa de backup fora do GitHub.
+**Alternativas:** assinar o debug com uma chave fixa compartilhada (quebra o fluxo pelo cabo, acima);
+commitar a keystore (o repositório é público, e a regra é não versionar keystore nenhuma).
+**Pendente de aparelho:** que o APK encolhido pelo R8 realmente abre e funciona. Nada aqui prova isso.
+
+### ADR-0040 — As imagens de músculo são **nossas**, vetoriais e **geradas** de uma única fonte
+**Contexto:** o filtro da biblioteca tem 38 subgrupos com nomes como "vasto intermédio" e
+"semitendinoso e semimembranoso". Quem não sabe anatomia não escolhe numa lista de nomes — e os
+subgrupos existem exatamente para quem está afunilando o que quer treinar.
+**Decisão:** uma silhueta esquemática em vetor, com a região acesa. Todo traço é escrito à mão em
+`tools/musclemap.py`; nada é decalcado de produto nenhum nem de prancha anatômica com direitos.
+**Por que não imagem pronta:** o repositório é público e a ADR-0016 já registra que o texto do
+catálogo é autoral; a imagem não pode ter padrão mais baixo. Não existe conjunto gratuito,
+consistente e devidamente licenciado de anatomia para usar.
+**Por que vetor e não foto:** poucos KB, nítido em qualquer densidade, e **tingido pelo tema** — o
+modo escuro sai de graça em vez de exigir um segundo conjunto de arquivos. Para "onde fica isso no
+corpo", um esquema basta e é mais honesto que uma foto: não finge ser atlas.
+**Gerado, não desenhado 51 vezes:** `tools/gen_muscle_drawables.py` produz os 53 VectorDrawables, e
+`tools/preview_musclemap.py` produz a folha de revisão, das **mesmas** definições — a imagem revisada
+e a instalada não podem divergir. Músculo par é desenhado **uma vez** e espelhado por
+`<group android:scaleX="-1">`; desenhar os dois lados garantiria que eles fossem divergindo. Os 13
+grupos **não são desenhados**: um grupo é a união dos seus subgrupos, composta na hora, então ganhar
+um subgrupo atualiza o grupo de graça.
+**Silhueta e região são arquivos separados**, sem cor assada, para a tela poder tingir corpo e
+músculo com cores diferentes.
+**A tabela dos 51 é escrita à mão** em `MuscleArt`, e não montada do código do músculo em tempo de
+execução: nome vindo de string é invisível para o R8, que removeria os desenhos ou forçaria manter
+todos os recursos do app, e o erro apareceria no aparelho em vez de no build.
+**Garantia:** `MuscleArtTest` lê o `catalog.json` que o app embarca e falha se qualquer músculo
+ficar sem imagem, ou se dois códigos apontarem para o mesmo desenho. Foi verificado por mutação, não
+por confiança.
+**Custo:** +38 KB no APK release (3.307.891 → 3.346.855 bytes).
+**Alternativas recusadas:** miniatura de músculo na lista de exercícios (o dono do projeto preferiu
+ilustrações do movimento ali — ver `docs/EXERCISE_ART.md`); PNG gerado por IA para a anatomia (perde
+o tema e pesa muito mais).
+**Pendente de aparelho:** a linha com fonte ampliada, e se as regiões pequenas (glúteo mínimo,
+transverso, manguito rotador) ainda se distinguem a 40 dp.
+
+### ADR-0041 — Excluir uma sessão **não** fere a imutabilidade do histórico
+**Contexto:** o `HistoryRepository` dizia, no próprio Javadoc, "read-only by construction: history is
+immutable, and there is no write on this class to make it otherwise". Mas registrar um treino errado
+— começar o treino errado, confirmar série que não aconteceu — não tinha saída: a coluna `deleted_at`
+existia e **nunca era escrita**, e o número ficava nas suas estatísticas para sempre.
+**Decisão:** HIS-05. A lista do histórico ganha "Excluir do histórico" por linha, com confirmação que
+nomeia a sessão.
+**Por que isso não contradiz a imutabilidade:** "imutável" sempre significou que os números de uma
+sessão **não são reescritos depois** — editar um treino não altera uma sessão passada (ADR-0036).
+Excluir não reescreve nada: a sessão sai **inteira**. A regra existe para impedir que o passado seja
+*corrigido*, não para obrigar alguém a conviver com um registro falso.
+**Soft delete, como o descarte:** a linha permanece e `deleted_at` é marcado, porque apagar a linha
+deixaria o servidor com uma sessão que este aparelho não sabe mais que existiu, e nada para mandar
+removê-la. Toda leitura já filtrava `deleted_at IS NULL` pelo `MINE_SQL`, então a escrita foi o único
+pedaço que faltava.
+**Excluir duas vezes não é erro:** `delete` responde `false` em vez de lançar. A tela não tem nada
+diferente a fazer, e a linha já saiu da lista observada.
+**Consequência conhecida e NÃO resolvida:** o pareamento "anterior" (ADR-0033) é gravado no início da
+sessão em `previous_session_exercise_id` e **não** filtra sessões excluídas. Uma sessão posterior
+continua comparando com a sessão que você excluiu. Está errado — se você apagou porque foi engano, os
+números dela não deviam guiar o próximo treino — e consertar exige repareamento, que é trabalho de
+outro tamanho. Fica registrado como lacuna, não como detalhe.
+**Mesma linha, a avaliação (HIS-06):** gravar a nota 1–5 numa sessão encerrada também é escrita em
+sessão terminada, e também não é reescrita de resultado — a nota é **comentário de quem treinou**,
+não medição. Nenhuma série, carga ou duração é tocada. É por isso que ela mora no
+`HistoryRepository`, ao lado da exclusão: as duas escritas em sessão encerrada ficam no mesmo
+lugar, onde a regra pode ser lida de uma vez.
+**Alternativas:** apagar a linha de verdade (quebra o sync); permitir editar a sessão em vez de
+excluir (aí sim feriria a imutabilidade, e é o que a ADR-0036 recusa).

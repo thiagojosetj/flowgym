@@ -44,24 +44,21 @@
             app:singleSelection="true" />
     </HorizontalScrollView>
 
-    <HorizontalScrollView
-        android:id="@+id/subgroup_scroll"
+    <!-- The parts of the chosen group, as pictures rather than names: the names are what the
+         person using this does not know. -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/subgroup_list"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_xs"
         android:clipToPadding="false"
+        android:orientation="horizontal"
         android:paddingHorizontal="@dimen/screen_margin"
         android:scrollbars="none"
         android:visibility="gone"
-        tools:visibility="visible">
-
-        <com.google.android.material.chip.ChipGroup
-            android:id="@+id/subgroup_chips"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:selectionRequired="true"
-            app:singleLine="true"
-            app:singleSelection="true" />
-    </HorizontalScrollView>
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        tools:listitem="@layout/item_muscle_filter"
+        tools:visibility="visible" />
 
     <HorizontalScrollView
         android:layout_width="match_parent"

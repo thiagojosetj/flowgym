@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    One exercise of this session beside the same exercise of the previous one (PRODUCT_SPEC
+    HIS-04). The metric lines use the same wording as the session comparison above them, so the
+    two parts of the screen never phrase the same fact two ways.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingVertical="@dimen/space_s">
+
+    <TextView
+        android:id="@+id/comparison_exercise_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="?attr/textAppearanceTitleSmall"
+        tools:text="Supino reto com barra" />
+
+    <TextView
+        android:id="@+id/comparison_exercise_volume"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        tools:text="Volume: 1.350 kg (↑ 150 kg · 12,5%)" />
+
+    <TextView
+        android:id="@+id/comparison_exercise_no_volume"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone"
+        tools:text="Sem volume de carga" />
+
+    <TextView
+        android:id="@+id/comparison_exercise_sets"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        tools:text="Séries: 3 (= igual)" />
+
+    <TextView
+        android:id="@+id/comparison_exercise_reps"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        tools:text="Repetições: 30 (↑ 3)" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/button_comparison_sets"
+        style="@style/Widget.Material3.Button.TextButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:minHeight="@dimen/touch_target_min"
+        tools:text="Ver as 3 séries" />
+</LinearLayout>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One muscle in the library filter: the picture is the point, the name is the confirmation.
+     Someone who does not know "vasto medial" picks the figure, not the words. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/muscle_filter_item"
+    android:layout_width="76dp"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_muscle_filter"
+    android:clickable="true"
+    android:focusable="true"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:paddingHorizontal="@dimen/space_xs"
+    android:paddingVertical="@dimen/space_s">
+
+    <io.github.thiagojosetj.gym.ui.common.MuscleMapView
+        android:id="@+id/muscle_map"
+        android:layout_width="40dp"
+        android:layout_height="88dp" />
+
+    <TextView
+        android:id="@+id/muscle_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_xs"
+        android:gravity="center"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        tools:text="Peitoral superior" />
+</LinearLayout>

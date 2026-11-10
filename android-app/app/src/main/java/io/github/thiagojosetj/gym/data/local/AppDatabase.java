@@ -24,9 +24,11 @@ import io.github.thiagojosetj.gym.data.local.entity.ExerciseEquipmentEntity;
 import io.github.thiagojosetj.gym.data.local.entity.ExerciseMuscleEntity;
 import io.github.thiagojosetj.gym.data.local.entity.MuscleEntity;
 import io.github.thiagojosetj.gym.data.local.entity.SessionExerciseEntity;
+import io.github.thiagojosetj.gym.data.local.entity.SessionExerciseGroupEntity;
 import io.github.thiagojosetj.gym.data.local.entity.SessionPauseEntity;
 import io.github.thiagojosetj.gym.data.local.entity.SetLogEntity;
 import io.github.thiagojosetj.gym.data.local.entity.TemplateExerciseEntity;
+import io.github.thiagojosetj.gym.data.local.entity.TemplateExerciseGroupEntity;
 import io.github.thiagojosetj.gym.data.local.entity.TemplateSetEntity;
 import io.github.thiagojosetj.gym.data.local.entity.TrainingTechniqueEntity;
 import io.github.thiagojosetj.gym.data.local.entity.UserProfileEntity;
@@ -53,18 +55,20 @@ import io.github.thiagojosetj.gym.data.local.entity.WorkoutTemplateEntity;
                 ExerciseEquipmentEntity.class,
                 WorkoutTemplateEntity.class,
                 TemplateExerciseEntity.class,
+                TemplateExerciseGroupEntity.class,
                 TemplateSetEntity.class,
                 TrainingTechniqueEntity.class,
                 UserSettingEntity.class,
                 WorkoutSessionEntity.class,
                 SessionPauseEntity.class,
                 SessionExerciseEntity.class,
+                SessionExerciseGroupEntity.class,
                 SetLogEntity.class
         })
 public abstract class AppDatabase extends RoomDatabase {
 
     /** Current schema version. Bump together with a Migration and a migration test. */
-    public static final int VERSION = 3;
+    public static final int VERSION = 4;
 
     public static final String FILE_NAME = "gym.db";
 
@@ -183,12 +187,64 @@ public abstract class AppDatabase extends RoomDatabase {
     };
 
     /**
+     * v3 -> v4: exercise groups (superset, bi-set, tri-set, giant set — PRODUCT_SPEC section 6.3).
+     *
+     * <p>Only new tables and two nullable columns, so nothing existing is rewritten and every row
+     * already stored stays exactly as it was: an exercise with no group reads {@code group_id
+     * IS NULL}, which is what every template and session written before this migration has.
+     *
+     * <p>{@code ON DELETE SET NULL} on both columns is deliberate. Ungrouping is a normal edit, and
+     * CASCADE there would delete the exercise along with its group — losing the user's work to fix
+     * a label.
+     */
+    public static final Migration MIGRATION_3_4 = new Migration(3, 4) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS `template_exercise_group` (`id` TEXT NOT NULL,"
+                    + " `template_id` TEXT NOT NULL, `label` TEXT NOT NULL, `technique_id` TEXT,"
+                    + " `rest_after_round_s` INTEGER NOT NULL, `position` INTEGER NOT NULL,"
+                    + " PRIMARY KEY(`id`), FOREIGN KEY(`template_id`)"
+                    + " REFERENCES `workout_template`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE ,"
+                    + " FOREIGN KEY(`technique_id`) REFERENCES `training_technique`(`id`)"
+                    + " ON UPDATE NO ACTION ON DELETE NO ACTION )");
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_template_exercise_group_template_id`"
+                    + " ON `template_exercise_group` (`template_id`)");
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_template_exercise_group_technique_id`"
+                    + " ON `template_exercise_group` (`technique_id`)");
+
+            db.execSQL("CREATE TABLE IF NOT EXISTS `session_exercise_group` (`id` TEXT NOT NULL,"
+                    + " `session_id` TEXT NOT NULL, `label` TEXT NOT NULL, `technique_id` TEXT,"
+                    + " `technique_code` TEXT, `rest_after_round_s` INTEGER NOT NULL,"
+                    + " `position` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`session_id`)"
+                    + " REFERENCES `workout_session`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE ,"
+                    + " FOREIGN KEY(`technique_id`) REFERENCES `training_technique`(`id`)"
+                    + " ON UPDATE NO ACTION ON DELETE NO ACTION )");
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_session_exercise_group_session_id`"
+                    + " ON `session_exercise_group` (`session_id`)");
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_session_exercise_group_technique_id`"
+                    + " ON `session_exercise_group` (`technique_id`)");
+
+            db.execSQL("ALTER TABLE `template_exercise` ADD COLUMN `group_id` TEXT"
+                    + " REFERENCES `template_exercise_group`(`id`)"
+                    + " ON UPDATE NO ACTION ON DELETE SET NULL");
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_template_exercise_group_id`"
+                    + " ON `template_exercise` (`group_id`)");
+
+            db.execSQL("ALTER TABLE `session_exercise` ADD COLUMN `group_id` TEXT"
+                    + " REFERENCES `session_exercise_group`(`id`)"
+                    + " ON UPDATE NO ACTION ON DELETE SET NULL");
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_session_exercise_group_id`"
+                    + " ON `session_exercise` (`group_id`)");
+        }
+    };
+
+    /**
      * Opens the on-disk database. Called once by the AppContainer, which owns the only instance
      * (no static singleton here - ADR-0005).
      */
     public static AppDatabase open(Context context) {
         return Room.databaseBuilder(context.getApplicationContext(), AppDatabase.class, FILE_NAME)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .build();
     }
 }

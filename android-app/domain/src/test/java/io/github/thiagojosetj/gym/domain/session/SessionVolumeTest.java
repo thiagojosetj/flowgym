@@ -145,6 +145,94 @@ public class SessionVolumeTest {
         assertEquals(22, totals.totalReps());
     }
 
+    // ---------------------------------------------- segments (section 9.1, ADR-0037)
+
+    @Test
+    public void aDropSetSumsEveryDropIntoTheVolume() {
+        // 40x10 + 30x8 + 20x6. The repetitions at 30 kg and 20 kg were performed; counting only
+        // the top load would throw away real work.
+        SessionExercise bench = barbell(dropSet("s1", kg(40), 10,
+                drop("s1-a", kg(30), 8), drop("s1-b", kg(20), 6)));
+
+        SessionVolume.Totals totals = SessionVolume.ofExercise(bench);
+
+        assertEquals(760_000L, totals.loadGrams());
+    }
+
+    @Test
+    public void aDropSetIsOneSetAndNotThree() {
+        // The rule that makes "series feitas" and the weekly sets-per-muscle figures mean anything.
+        SessionExercise bench = barbell(dropSet("s1", kg(40), 10,
+                drop("s1-a", kg(30), 8), drop("s1-b", kg(20), 6)));
+
+        SessionVolume.Totals totals = SessionVolume.ofExercise(bench);
+
+        assertEquals(1, totals.countedSets());
+        assertEquals(0, totals.excludedSets());
+    }
+
+    @Test
+    public void aDropSetSumsTheRepetitionsOfEveryDrop() {
+        SessionExercise bench = barbell(dropSet("s1", kg(40), 10,
+                drop("s1-a", kg(30), 8), drop("s1-b", kg(20), 6)));
+
+        assertEquals(24, SessionVolume.ofExercise(bench).totalReps());
+    }
+
+    @Test
+    public void aDropThatWasPlannedAndNotPerformedAddsNothing() {
+        LoggedSet pendingDrop = new LoggedSet("s1-a", 0, null, null, null, true, null, null, null,
+                0, new SetValues(kg(30), 8, null, null, null), SetStatus.PENDING, null, null, null,
+                Collections.emptyList());
+        SessionExercise bench = barbell(dropSet("s1", kg(40), 10, pendingDrop));
+
+        SessionVolume.Totals totals = SessionVolume.ofExercise(bench);
+
+        assertEquals(400_000L, totals.loadGrams());
+        assertEquals(10, totals.totalReps());
+    }
+
+    @Test
+    public void theDropsOfAWarmUpAreWarmUpToo() {
+        // A set is excluded as a whole or not at all. Letting the drops of a warm-up add load would
+        // put half of one set inside the volume and half outside it.
+        LoggedSet warmUp = set("s1", new SetValues(kg(20), 12, null, null, null),
+                SetStatus.COMPLETED, false);
+        LoggedSet withDrops = new LoggedSet(warmUp.id(), 0, null, warmUp.techniqueId(),
+                warmUp.techniqueCode(), false, null, null, null, 0, warmUp.values(),
+                SetStatus.COMPLETED, 1L, null, null,
+                Collections.singletonList(drop("s1-a", kg(15), 10)));
+
+        SessionVolume.Totals totals = SessionVolume.ofExercise(barbell(withDrops));
+
+        assertEquals(0L, totals.loadGrams());
+        assertEquals(1, totals.excludedSets());
+        assertEquals(22, totals.totalReps()); // the repetitions still happened
+    }
+
+    @Test
+    public void aDropSetWithNoKnownLoadIsExcludedExactlyOnce() {
+        // Not once per drop: the exclusions line counts SETS, and this is one set.
+        SessionExercise bench = barbell(dropSet("s1", null, 10,
+                drop("s1-a", null, 8), drop("s1-b", null, 6)));
+
+        SessionVolume.Totals totals = SessionVolume.ofExercise(bench);
+
+        assertEquals(0L, totals.loadGrams());
+        assertEquals(1, totals.excludedSets());
+        assertEquals(24, totals.totalReps());
+    }
+
+    @Test
+    public void everyDropOfADumbbellSetCountsBothImplements() {
+        // Per-implement load applies drop by drop: 2x12x10 + 2x10x8 = 240 + 160 kg.
+        SessionExercise curl = exercise(TrackingType.WEIGHT_REPS, LoadBasis.PER_IMPLEMENT, 2,
+                Laterality.BILATERAL, SideMode.COMBINED,
+                Collections.singletonList(dropSet("s1", kg(12), 10, drop("s1-a", kg(10), 8))));
+
+        assertEquals(400_000L, SessionVolume.ofExercise(curl).loadGrams());
+    }
+
     // ------------------------------------------------------------------ helpers
 
     private static Weight kg(double value) {
@@ -158,7 +246,27 @@ public class SessionVolumeTest {
     private static LoggedSet set(String id, SetValues values, SetStatus status, boolean working) {
         return new LoggedSet(id, 0, working ? 1 : null, working ? null : "technique-warmup",
                 working ? null : "AQ", working, RepRange.exactly(10), null, null, 90,
-                values, status, status == SetStatus.COMPLETED ? 1L : null, null, null);
+                values, status, status == SetStatus.COMPLETED ? 1L : null, null, null,
+                Collections.emptyList());
+    }
+
+    /** A performed set with its later drops nested inside it (PRODUCT_SPEC section 9.1). */
+    private static LoggedSet dropSet(String id, Weight weight, int reps, LoggedSet... drops) {
+        return new LoggedSet(id, 0, 1, null, null, true, RepRange.exactly(reps), null, null, 90,
+                new SetValues(weight, reps, null, null, null), SetStatus.COMPLETED, 1L, null, null,
+                Arrays.asList(drops));
+    }
+
+    /** One drop. It has no plan and no "previous": it is a drop off the set above it. */
+    private static LoggedSet drop(String id, Weight weight, int reps) {
+        return new LoggedSet(id, 0, null, null, null, true, null, null, null, 0,
+                new SetValues(weight, reps, null, null, null), SetStatus.COMPLETED, 1L, null, null,
+                Collections.emptyList());
+    }
+
+    private static SessionExercise barbell(LoggedSet... sets) {
+        return exercise(TrackingType.WEIGHT_REPS, LoadBasis.TOTAL, 1, Laterality.BILATERAL,
+                SideMode.COMBINED, Arrays.asList(sets));
     }
 
     private static SessionExercise exercise(TrackingType tracking, LoadBasis basis, int implements_,

@@ -20,9 +20,11 @@ import io.github.thiagojosetj.gym.domain.model.SideMode;
                 @ForeignKey(entity = WorkoutTemplateEntity.class, parentColumns = "id",
                         childColumns = "template_id", onDelete = ForeignKey.CASCADE),
                 @ForeignKey(entity = ExerciseEntity.class, parentColumns = "id",
-                        childColumns = "exercise_id")
+                        childColumns = "exercise_id"),
+                @ForeignKey(entity = TemplateExerciseGroupEntity.class, parentColumns = "id",
+                        childColumns = "group_id", onDelete = ForeignKey.SET_NULL)
         },
-        indices = {@Index("template_id"), @Index("exercise_id")})
+        indices = {@Index("template_id"), @Index("exercise_id"), @Index("group_id")})
 public class TemplateExerciseEntity {
 
     @PrimaryKey
@@ -36,6 +38,14 @@ public class TemplateExerciseEntity {
     @NonNull
     @ColumnInfo(name = "exercise_id")
     public String exerciseId = "";
+
+    /**
+     * The group this exercise belongs to (A1, A2), or null when it stands alone. SET_NULL on
+     * delete: ungrouping must never take the exercise out of the template with it.
+     */
+    @Nullable
+    @ColumnInfo(name = "group_id")
+    public String groupId;
 
     public int position;
 

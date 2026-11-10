@@ -56,6 +56,34 @@ public class ActiveSetRow {
     @Nullable
     public String primaryEquipmentCode;
 
+    // ---- session_exercise_group (all null when the exercise stands alone)
+
+    /**
+     * The group this exercise was in when the session started. Every field below it comes from the
+     * session's own snapshot of the group, never from the template: editing or deleting the
+     * template's group afterwards must not change what this session says happened.
+     */
+    @Nullable
+    public String groupId;
+
+    /** What the screen shows before the exercise number: "A" gives A1, A2. */
+    @Nullable
+    public String groupLabel;
+
+    @Nullable
+    public String groupTechniqueId;
+
+    /** The badge as it was stored with the group, not looked up in the catalog. */
+    @Nullable
+    public String groupTechniqueCode;
+
+    /** The rest that belongs to the round, once every exercise of the group has settled it. */
+    @Nullable
+    public Integer groupRestAfterRoundSeconds;
+
+    @Nullable
+    public Integer groupPosition;
+
     // ---- set_log
 
     @Nullable
@@ -63,6 +91,14 @@ public class ActiveSetRow {
 
     @Nullable
     public Integer setPosition;
+
+    /**
+     * Null for a set; the owning set's id for a drop-set or rest-pause segment (ADR-0037). The
+     * mapper nests the segments into their set - they are never rows of their own on screen, and
+     * they must never reach the working-set numbering, which counts sets.
+     */
+    @Nullable
+    public String parentSetId;
 
     @Nullable
     public String techniqueId;

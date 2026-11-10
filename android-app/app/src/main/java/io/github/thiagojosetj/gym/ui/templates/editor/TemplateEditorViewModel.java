@@ -9,16 +9,23 @@ import androidx.lifecycle.ViewModel;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import io.github.thiagojosetj.gym.core.Event;
 import io.github.thiagojosetj.gym.data.repository.ExerciseRepository;
 import io.github.thiagojosetj.gym.data.repository.SettingsRepository;
 import io.github.thiagojosetj.gym.data.repository.TechniqueRepository;
 import io.github.thiagojosetj.gym.data.repository.TemplateRepository;
+import io.github.thiagojosetj.gym.domain.template.ExerciseGroup;
 import io.github.thiagojosetj.gym.domain.template.ExercisePlanUpdate;
 import io.github.thiagojosetj.gym.domain.technique.TechniqueCatalog;
 import io.github.thiagojosetj.gym.domain.template.ExerciseRef;
+import io.github.thiagojosetj.gym.domain.template.TemplateDefaults;
 import io.github.thiagojosetj.gym.domain.template.TemplateDraft;
 import io.github.thiagojosetj.gym.domain.template.TemplateExerciseDraft;
 import io.github.thiagojosetj.gym.domain.template.TemplateRules;
@@ -29,13 +36,30 @@ import io.github.thiagojosetj.gym.ui.templates.editor.TemplateEditorState.Status
  * Owns the {@link TemplateDraft} being edited (ADR-0019). Every change goes through the domain
  * aggregate, which applies the rules (3 × 12 defaults, limits, validation); this class only turns
  * the draft into immutable UI state and talks to the repositories.
+ *
+ * <p>Groups (supersets, PRODUCT_SPEC section 6.3) are the one thing that is NOT part of the draft.
+ * The data layer makes and removes them at once, on exercises that are already saved, so the
+ * explicit "Salvar" does not apply to them: they are read back from it into {@code groups}, and
+ * the letter shown for each is whatever it answers.
  */
 public final class TemplateEditorViewModel extends ViewModel {
 
     private static final String TAG = "TemplateEditorVM";
 
     /** One-shot outcomes for the screen. */
-    public enum EditorEvent { SAVED, SAVE_FAILED, ADD_FAILED, EXERCISE_LIMIT_REACHED }
+    public enum EditorEvent {
+        SAVED, SAVE_FAILED, ADD_FAILED, EXERCISE_LIMIT_REACHED,
+        /** A group was made, and is already stored: it does not wait for "Salvar". */
+        GROUPED,
+        /** A group is gone, also at once, and its exercises are still in the template. */
+        UNGROUPED,
+        /** Fewer than {@link TemplateRules#MIN_GROUP_SIZE} different exercises were picked. */
+        GROUP_TOO_SMALL,
+        /** An exercise to group exists only in this draft, and a group is made in the database. */
+        GROUP_NEEDS_SAVE,
+        /** The data layer refused the group, or it could not be made, removed or read back. */
+        GROUP_FAILED
+    }
 
     private final TemplateRepository templates;
     private final ExerciseRepository exercises;
@@ -51,6 +75,12 @@ public final class TemplateEditorViewModel extends ViewModel {
     private Status status;
     private List<TemplateExerciseItem> items = Collections.emptyList();
     private List<TemplateDraft.Error> visibleErrors = Collections.emptyList();
+    /** The group of every grouped exercise, by template exercise id, as the database has it. */
+    private Map<String, ExerciseGroup> groups = Collections.emptyMap();
+    /** The exercises that exist in the database. A new template has none, whatever it lists. */
+    private Set<String> savedExerciseIds = Collections.emptySet();
+    /** Where a new group's rest starts: the user's default, until the settings say otherwise. */
+    private int defaultRestSeconds = TemplateDefaults.DEFAULT_REST_SECONDS;
 
     public TemplateEditorViewModel(TemplateRepository templates, ExerciseRepository exercises,
                                    TechniqueRepository techniques, SettingsRepository settings,
@@ -65,6 +95,8 @@ public final class TemplateEditorViewModel extends ViewModel {
             Log.w(TAG, "Could not load the technique catalog", error);
             techniqueCatalog.setValue(null);
         });
+        settings.loadSettings(loaded -> defaultRestSeconds = loaded.defaultRestSeconds(),
+                error -> Log.w(TAG, "Could not read the default rest", error));
         if (templateId == null) {
             draft = TemplateDraft.newTemplate(ids);
             status = Status.READY;
@@ -72,15 +104,20 @@ public final class TemplateEditorViewModel extends ViewModel {
         } else {
             status = Status.LOADING;
             publish(false);
-            templates.loadDraft(templateId, loaded -> {
+            // The groups are read with the draft, so no card opens without the label of its group.
+            templates.loadDraft(templateId, loaded -> templates.loadGroups(templateId, stored -> {
                 draft = loaded;
+                groups = stored;
+                savedExerciseIds = exerciseIdsOf(loaded);
                 status = Status.READY;
                 publish(true);
-            }, error -> {
-                status = Status.LOAD_FAILED;
-                publish(false);
-            });
+            }, error -> loadFailed()), error -> loadFailed());
         }
+    }
+
+    private void loadFailed() {
+        status = Status.LOAD_FAILED;
+        publish(false);
     }
 
     public LiveData<TemplateEditorState> state() {
@@ -181,6 +218,98 @@ public final class TemplateEditorViewModel extends ViewModel {
         return null;
     }
 
+    // ------------------------------------------------------------------ groups
+
+    /** The rest a new group starts with, shown to the user before the group is made. */
+    public int defaultGroupRestSeconds() {
+        return defaultRestSeconds;
+    }
+
+    /**
+     * True when the exercise is already in the database. A group is made there, at once, so an
+     * exercise added in this editing session has to be saved before it can join one.
+     */
+    public boolean isSaved(String templateExerciseId) {
+        return savedExerciseIds.contains(templateExerciseId);
+    }
+
+    /** The other exercises that are in no group, in the order the cards are shown. */
+    public List<TemplateExerciseItem> groupCandidates(String templateExerciseId) {
+        List<TemplateExerciseItem> candidates = new ArrayList<>();
+        for (TemplateExerciseItem item : items) {
+            if (!item.id().equals(templateExerciseId) && item.group() == null) {
+                candidates.add(item);
+            }
+        }
+        return candidates;
+    }
+
+    /**
+     * Puts the exercises in a new group, a plain grouping with no technique, and writes it now.
+     * The label is not an input: it comes back from the data layer, which letters every group of
+     * the template.
+     *
+     * <p>Nothing is written, and the screen is told why, when fewer than
+     * {@link TemplateRules#MIN_GROUP_SIZE} different exercises are given or one of them is not
+     * saved yet. Whatever the data layer refuses on top of that ends in
+     * {@link EditorEvent#GROUP_FAILED}.
+     *
+     * @param restAfterRoundSeconds rest that starts when the whole round is over, 0 for none
+     */
+    public void createGroup(List<String> templateExerciseIds, int restAfterRoundSeconds) {
+        if (!editable()) {
+            return;
+        }
+        List<String> members = new ArrayList<>(new LinkedHashSet<>(templateExerciseIds));
+        if (members.size() < TemplateRules.MIN_GROUP_SIZE) {
+            events.setValue(new Event<>(EditorEvent.GROUP_TOO_SMALL));
+            return;
+        }
+        if (!savedExerciseIds.containsAll(members)) {
+            events.setValue(new Event<>(EditorEvent.GROUP_NEEDS_SAVE));
+            return;
+        }
+        templates.createGroup(draft.id(), members, null, restAfterRoundSeconds,
+                groupId -> reloadGroups(EditorEvent.GROUPED),
+                error -> groupFailed("create", error));
+    }
+
+    /** Ungroups: the group goes and its exercises stay in the template. Written now, as well. */
+    public void removeGroup(String groupId) {
+        if (!editable()) {
+            return;
+        }
+        templates.removeGroup(draft.id(), groupId, () -> reloadGroups(EditorEvent.UNGROUPED),
+                error -> groupFailed("remove", error));
+    }
+
+    private void groupFailed(String what, Throwable error) {
+        Log.w(TAG, "Could not " + what + " the group", error);
+        events.setValue(new Event<>(EditorEvent.GROUP_FAILED));
+    }
+
+    /**
+     * Reads the groups back and redraws the cards. The data layer relettered them, so this is the
+     * only way a letter gets onto the screen.
+     *
+     * @param done what to tell the screen once it shows the new groups, or null to say nothing
+     *             (and to keep quiet if the read fails: the write it follows already succeeded)
+     */
+    private void reloadGroups(@Nullable EditorEvent done) {
+        templates.loadGroups(draft.id(), stored -> {
+            groups = stored;
+            publish(true);
+            if (done != null) {
+                events.setValue(new Event<>(done));
+            }
+        }, error -> {
+            Log.w(TAG, "Could not read the groups back", error);
+            if (done != null) {
+                events.setValue(new Event<>(EditorEvent.GROUP_FAILED));
+            }
+        });
+    }
+
     // ------------------------------------------------------------------ save
 
     public void save() {
@@ -198,8 +327,10 @@ public final class TemplateEditorViewModel extends ViewModel {
         publish(false);
         templates.save(draft, savedId -> {
             draft.markSaved();
+            savedExerciseIds = exerciseIdsOf(draft);
             status = Status.READY;
             publish(false);
+            reloadGroups(null); // saving relettered them, and dissolved any left with one exercise
             events.setValue(new Event<>(EditorEvent.SAVED));
         }, error -> {
             status = Status.READY;
@@ -209,6 +340,14 @@ public final class TemplateEditorViewModel extends ViewModel {
     }
 
     // ------------------------------------------------------------------ internals
+
+    private static Set<String> exerciseIdsOf(TemplateDraft template) {
+        Set<String> ids = new HashSet<>();
+        for (TemplateExerciseDraft exercise : template.exercises()) {
+            ids.add(exercise.id());
+        }
+        return Collections.unmodifiableSet(ids);
+    }
 
     private TechniqueCatalog currentCatalog() {
         TechniqueCatalog catalog = techniqueCatalog.getValue();
@@ -231,8 +370,17 @@ public final class TemplateEditorViewModel extends ViewModel {
         }
         if (exercisesChanged) {
             List<TemplateExerciseItem> rebuilt = new ArrayList<>(draft.exercises().size());
+            // A card reads A1 or A2 by how many of its group are drawn above it, so the numbers
+            // follow the order of the cards, which a drag changes before anything is saved. The
+            // letter is only ever the data layer's.
+            Map<String, Integer> drawn = new HashMap<>();
             for (TemplateExerciseDraft e : draft.exercises()) {
-                rebuilt.add(TemplateExerciseItem.from(e, currentCatalog()));
+                ExerciseGroup group = groups.get(e.id());
+                TemplateExerciseItem.GroupMark mark = group == null ? null
+                        : new TemplateExerciseItem.GroupMark(group.id(), group.label(),
+                                drawn.merge(group.id(), 1, Integer::sum),
+                                group.restAfterRoundSeconds());
+                rebuilt.add(TemplateExerciseItem.from(e, currentCatalog(), mark));
             }
             items = Collections.unmodifiableList(rebuilt);
         }

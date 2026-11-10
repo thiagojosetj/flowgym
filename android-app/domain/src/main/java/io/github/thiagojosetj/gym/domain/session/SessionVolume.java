@@ -1,5 +1,6 @@
 package io.github.thiagojosetj.gym.domain.session;
 
+import java.util.Collection;
 import java.util.List;
 
 import io.github.thiagojosetj.gym.domain.model.TrackingType;
@@ -48,6 +49,23 @@ public final class SessionVolume {
     private SessionVolume() {
     }
 
+    /**
+     * Several finished sessions added up, for a week or a month (PRODUCT_SPEC PRG-04).
+     *
+     * <p>Here rather than in the caller so that a period's volume is produced by the same code as
+     * a session's. Two implementations of the section 9 rules would eventually disagree, and the
+     * one the person saw when they finished the workout is the one they would trust.
+     */
+    public static Totals ofSessions(Collection<ActiveSession> sessions) {
+        Totals totals = Totals.EMPTY;
+        if (sessions != null) {
+            for (ActiveSession session : sessions) {
+                totals = totals.plus(of(session.exercises()));
+            }
+        }
+        return totals;
+    }
+
     public static Totals of(List<SessionExercise> exercises) {
         Totals totals = Totals.EMPTY;
         if (exercises != null) {
@@ -64,18 +82,54 @@ public final class SessionVolume {
             if (!set.isCompleted()) {
                 continue; // planned or skipped sets are not results
             }
-            Integer reps = exercise.totalRepsOf(set);
-            int duration = set.values().durationSeconds() == null ? 0 : set.values().durationSeconds();
-            long load = setLoadGrams(exercise, set);
-            boolean counted = load > 0;
-            totals = totals.plus(new Totals(
-                    load,
-                    counted ? 1 : 0,
-                    counted ? 0 : 1,
-                    reps == null ? 0 : reps,
-                    duration));
+            totals = totals.plus(ofSet(exercise, set));
         }
         return totals;
+    }
+
+    /**
+     * One set, including the drops it was taken through (PRODUCT_SPEC section 9.1, ADR-0037).
+     *
+     * <p>Public so that a comparison can put two sets side by side under exactly these rules. A
+     * second implementation of them would eventually disagree with this one, and the figure the
+     * person saw when they finished the workout is the one they would trust.
+     *
+     * <p>A drop-set is {@code 40 kg x 10 -> 30 kg x 8 -> 20 kg x 6}. The load and the repetitions of
+     * every drop are summed in, because they were performed and dropping them would be discarding
+     * real work. The set itself still counts as <b>one</b> set: a drop-set is one set taken past
+     * failure, not three, and counting it as three would inflate "series feitas" and the weekly
+     * sets-per-muscle figures that are built on it.
+     *
+     * <p>That is also why "counted or excluded" is decided once, on the total: otherwise a drop-set
+     * with one unloaded drop would appear inside and outside the volume at the same time.
+     */
+    public static Totals ofSet(SessionExercise exercise, LoggedSet set) {
+        long load = setLoadGrams(exercise, set);
+        int reps = repsOf(exercise, set);
+        int duration = durationOf(set);
+        for (LoggedSet segment : set.segments()) {
+            if (!segment.isCompleted()) {
+                continue; // a drop that was planned and not performed is not a result
+            }
+            // The drops of a warm-up are warm-up too. The set is excluded as a whole or not at all;
+            // it never counts half its load.
+            if (!set.isWarmUp()) {
+                load += setLoadGrams(exercise, segment);
+            }
+            reps += repsOf(exercise, segment);
+            duration += durationOf(segment);
+        }
+        boolean counted = load > 0;
+        return new Totals(load, counted ? 1 : 0, counted ? 0 : 1, reps, duration);
+    }
+
+    private static int repsOf(SessionExercise exercise, LoggedSet set) {
+        Integer reps = exercise.totalRepsOf(set);
+        return reps == null ? 0 : reps;
+    }
+
+    private static int durationOf(LoggedSet set) {
+        return set.values().durationSeconds() == null ? 0 : set.values().durationSeconds();
     }
 
     /** Volume of one set in grams, or 0 when the set does not qualify. */

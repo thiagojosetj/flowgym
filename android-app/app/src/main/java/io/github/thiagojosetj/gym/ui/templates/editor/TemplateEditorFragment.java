@@ -47,6 +47,7 @@ public class TemplateEditorFragment extends Fragment implements EditorExerciseAd
 
     private static final String ARG_TEMPLATE_ID = "templateId";
     private static final String PLAN_SHEET_TAG = "plan_sheet";
+    private static final String GROUP_SHEET_TAG = "group_sheet";
 
     private FragmentTemplateEditorBinding binding;
     private TemplateEditorViewModel viewModel;
@@ -120,7 +121,13 @@ public class TemplateEditorFragment extends Fragment implements EditorExerciseAd
             switch (e) {
                 case SAVED -> NavHostFragment.findNavController(this).popBackStack();
                 case SAVE_FAILED -> snackbar(getString(R.string.editor_error_save));
-                case ADD_FAILED -> snackbar(getString(R.string.template_operation_failed));
+                case ADD_FAILED, GROUP_FAILED ->
+                        snackbar(getString(R.string.template_operation_failed));
+                case GROUPED -> snackbar(getString(R.string.editor_grouped));
+                case UNGROUPED -> snackbar(getString(R.string.editor_ungrouped));
+                case GROUP_TOO_SMALL ->
+                        snackbar(GroupExercisesSheet.tooSmallMessage(getResources()));
+                case GROUP_NEEDS_SAVE -> snackbar(getString(R.string.editor_group_error_unsaved));
                 case EXERCISE_LIMIT_REACHED ->
                         snackbar(getResources().getQuantityString(R.plurals.editor_error_too_many,
                                 TemplateRules.MAX_EXERCISES, TemplateRules.MAX_EXERCISES));
@@ -245,12 +252,19 @@ public class TemplateEditorFragment extends Fragment implements EditorExerciseAd
     public void onMore(TemplateExerciseItem item, int position, View anchor) {
         PopupMenu popup = new PopupMenu(requireContext(), anchor);
         popup.inflate(R.menu.menu_template_exercise);
+        // Grouping and ungrouping are one slot: an exercise is either in a group or it is not.
+        popup.getMenu().findItem(R.id.action_group).setVisible(item.group() == null);
+        popup.getMenu().findItem(R.id.action_ungroup).setVisible(item.group() != null);
         popup.getMenu().findItem(R.id.action_move_up).setEnabled(position > 0);
         popup.getMenu().findItem(R.id.action_move_down).setEnabled(position < exerciseAdapter.size() - 1);
         popup.setOnMenuItemClickListener(menuItem -> {
             int id = menuItem.getItemId();
             if (id == R.id.action_edit_plan) {
                 onEdit(item);
+            } else if (id == R.id.action_group) {
+                onGroupRequested(item);
+            } else if (id == R.id.action_ungroup) {
+                viewModel.removeGroup(item.group().groupId());
             } else if (id == R.id.action_move_up) {
                 onMoveRequested(item, position, position - 1);
             } else if (id == R.id.action_move_down) {
@@ -263,6 +277,22 @@ public class TemplateEditorFragment extends Fragment implements EditorExerciseAd
             return true;
         });
         popup.show();
+    }
+
+    /**
+     * Opens "Agrupar com…" only when there is something to choose and it can be done: a group is
+     * made in the database at once, so an exercise that exists only in this draft has to be saved
+     * first. Otherwise the user is told which of the two it is, not shown a dead sheet.
+     */
+    private void onGroupRequested(TemplateExerciseItem item) {
+        if (!viewModel.isSaved(item.id())) {
+            snackbar(getString(R.string.editor_group_error_unsaved));
+        } else if (viewModel.groupCandidates(item.id()).isEmpty()) {
+            snackbar(GroupExercisesSheet.tooSmallMessage(getResources()));
+        } else if (getChildFragmentManager().findFragmentByTag(GROUP_SHEET_TAG) == null) {
+            GroupExercisesSheet.newInstance(item.id())
+                    .show(getChildFragmentManager(), GROUP_SHEET_TAG);
+        }
     }
 
     @Override

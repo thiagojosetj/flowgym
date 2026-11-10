@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    One muscle group's row. Numbers only, no bar: a bar is a chart, and which library (or none)
+    draws the charts of PRG-01 is still an open decision — see docs/ROADMAP.md.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingVertical="@dimen/space_xs">
+
+    <TextView
+        android:id="@+id/muscle_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:importantForAccessibility="no"
+        android:textAppearance="?attr/textAppearanceTitleSmall"
+        tools:text="Peito" />
+
+    <TextView
+        android:id="@+id/muscle_counts"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:importantForAccessibility="no"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        tools:text="9 séries como principal · 3 séries como auxiliar" />
+</LinearLayout>

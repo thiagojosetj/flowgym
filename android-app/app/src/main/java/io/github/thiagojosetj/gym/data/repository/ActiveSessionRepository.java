@@ -11,7 +11,9 @@ import java.time.ZoneId;
 import java.util.function.Supplier;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import io.github.thiagojosetj.gym.core.AppExecutors;
@@ -19,6 +21,7 @@ import io.github.thiagojosetj.gym.data.local.AppDatabase;
 import io.github.thiagojosetj.gym.data.local.dao.SessionDao;
 import io.github.thiagojosetj.gym.data.local.dao.TemplateDao;
 import io.github.thiagojosetj.gym.data.local.entity.SessionExerciseEntity;
+import io.github.thiagojosetj.gym.data.local.entity.SessionExerciseGroupEntity;
 import io.github.thiagojosetj.gym.data.local.entity.SessionPauseEntity;
 import io.github.thiagojosetj.gym.data.local.entity.SetLogEntity;
 import io.github.thiagojosetj.gym.data.local.entity.SyncStatus;
@@ -29,9 +32,13 @@ import io.github.thiagojosetj.gym.data.local.row.ActiveSetRow;
 import io.github.thiagojosetj.gym.data.local.row.PreviousSetRow;
 import io.github.thiagojosetj.gym.data.local.row.SessionHeaderRow;
 import io.github.thiagojosetj.gym.data.local.row.TemplateExerciseRow;
+import io.github.thiagojosetj.gym.data.local.row.TemplateGroupRow;
 import io.github.thiagojosetj.gym.domain.session.ActiveSession;
 import io.github.thiagojosetj.gym.domain.session.FinishReview;
+import io.github.thiagojosetj.gym.domain.session.GroupRounds;
 import io.github.thiagojosetj.gym.domain.session.RestTimer;
+import io.github.thiagojosetj.gym.domain.session.SessionExercise;
+import io.github.thiagojosetj.gym.domain.session.SessionGroup;
 import io.github.thiagojosetj.gym.domain.session.SessionHeader;
 import io.github.thiagojosetj.gym.domain.session.SessionStatus;
 import io.github.thiagojosetj.gym.domain.session.SessionSummary;
@@ -171,6 +178,7 @@ public final class ActiveSessionRepository {
             }
             List<TemplateExerciseRow> exercises = templates.findExercises(templateId);
             List<TemplateSetEntity> plannedSets = templates.findSets(templateId);
+            List<TemplateGroupRow> plannedGroups = templates.findGroups(templateId);
             String ownerId = users.requireCurrentUserId();
             String[] created = new String[1];
             database.runInTransaction(() -> {
@@ -183,10 +191,21 @@ public final class ActiveSessionRepository {
                 WorkoutSessionEntity session = newSession(template, ownerId, now);
                 dao.insertSession(session);
 
+                // The groups are copied, not referenced: from here on the session owns its group
+                // (label, badge and rest), so editing or deleting the template's afterwards cannot
+                // change what this session says happened.
+                Map<String, SessionExerciseGroupEntity> groupCopies = new LinkedHashMap<>();
+                for (TemplateGroupRow planned : plannedGroups) {
+                    groupCopies.put(planned.id, newSessionGroup(session.id, planned));
+                }
+                // Before the exercises: each one points at its group, and the key is enforced.
+                dao.insertExerciseGroups(new ArrayList<>(groupCopies.values()));
+
                 List<SessionExerciseEntity> sessionExercises = new ArrayList<>(exercises.size());
                 List<SetLogEntity> sets = new ArrayList<>(plannedSets.size());
                 for (TemplateExerciseRow exercise : exercises) {
-                    SessionExerciseEntity entity = newSessionExercise(session.id, exercise);
+                    SessionExerciseEntity entity = newSessionExercise(session.id, exercise,
+                            exercise.groupId == null ? null : groupCopies.get(exercise.groupId));
                     sessionExercises.add(entity);
                     int position = 0;
                     for (TemplateSetEntity planned : plannedSets) {
@@ -334,7 +353,14 @@ public final class ActiveSessionRepository {
     public void unconfirmSet(String sessionId, String setLogId, Runnable onDone, Consumer<Throwable> onError) {
         write(sessionId, (session, now) -> {
             dao.uncompleteSet(setLogId);
-            if (setLogId.equals(session.restSetLogId)) {
+            // The drops go back with their set: a drop is part of it (ADR-0037), and a drop left
+            // marked as performed under a set that is not would count for nothing while the
+            // database said it happened (found in review, 03/10/2026).
+            dao.uncompleteSegmentsOf(setLogId);
+            boolean restWasOnThisSet = setLogId.equals(session.restSetLogId)
+                    || (session.restSetLogId != null
+                        && dao.findSegmentIds(setLogId).contains(session.restSetLogId));
+            if (restWasOnThisSet) {
                 clearRest(session);
             }
         }, onDone, onError);
@@ -347,7 +373,11 @@ public final class ActiveSessionRepository {
             List<ActiveSetRow> rows = dao.findRows(sessionId);
             ActiveSetRow last = null;
             for (ActiveSetRow row : rows) {
-                if (row.sessionExerciseId.equals(sessionExerciseId) && row.setId != null) {
+                // The rows now include segments, which come right after their set. A segment has
+                // no plan of its own (planned_* are null and its rest is 0), so copying "the last
+                // row" after a drop-set would give the new set no plan and no rest at all.
+                if (row.sessionExerciseId.equals(sessionExerciseId) && row.setId != null
+                        && row.parentSetId == null) {
                     last = row;
                 }
             }
@@ -366,7 +396,10 @@ public final class ActiveSessionRepository {
         }, onDone, onError);
     }
 
-    /** Removes a set. The last remaining set of an exercise is kept: the plan would make no sense. */
+    /**
+     * Removes a set, and its segments with it: the foreign key cascades. The last remaining set of
+     * an exercise is kept: the plan would make no sense.
+     */
     public void removeSet(String sessionId, String sessionExerciseId, String setLogId, Runnable onDone,
                           Consumer<Throwable> onError) {
         write(sessionId, (session, now) -> {
@@ -374,11 +407,71 @@ public final class ActiveSessionRepository {
                 return;
             }
             SetLogEntity set = dao.findSet(setLogId);
-            if (set == null) {
+            // A segment is removed with removeSegment. Getting here with one would shift the SETS
+            // after its position, and that position only orders it among its own siblings.
+            if (set == null || set.parentSetId != null) {
                 return;
             }
             dao.deleteSet(setLogId);
             dao.shiftSetsAfter(sessionExerciseId, set.position);
+            if (setLogId.equals(session.restSetLogId)) {
+                clearRest(session);
+            }
+        }, onDone, onError);
+    }
+
+    /**
+     * Adds a drop (or a rest-pause resumption) to a set: a child row that belongs to it, not
+     * another set (PRODUCT_SPEC section 9.1, ADR-0037). The set is the first step of a drop-set, so
+     * three steps are one set row plus two segment rows, and the set count does not move.
+     *
+     * <p>The segment starts as not performed and with no plan: it is not something the template
+     * asked for, it is a drop taken off the set above it. It also has no technique of its own. The
+     * technique belongs to the set, and {@link #setSetTechnique} can change it at any time, so a
+     * copy on every segment would keep saying "Drop-set" after the set stopped being one: two
+     * definitions of one fact that can disagree. The volume rule already reads warm-up from the
+     * set.
+     *
+     * <p>One level only. A segment under a segment is refused: nothing is created and the call
+     * still reports done, like the other refusals here. The mapper, the volume rule and the screen
+     * all read a single level, so a deeper row would be stored and then silently never counted.
+     *
+     * @param setLogId the SET receiving the segment; the new row takes the next position among the
+     *                 segments of that set, counting from 0
+     */
+    public void addSegment(String sessionId, String setLogId, Runnable onDone,
+                           Consumer<Throwable> onError) {
+        write(sessionId, (session, now) -> {
+            SetLogEntity parent = dao.findSet(setLogId);
+            if (parent == null || parent.parentSetId != null) {
+                return; // unknown, or already a segment
+            }
+            SetLogEntity segment = new SetLogEntity();
+            segment.id = ids.newId();
+            segment.sessionExerciseId = parent.sessionExerciseId;
+            segment.parentSetId = parent.id;
+            segment.position = dao.maxSegmentPosition(parent.id) + 1;
+            // Everything else keeps the entity's defaults: no technique, no plan, rest 0, nothing
+            // performed and status PENDING.
+            dao.insertSet(segment);
+        }, onDone, onError);
+    }
+
+    /**
+     * Removes one segment and closes the gap among its siblings; the set it belonged to and its
+     * other segments stay. A row that is not a segment is refused: {@link #removeSet} is for sets,
+     * and deleting a set here would cascade to every segment it has.
+     */
+    public void removeSegment(String sessionId, String setLogId, Runnable onDone,
+                              Consumer<Throwable> onError) {
+        write(sessionId, (session, now) -> {
+            SetLogEntity segment = dao.findSet(setLogId);
+            if (segment == null || segment.parentSetId == null) {
+                return; // unknown, or a set
+            }
+            dao.deleteSet(setLogId);
+            dao.shiftSegmentsAfter(segment.parentSetId, segment.position);
+            // rest_set_log_id has no foreign key: whoever deletes a row it may point at clears it.
             if (setLogId.equals(session.restSetLogId)) {
                 clearRest(session);
             }
@@ -492,8 +585,11 @@ public final class ActiveSessionRepository {
     }
 
     private void startRest(WorkoutSessionEntity session, SetLogEntity set, long now) {
-        int restSeconds = set.plannedRestSeconds;
+        int restSeconds = restSecondsAfter(session.id, set);
         if (restSeconds <= 0) {
+            // Nothing to wait for - and whatever rest was still counting down is over too: the user
+            // has just done another set. The rest is one per SESSION, not one per exercise, so this
+            // is also what ends the previous round's rest when the next round starts early.
             clearRest(session);
             return;
         }
@@ -506,6 +602,48 @@ public final class ActiveSessionRepository {
             session.restEndsAt = RestTimer.endsAt(now, restSeconds);
             session.restRemainingMsWhenPaused = null;
         }
+    }
+
+    /**
+     * The rest a just-confirmed set starts, in seconds; 0 means none.
+     *
+     * <p>An exercise that stands alone keeps what it always had: the rest planned for the set. In a
+     * group the rest belongs to the ROUND (PRODUCT_SPEC section 6.3), so a set starts the group's
+     * rest only when its confirmation is what ends the round. {@link GroupRounds} decides that, and
+     * it must be asked AFTER the set was written, because the set being confirmed is one of the
+     * things it reads. Whichever exercise is finished last starts the rest, so doing A2 before A1
+     * still gets one.
+     */
+    private int restSecondsAfter(String sessionId, SetLogEntity set) {
+        // A drop-set is ONE set taken past failure (ADR-0037), so the rest is the SET's and it
+        // starts after the last drop. Asking the drop's own row gives 0 - a segment is created
+        // with no plan of its own - and the hardest set of the workout would end with no rest at
+        // all, after cancelling the one the set had just started (found in review, 03/10/2026).
+        SetLogEntity restOwner = set;
+        if (set.parentSetId != null) {
+            SetLogEntity parent = dao.findSet(set.parentSetId);
+            if (parent != null) {
+                restOwner = parent;
+            }
+        }
+        String groupId = dao.findGroupIdOfExercise(restOwner.sessionExerciseId);
+        if (groupId == null) {
+            return restOwner.plannedRestSeconds; // not in a group: as it was before groups
+        }
+        // The mapping the screen renders, so "which sets belong to which round" has one answer.
+        ActiveSession snapshot = SessionMapper.toSession(requireHeader(sessionId),
+                dao.findRows(sessionId), null);
+        SessionExercise exercise = snapshot.exerciseById(restOwner.sessionExerciseId);
+        SessionGroup group = snapshot.groupOf(restOwner.sessionExerciseId);
+        if (exercise == null || group == null) {
+            return 0;
+        }
+        // Asked for the SET, so a drop ends its round the same way its set would: the round is not
+        // really over while the drops of it are still being done.
+        int round = GroupRounds.roundOf(exercise, restOwner.id);
+        return GroupRounds.isRoundComplete(snapshot.exercisesOfGroup(group.id()), round)
+                ? group.restAfterRoundSeconds()
+                : 0;
     }
 
     private static void clearRest(WorkoutSessionEntity session) {
@@ -537,10 +675,25 @@ public final class ActiveSessionRepository {
         return session;
     }
 
-    private SessionExerciseEntity newSessionExercise(String sessionId, TemplateExerciseRow row) {
+    private SessionExerciseGroupEntity newSessionGroup(String sessionId, TemplateGroupRow row) {
+        SessionExerciseGroupEntity entity = new SessionExerciseGroupEntity();
+        entity.id = ids.newId();
+        entity.sessionId = sessionId;
+        entity.label = row.label;
+        entity.techniqueId = row.techniqueId;
+        // The badge is stored, not joined: a catalog edit must not rewrite a past session.
+        entity.techniqueCode = row.techniqueCode;
+        entity.restAfterRoundSeconds = row.restAfterRoundSeconds;
+        entity.position = row.position;
+        return entity;
+    }
+
+    private SessionExerciseEntity newSessionExercise(String sessionId, TemplateExerciseRow row,
+                                                     @Nullable SessionExerciseGroupEntity group) {
         SessionExerciseEntity entity = new SessionExerciseEntity();
         entity.id = ids.newId();
         entity.sessionId = sessionId;
+        entity.groupId = group == null ? null : group.id;
         entity.exerciseId = row.exercise.id;
         entity.templateExerciseId = row.id;
         entity.position = row.position;
