@@ -53,7 +53,10 @@ public class SettingsFragment extends Fragment {
 
         setUpTheme(app.uiPreferences);
         setUpWorkoutSettings();
-        binding.version.setText(getString(R.string.settings_version, BuildConfig.VERSION_NAME));
+        // The code as well as the name. Side-loading the same name twice is normal during
+        // development, and the code is the only part the phone itself compares when installing.
+        binding.version.setText(getString(R.string.settings_version, BuildConfig.VERSION_NAME,
+                BuildConfig.VERSION_CODE));
 
         viewModel.settings().observe(getViewLifecycleOwner(), this::render);
     }

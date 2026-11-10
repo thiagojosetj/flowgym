@@ -473,6 +473,7 @@
     <string name="settings_units">Unidade de carga</string>
     <string name="settings_units_value">Quilogramas (kg). O suporte a libras (lb) já está previsto no modelo de dados e entra em uma próxima versão.</string>
     <string name="settings_about">Sobre</string>
-    <string name="settings_version">Versão %s</string>
+    <!-- Name and code: two builds can share a name, and the code is what the phone compares. -->
+    <string name="settings_version">Versão %1$s (%2$d)</string>
     <string name="settings_credits">Ícones: Material Design (Google), licença Apache 2.0. Textos dos exercícios: conteúdo próprio.</string>
 </resources>

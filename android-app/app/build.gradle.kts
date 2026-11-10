@@ -15,8 +15,10 @@ android {
         applicationId = "io.github.thiagojosetj.flowgym"
         minSdk = 28
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1.0"
+        // Bumped with each batch of work that can land on a phone, so a sideloaded build can be
+        // told apart from the one already installed: Settings shows both the name and the code.
+        versionCode = 2
+        versionName = "0.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
