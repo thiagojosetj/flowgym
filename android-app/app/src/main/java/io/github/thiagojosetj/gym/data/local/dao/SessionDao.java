@@ -139,14 +139,25 @@ public interface SessionDao {
     /**
      * Every set of the sessions this one compares itself with. Sets that were not performed are
      * included on purpose: they still occupy an ordinal among the working sets.
+     *
+     * <p>The pointer to those sessions is frozen when a session starts (ADR-0033), but whether
+     * they still COUNT is asked here, on every read. A session removed from the history (HIS-05)
+     * or discarded afterwards has to stop being anybody's "anterior": the person said that
+     * workout never happened, and suggesting a weight out of it would be the app insisting
+     * otherwise. Re-resolving the pointer instead would be a second rule that could drift from
+     * the one this join states.
      */
     String PREVIOUS_SETS_SQL =
             "SELECT sl.session_exercise_id AS sessionExerciseId, sl.position AS position,"
                     + " t.counts_as_working_set AS countsAsWorkingSet, sl.status AS status,"
                     + " sl.weight_g AS weightGrams, sl.reps AS reps, sl.reps_left AS repsLeft,"
                     + " sl.reps_right AS repsRight, sl.duration_s AS durationSeconds"
-                    + " FROM set_log sl LEFT JOIN training_technique t ON t.id = sl.technique_id"
-                    + " WHERE sl.parent_set_id IS NULL AND sl.session_exercise_id IN ("
+                    + " FROM set_log sl"
+                    + " JOIN session_exercise pse ON pse.id = sl.session_exercise_id"
+                    + " JOIN workout_session s ON s.id = pse.session_id"
+                    + " LEFT JOIN training_technique t ON t.id = sl.technique_id"
+                    + " WHERE sl.parent_set_id IS NULL AND " + MINE_SQL
+                    + " AND s.status = 'COMPLETED' AND sl.session_exercise_id IN ("
                     + "     SELECT se.previous_session_exercise_id FROM session_exercise se"
                     + "     WHERE se.session_id = :sessionId AND se.previous_session_exercise_id IS NOT NULL)"
                     + " ORDER BY sl.session_exercise_id, sl.position";

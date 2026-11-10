@@ -211,8 +211,13 @@ achados ao implementar: **salvar** um treino desagrupava tudo (o rascunho não c
     mutuamente, e a asserção sobre `updated_at` só vale com o relógio andando entre a gravação e
     a verificação. Ambas as coisas foram corrigidas nos testes, não no código.
 - ✅ **HIS-05 — excluir uma sessão do histórico**: menu da linha, confirmação que nomeia a sessão,
-  exclusão soft (`deleted_at`) para poder sincronizar (ADR-0041). **Lacuna registrada:** o
-  pareamento "anterior" não refiltra, então uma sessão posterior ainda compara com a excluída.
+  exclusão soft (`deleted_at`) para poder sincronizar (ADR-0041).
+  - ✅ **A lacuna registrada foi fechada:** o `PREVIOUS_SETS_SQL` agora passa pela sessão dona dos
+    sets e exige que ela seja minha, não excluída e `COMPLETED`. O ponteiro continua congelado no
+    início (ADR-0033) — o que mudou é que *se ele ainda conta* é perguntado na leitura, em vez de
+    re-resolver o ponteiro, que seria uma segunda regra podendo divergir desta.
+  - Mutação: tirar o filtro faz o teste novo (`aSessionTakenOutOfTheHistoryStopsBeingTheAnterior`)
+    falhar — e só ele.
 - ⬜ **Validar no aparelho**: a lista com muitas sessões e a rolagem do detalhe de uma sessão longa.
 
 ### Fase 5 — Progresso 🟡

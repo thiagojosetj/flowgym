@@ -127,8 +127,9 @@ notificação, o serviço em primeiro plano e o alerta com a tela apagada.
   a sessão. Ela sai da lista e deixa de contar nos números; o treino que a gerou continua em
   Treinos. Exclusão é **soft** (`deleted_at`), para poder ser sincronizada. Não fere a
   imutabilidade: a sessão sai inteira, nada que ela registrou é reescrito (ADR-0041).
-  **Lacuna conhecida:** uma sessão posterior ainda compara com a sessão excluída, porque o
-  pareamento é gravado no início e não refiltra.
+  Uma sessão excluída **deixa de ser o "anterior"** de qualquer outra: o ponteiro é congelado no
+  início (ADR-0033), mas se ele ainda **conta** é perguntado em cada leitura. Quem disse que aquele
+  treino não aconteceu não deve ver o app sugerindo uma carga tirada dele.
 - **HIS-02** **Calendário do mês** acima da lista: cada dia com pelo menos uma sessão concluída
   aparece marcado, e tocar nele deixa na lista só as sessões daquele dia. Tocar no mesmo dia de
   novo, ou em "Ver todas", mostra o histórico inteiro — o gesto que filtra é o que desfiltra, e o
