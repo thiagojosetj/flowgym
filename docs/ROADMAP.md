@@ -333,6 +333,14 @@ Levantadas pela revisão de 22/09/2026 e **não corrigidas às cegas**, porque d
 
 ## Pendências de qualidade (não precisam de aparelho)
 
+- **O lint fica vermelho com o tempo, sem ninguém commitar nada.** `GradleDependency` e
+  `NewerVersionAvailable` perguntam a uma lista remota se existe versão mais nova, então aparecem
+  sozinhos semanas depois de um portão verde. O CI trata **só** o `AndroidGradlePluginVersion`
+  como aviso; os outros dois barram. Isso é de propósito e **não** vai virar aviso: subir um
+  `lifecycle` de 2.11.0 para 2.11.1 é uma linha, e silenciar a regra deixaria o projeto envelhecer
+  em silêncio. O preço é uma manutenção pequena e recorrente — quando o CI reclamar, suba a versão
+  e rode o portão.
+
 - **Plurais em pt sem a categoria `many`.** O arquivo `values/strings.xml` é pt-BR mas não declara
   `tools:locale`, porque declarar faz o lint exigir um item `many` em **todos** os ~23 `<plurals>`
   (a regra do CLDR para pt pede, para valores como 1.000.000). Sem declarar, o lint corrige a
