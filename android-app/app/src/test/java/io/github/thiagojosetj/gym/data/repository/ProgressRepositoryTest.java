@@ -1,6 +1,7 @@
 package io.github.thiagojosetj.gym.data.repository;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -30,6 +31,8 @@ import io.github.thiagojosetj.gym.domain.library.ExerciseSummary;
 import io.github.thiagojosetj.gym.domain.model.RepRange;
 import io.github.thiagojosetj.gym.domain.model.Weight;
 import io.github.thiagojosetj.gym.domain.model.WeightUnit;
+import io.github.thiagojosetj.gym.domain.progress.ExercisePersonalRecords;
+import io.github.thiagojosetj.gym.domain.progress.ExerciseProgress;
 import io.github.thiagojosetj.gym.domain.progress.MuscleWorkload;
 import io.github.thiagojosetj.gym.domain.progress.PeriodStatistics;
 import io.github.thiagojosetj.gym.domain.progress.ProgressSnapshot;
@@ -220,7 +223,129 @@ public class ProgressRepositoryTest {
         assertEquals(LocalDate.of(2026, 9, 28), empty.lastTrainedDay());
     }
 
+    // ------------------------------------------------- um exercicio ao longo do tempo (PRG-03)
+
+    @Test
+    public void anExerciseNeverPerformedStillNamesItself() {
+        ExerciseProgress progress = progressOf(idOfSync(SUPINO));
+
+        assertTrue(progress.isEmpty());
+        assertEquals("Supino reto com barra", progress.name());
+        assertTrue(progress.records().isEmpty());
+    }
+
+    @Test
+    public void everySessionWithTheExerciseBecomesAPointOldestFirst() throws Exception {
+        performWorkout(SUPINO, 40, 10);
+        clock.advanceDays(7);
+        performWorkout(SUPINO, 45, 10);
+
+        ExerciseProgress progress = progressOf(idOfSync(SUPINO));
+
+        assertEquals(2, progress.sessions().size());
+        assertEquals("mais antiga primeiro, que e a ordem que a secao 10 precisa",
+                "2026-09-28", progress.sessions().get(0).localDate());
+        assertEquals("2026-10-05", progress.sessions().get(1).localDate());
+        assertEquals(40_000L, progress.sessions().get(0).maxLoadGrams());
+        assertEquals(45_000L, progress.sessions().get(1).maxLoadGrams());
+    }
+
+    @Test
+    public void theRecordsComeOutOfTheRealHistory() throws Exception {
+        performWorkout(SUPINO, 40, 10);
+        clock.advanceDays(7);
+        performWorkout(SUPINO, 45, 10);
+
+        ExercisePersonalRecords records = progressOf(idOfSync(SUPINO)).records();
+
+        assertEquals(45_000L, records.maxLoad().value());
+        assertFalse("bateu a linha de base, entao e conquista", records.maxLoad().isBaseline());
+        // Three sets of 45 x 10 is 1.350 kg in one session; a single set is 450 kg.
+        assertEquals(1_350_000L, records.maxSessionVolume().value());
+        assertEquals(450_000L, records.maxSetVolume().value());
+    }
+
+    @Test
+    public void anotherExercisesSessionsDoNotLeakIntoThisOne() throws Exception {
+        performWorkout(SUPINO, 40, 10);
+        clock.advanceDays(1);
+        performWorkout(REMADA, 60, 10);
+
+        ExerciseProgress bench = progressOf(idOfSync(SUPINO));
+
+        assertEquals(1, bench.sessions().size());
+        assertEquals(40_000L, bench.records().maxLoad().value());
+    }
+
+    @Test
+    public void aSessionRemovedFromTheHistoryLeavesTheProgressToo() throws Exception {
+        String sessionId = performWorkout(SUPINO, 40, 10);
+        assertEquals(1, progressOf(idOfSync(SUPINO)).sessions().size());
+
+        AtomicReference<Boolean> removed = new AtomicReference<>();
+        app.history.delete(sessionId, removed::set, this::fail);
+        assertTrue(Boolean.TRUE.equals(removed.get()));
+
+        ExerciseProgress progress = progressOf(idOfSync(SUPINO));
+        assertTrue("um treino que nao conta nao pode sustentar um recorde", progress.isEmpty());
+        assertTrue(progress.records().isEmpty());
+    }
+
+    @Test
+    public void aDiscardedWorkoutIsNotProgressAndCannotHoldARecord() throws Exception {
+        // "Terminou" is not "aconteceu". A discarded session keeps its rows and its ended_at, so
+        // only the status tells it apart - and a record standing on a workout the person threw
+        // away would be the worst kind of wrong number: flattering and unfalsifiable.
+        String templateId = createTemplate("Push A", SUPINO);
+        AtomicReference<String> sessionId = new AtomicReference<>();
+        app.activeSessions.startFromTemplate(templateId, sessionId::set, this::fail);
+        AtomicReference<ActiveSession> session = new AtomicReference<>();
+        app.activeSessions.loadSession(sessionId.get(), session::set, this::fail);
+        app.activeSessions.confirmSet(sessionId.get(),
+                session.get().exercises().get(0).sets().get(0).id(),
+                new SetValues(Weight.of(200, WeightUnit.KILOGRAM), 10, null, null, null),
+                () -> { }, this::fail);
+        AtomicReference<Boolean> discarded = new AtomicReference<>(false);
+        app.activeSessions.discard(sessionId.get(), () -> discarded.set(true), this::fail);
+        assertTrue("a sessao devia ter sido descartada", discarded.get());
+
+        ExerciseProgress progress = progressOf(idOfSync(SUPINO));
+
+        assertTrue("200 kg descartados nao sao recorde de nada", progress.isEmpty());
+        assertTrue(progress.records().isEmpty());
+    }
+
+    @Test
+    public void twoAppearancesInOneSessionStayTwoAppearances() throws Exception {
+        // The same exercise twice in one workout - a second block, lighter. They must not be
+        // merged: the mapper groups by runs of session_exercise_id, and interleaved rows would
+        // add the two blocks' sets together into one impossible appearance.
+        String templateId = createTemplate("Push duplo", SUPINO, SUPINO);
+        performWorkoutOf(templateId, 40, 10);
+
+        ExerciseProgress progress = progressOf(idOfSync(SUPINO));
+
+        assertEquals(2, progress.sessions().size());
+        assertEquals(3, progress.sessions().get(0).performedSets());
+        assertEquals(3, progress.sessions().get(1).performedSets());
+    }
+
     // ------------------------------------------------------------------ helpers
+
+    private ExerciseProgress progressOf(String exerciseId) {
+        AtomicReference<ExerciseProgress> progress = new AtomicReference<>();
+        app.progress.loadExercise(exerciseId, progress::set, this::fail);
+        assertNotNull("o progresso devia ter sido carregado", progress.get());
+        return progress.get();
+    }
+
+    private String idOfSync(String exerciseName) {
+        try {
+            return idOf(exerciseName);
+        } catch (Exception e) {
+            throw new AssertionError(e);
+        }
+    }
 
     private PeriodStatistics period(String from, String to) throws Exception {
         return snapshot(from, to).statistics();
@@ -261,6 +386,25 @@ public class ProgressRepositoryTest {
                         new SetValues(Weight.of(kilos, WeightUnit.KILOGRAM), reps, null, null, null),
                         () -> done.set(true), this::fail);
                 assertTrue("a serie devia ter sido confirmada", done.get());
+            }
+        }
+        app.activeSessions.finish(sessionId.get(), summary -> { }, this::fail);
+        return sessionId.get();
+    }
+
+    private String performWorkoutOf(String templateId, double kilos, int reps) {
+        AtomicReference<String> sessionId = new AtomicReference<>();
+        app.activeSessions.startFromTemplate(templateId, sessionId::set, this::fail);
+        assertNotNull(sessionId.get());
+        AtomicReference<ActiveSession> session = new AtomicReference<>();
+        app.activeSessions.loadSession(sessionId.get(), session::set, this::fail);
+        for (int i = 0; i < session.get().exercises().size(); i++) {
+            for (LoggedSet set : session.get().exercises().get(i).sets()) {
+                AtomicReference<Boolean> done = new AtomicReference<>(false);
+                app.activeSessions.confirmSet(sessionId.get(), set.id(),
+                        new SetValues(Weight.of(kilos, WeightUnit.KILOGRAM), reps, null, null, null),
+                        () -> done.set(true), this::fail);
+                assertTrue(done.get());
             }
         }
         app.activeSessions.finish(sessionId.get(), summary -> { }, this::fail);

@@ -17,6 +17,7 @@ import io.github.thiagojosetj.gym.data.local.entity.SessionPauseEntity;
 import io.github.thiagojosetj.gym.data.local.entity.SetLogEntity;
 import io.github.thiagojosetj.gym.data.local.entity.WorkoutSessionEntity;
 import io.github.thiagojosetj.gym.data.local.row.ActiveSetRow;
+import io.github.thiagojosetj.gym.data.local.row.ExerciseAppearanceRow;
 import io.github.thiagojosetj.gym.data.local.row.ExerciseMuscleGroupRow;
 import io.github.thiagojosetj.gym.data.local.row.PreviousSetRow;
 import io.github.thiagojosetj.gym.data.local.row.SessionHeaderRow;
@@ -42,7 +43,7 @@ public interface SessionDao {
      * primary key, so it adds columns and never rows: the ordering below, and the drop-set segments
      * the mapper nests, see exactly what they saw before groups existed.
      */
-    String ACTIVE_ROWS_SQL =
+    String ACTIVE_ROWS_SELECT =
             "SELECT se.id AS sessionExerciseId, se.position AS exercisePosition, se.exercise_id AS exerciseId,"
                     + " se.exercise_name AS exerciseName, se.tracking_type AS trackingType,"
                     + " se.load_basis AS loadBasis, se.implement_count AS implementCount,"
@@ -66,18 +67,53 @@ public interface SessionDao {
                     + " sl.weight_g AS weightGrams, sl.reps AS reps, sl.reps_left AS repsLeft,"
                     + " sl.reps_right AS repsRight, sl.duration_s AS durationSeconds,"
                     + " sl.status AS status, sl.completed_at AS completedAt, sl.notes AS setNotes,"
-                    + " se.previous_session_exercise_id AS previousSessionExerciseId"
-                    + " FROM session_exercise se"
+                    + " se.previous_session_exercise_id AS previousSessionExerciseId";
+
+    /** The joins behind a set row, shared so a second query cannot drift from the first. */
+    String SET_ROWS_FROM =
+            " FROM session_exercise se"
                     + " LEFT JOIN session_exercise_group g ON g.id = se.group_id"
                     + " LEFT JOIN set_log sl ON sl.session_exercise_id = se.id"
                     + " LEFT JOIN set_log p ON p.id = sl.parent_set_id"
-                    + " LEFT JOIN training_technique t ON t.id = sl.technique_id"
+                    + " LEFT JOIN training_technique t ON t.id = sl.technique_id";
+
+    String ACTIVE_ROWS_SQL = ACTIVE_ROWS_SELECT + SET_ROWS_FROM
                     + " WHERE se.session_id = :sessionId"
                     // Segments follow the set they belong to: sort by the SET's position
                     // (the parent's, for a segment), then the set before its segments, then
                     // the segments among themselves.
                     + " ORDER BY se.position, COALESCE(p.position, sl.position),"
                     + " (sl.parent_set_id IS NOT NULL), sl.position";
+
+    /**
+     * Every set of one exercise, across every finished session it appeared in (PRODUCT_SPEC
+     * PRG-03). Oldest session first, which is the order section 10 needs to tell a baseline from
+     * an achievement.
+     *
+     * <p>Ordered so that the rows of one appearance are CONTIGUOUS: the mapper groups by runs of
+     * {@code session_exercise_id}, so interleaving two sessions would merge them into one
+     * exercise and quietly add their sets together.
+     */
+    @Query(ACTIVE_ROWS_SELECT + SET_ROWS_FROM
+            + " JOIN workout_session s ON s.id = se.session_id"
+            + " WHERE se.exercise_id = :exerciseId AND " + MINE_SQL
+            + " AND s.status = 'COMPLETED'"
+            + " ORDER BY s.started_at, se.id, COALESCE(p.position, sl.position),"
+            + " (sl.parent_set_id IS NOT NULL), sl.position")
+    List<ActiveSetRow> findSetsOfExercise(String exerciseId);
+
+    /**
+     * Which session each of those appearances belongs to, and the day it was lived on.
+     *
+     * <p>Read in the same pass as the sets rather than carried on every set row: the active
+     * workout reads that row shape dozens of times a session and has no use for these columns.
+     */
+    @Query("SELECT se.id AS sessionExerciseId, s.id AS sessionId,"
+            + " s.local_date AS localDate, s.started_at AS startedAt"
+            + " FROM session_exercise se JOIN workout_session s ON s.id = se.session_id"
+            + " WHERE se.exercise_id = :exerciseId AND " + MINE_SQL
+            + " AND s.status = 'COMPLETED' ORDER BY s.started_at, se.id")
+    List<ExerciseAppearanceRow> findAppearancesOfExercise(String exerciseId);
 
     // ------------------------------------------------------------------ reads
 

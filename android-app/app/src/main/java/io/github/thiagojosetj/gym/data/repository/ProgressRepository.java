@@ -7,19 +7,29 @@ import androidx.lifecycle.Transformations;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
 
 import io.github.thiagojosetj.gym.core.AppExecutors;
 import io.github.thiagojosetj.gym.data.local.AppDatabase;
+import io.github.thiagojosetj.gym.data.local.dao.ExerciseDao;
 import io.github.thiagojosetj.gym.data.local.dao.SessionDao;
+import io.github.thiagojosetj.gym.data.local.entity.ExerciseEntity;
+import io.github.thiagojosetj.gym.data.local.row.ExerciseAppearanceRow;
 import io.github.thiagojosetj.gym.data.local.row.ExerciseMuscleGroupRow;
 import io.github.thiagojosetj.gym.data.local.row.SessionHeaderRow;
 import io.github.thiagojosetj.gym.data.local.row.TrainedDayBoundsRow;
+import io.github.thiagojosetj.gym.domain.progress.ExerciseAppearance;
 import io.github.thiagojosetj.gym.domain.progress.ExerciseMuscleGroup;
+import io.github.thiagojosetj.gym.domain.progress.ExerciseProgress;
 import io.github.thiagojosetj.gym.domain.progress.PeriodStatistics;
 import io.github.thiagojosetj.gym.domain.progress.ProgressSnapshot;
 import io.github.thiagojosetj.gym.domain.progress.TrainingPeriod;
 import io.github.thiagojosetj.gym.domain.session.ActiveSession;
+import io.github.thiagojosetj.gym.domain.session.SessionExercise;
 
 /**
  * What a week or a month of training came to (PRODUCT_SPEC PRG-04).
@@ -41,10 +51,12 @@ import io.github.thiagojosetj.gym.domain.session.ActiveSession;
 public final class ProgressRepository {
 
     private final SessionDao dao;
+    private final ExerciseDao exercises;
     private final AppExecutors executors;
 
     public ProgressRepository(AppDatabase database, AppExecutors executors) {
         this.dao = database.sessionDao();
+        this.exercises = database.exerciseDao();
         this.executors = executors;
     }
 
@@ -84,6 +96,49 @@ public final class ProgressRepository {
         } catch (DateTimeParseException malformed) {
             return null;
         }
+    }
+
+    /**
+     * One exercise across its whole history (PRODUCT_SPEC PRG-03).
+     *
+     * <p>Loaded once, not observed, for the reason ARCHITECTURE section 5.2 gives: finished
+     * sessions cannot change, so there is no second emission to wait for and no half-built state
+     * to draw. A workout finished while this screen is open is not in it, and the screen is read
+     * again the next time it is opened.
+     */
+    public void loadExercise(String exerciseId, Consumer<ExerciseProgress> onResult,
+                             Consumer<Throwable> onError) {
+        executors.runOnDisk(() -> progressOf(exerciseId), onResult, onError);
+    }
+
+    private ExerciseProgress progressOf(String exerciseId) {
+        List<ExerciseAppearanceRow> rows = dao.findAppearancesOfExercise(exerciseId);
+        // The library's name, not the newest snapshot's: the title names the exercise as it is
+        // now, while every NUMBER below it still comes from the snapshot of its own session.
+        ExerciseEntity entity = exercises.findVisibleById(exerciseId);
+        String name = entity == null ? "" : entity.name;
+        if (rows.isEmpty()) {
+            return ExerciseProgress.of(exerciseId, name, Collections.emptyList());
+        }
+        Map<String, ExerciseAppearanceRow> bySessionExercise = new HashMap<>();
+        for (ExerciseAppearanceRow row : rows) {
+            bySessionExercise.put(row.sessionExerciseId, row);
+        }
+        List<ExerciseAppearance> appearances = new ArrayList<>(rows.size());
+        // Mapped by the same code the active screen uses, so a drop-set is nested into its set
+        // here exactly as it is there - and counted once, as ADR-0037 requires.
+        for (SessionExercise exercise : SessionMapper.toExercises(dao.findSetsOfExercise(exerciseId),
+                null)) {
+            ExerciseAppearanceRow row = bySessionExercise.get(exercise.id());
+            if (row == null) {
+                // Cannot happen: both queries filter the same sessions. Skipped rather than
+                // guessed at, because an appearance with no day cannot be placed on a chart.
+                continue;
+            }
+            appearances.add(new ExerciseAppearance(row.sessionId, row.localDate, row.startedAt,
+                    exercise));
+        }
+        return ExerciseProgress.of(exerciseId, name, appearances);
     }
 
     private PeriodStatistics statisticsOf(List<String> sessionIds, String from, String to) {
