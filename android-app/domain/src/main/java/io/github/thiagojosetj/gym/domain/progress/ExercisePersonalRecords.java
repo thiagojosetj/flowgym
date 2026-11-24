@@ -40,11 +40,16 @@ public record ExercisePersonalRecords(
             new ExercisePersonalRecords(null, null, null, Collections.emptyList());
 
     /**
-     * @param value      grams, or a count, depending on which record this is
-     * @param isBaseline true when it was set the first time the exercise was ever performed, so
-     *                   there was nothing to beat
+     * @param value            grams, or a count, depending on which record this is
+     * @param isBaseline       true when it was set the first time the exercise was ever
+     *                         performed, so there was nothing to beat
+     * @param loadPerImplement whether {@code value} is the weight of ONE implement (section 6.4).
+     *                         Only {@link #maxLoad()} can be: the volume records are sums of
+     *                         effective load, where "per implement" means nothing, and they carry
+     *                         {@code false} so a screen prints them with no suffix
      */
-    public record Record(long value, String sessionId, String localDate, boolean isBaseline) {
+    public record Record(long value, String sessionId, String localDate, boolean isBaseline,
+                         boolean loadPerImplement) {
     }
 
     /**
@@ -56,7 +61,17 @@ public record ExercisePersonalRecords(
      * would be a different claim from the one they made.
      */
     public record RepsAtLoad(long loadGrams, int reps, String sessionId, String localDate,
-                             boolean isBaseline) {
+                             boolean isBaseline, boolean loadPerImplement) {
+    }
+
+    /**
+     * What makes two loads "the same load" (section 10 compares them in grams).
+     *
+     * <p>The basis is part of the key, because 12 kg per dumbbell and a 12 kg barbell are the same
+     * number and not the same load - one is twice the work. Keyed on grams alone they would merge,
+     * and the screen would report the repetitions of one under the weight of the other.
+     */
+    private record LoadKey(long grams, boolean perImplement) {
     }
 
     public ExercisePersonalRecords {
@@ -85,11 +100,12 @@ public record ExercisePersonalRecords(
         Record maxLoad = null;
         Record maxSetVolume = null;
         Record maxSessionVolume = null;
-        Map<Long, RepsAtLoad> bestRepsByLoad = new LinkedHashMap<>();
+        Map<LoadKey, RepsAtLoad> bestRepsByLoad = new LinkedHashMap<>();
 
         for (ExerciseAppearance appearance : appearances) {
             SessionExercise exercise = appearance.exercise();
             boolean baseline = appearance.sessionId().equals(firstSessionId);
+            boolean perImplement = exercise.isLoadPerImplement();
             long sessionVolume = 0L;
             for (LoggedSet set : exercise.sets()) {
                 if (!set.isCompleted() || set.isWarmUp()) {
@@ -99,32 +115,39 @@ public record ExercisePersonalRecords(
                 Weight typed = set.values().weight();
                 if (typed != null && reps != null && reps >= 1 && exercise.trackingType().usesWeight()) {
                     // A tie is not a record, here and everywhere below.
-                    maxLoad = better(maxLoad, typed.grams(), appearance, baseline);
-                    bestRepsByLoad.merge(typed.grams(),
+                    maxLoad = better(maxLoad, typed.grams(), appearance, baseline, perImplement);
+                    bestRepsByLoad.merge(new LoadKey(typed.grams(), perImplement),
                             new RepsAtLoad(typed.grams(), reps, appearance.sessionId(),
-                                    appearance.localDate(), baseline),
+                                    appearance.localDate(), baseline, perImplement),
                             (old, fresh) -> fresh.reps() > old.reps() ? fresh : old);
                 }
                 long setVolume = SessionVolume.ofSet(exercise, set).loadGrams();
                 if (setVolume > 0L) {
-                    maxSetVolume = better(maxSetVolume, setVolume, appearance, baseline);
+                    maxSetVolume = better(maxSetVolume, setVolume, appearance, baseline, false);
                     sessionVolume += setVolume;
                 }
             }
             if (sessionVolume > 0L) {
-                maxSessionVolume = better(maxSessionVolume, sessionVolume, appearance, baseline);
+                maxSessionVolume = better(maxSessionVolume, sessionVolume, appearance, baseline,
+                        false);
             }
         }
         List<RepsAtLoad> reps = new ArrayList<>(bestRepsByLoad.values());
-        reps.sort(Comparator.comparingLong(RepsAtLoad::loadGrams).reversed());
+        // Heaviest first, and where the same number appears on two bases the per-implement one
+        // comes first: it is the heavier work. A fixed order, so the list never shuffles between
+        // reads of the same history.
+        reps.sort(Comparator.comparingLong(RepsAtLoad::loadGrams)
+                .thenComparing(RepsAtLoad::loadPerImplement)
+                .reversed());
         return new ExercisePersonalRecords(maxLoad, maxSetVolume, maxSessionVolume, reps);
     }
 
     private static Record better(Record current, long candidate, ExerciseAppearance appearance,
-                                 boolean baseline) {
+                                 boolean baseline, boolean perImplement) {
         if (current != null && candidate <= current.value()) {
             return current;
         }
-        return new Record(candidate, appearance.sessionId(), appearance.localDate(), baseline);
+        return new Record(candidate, appearance.sessionId(), appearance.localDate(), baseline,
+                perImplement);
     }
 }

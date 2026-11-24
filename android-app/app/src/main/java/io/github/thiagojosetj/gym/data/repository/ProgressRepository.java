@@ -138,7 +138,22 @@ public final class ProgressRepository {
             appearances.add(new ExerciseAppearance(row.sessionId, row.localDate, row.startedAt,
                     exercise));
         }
-        return ExerciseProgress.of(exerciseId, name, appearances);
+        return ExerciseProgress.of(exerciseId, nameOf(name, appearances), appearances);
+    }
+
+    /**
+     * The library's name, or the last snapshot's when the library no longer has one.
+     *
+     * <p>An exercise can leave the library while its history stays - the history is immutable, and
+     * nothing is ever removed from it. A screen with a blank title would be the app losing the
+     * name of work the person actually did, so the most recent snapshot answers instead. Only the
+     * title: every number on the screen still comes from the snapshot of its own session.
+     */
+    private static String nameOf(String libraryName, List<ExerciseAppearance> appearances) {
+        if (!libraryName.isEmpty() || appearances.isEmpty()) {
+            return libraryName;
+        }
+        return appearances.get(appearances.size() - 1).exercise().name();
     }
 
     private PeriodStatistics statisticsOf(List<String> sessionIds, String from, String to) {

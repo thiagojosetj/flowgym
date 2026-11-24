@@ -113,6 +113,62 @@ public class ExerciseProgressTest {
         assertEquals(20_000L, progress.records().maxLoad().value());
         assertEquals("mas o volume dobra, como manda a secao 9",
                 400_000L, progress.records().maxSetVolume().value());
+        // 20_000 says nothing on its own: it is "20 kg por halter" or "20 kg" depending on this
+        // flag, and the two are different claims. Without it the screen has to guess.
+        assertTrue("o recorde de carga sabe que e por implemento",
+                progress.records().maxLoad().loadPerImplement());
+        assertTrue(progress.sessions().get(0).loadPerImplement());
+        assertTrue(progress.records().repsAtLoad().get(0).loadPerImplement());
+        assertFalse("volume e soma de carga efetiva: 'por implemento' nao se aplica",
+                progress.records().maxSetVolume().loadPerImplement());
+        assertFalse(progress.records().maxSessionVolume().loadPerImplement());
+    }
+
+    @Test
+    public void theSameNumberOnTwoBasesIsTwoLoadsAndNotOne() {
+        // The same movement with a pair of dumbbells one month and a barbell the next. Section 10
+        // compares loads "em gramas", and 12 kg per dumbbell is the same number as a 12 kg bar
+        // while being twice the work - so they are two records. Merged on grams alone, the screen
+        // would print one session's repetitions under the other session's weight.
+        ExerciseProgress progress = ExerciseProgress.of("ex-press", "Desenvolvimento", Arrays.asList(
+                appearance("s1", "2026-09-21", exercise("ex-press", "Desenvolvimento",
+                        TrackingType.WEIGHT_REPS, LoadBasis.PER_IMPLEMENT, 2,
+                        working("a", kg(12), 10))),
+                appearance("s2", "2026-09-28", exercise("ex-press", "Desenvolvimento",
+                        TrackingType.WEIGHT_REPS, LoadBasis.TOTAL, 1,
+                        working("b", kg(12), 15)))));
+
+        List<ExercisePersonalRecords.RepsAtLoad> reps = progress.records().repsAtLoad();
+        assertEquals("duas cargas, nao uma", 2, reps.size());
+        assertTrue("a por implemento vem primeiro: e o trabalho maior",
+                reps.get(0).loadPerImplement());
+        assertEquals(10, reps.get(0).reps());
+        assertFalse(reps.get(1).loadPerImplement());
+        assertEquals(15, reps.get(1).reps());
+        // And the load record stays with the first to do it: equalling 12 kg is not beating it.
+        assertEquals(12_000L, progress.records().maxLoad().value());
+        assertEquals("s1", progress.records().maxLoad().sessionId());
+    }
+
+    @Test
+    public void twoBasesOnTheSameNumberAreOrderedBySomethingOtherThanWhoCameFirst() {
+        // The same pair of loads as above, in the other order. Proved in both orders on purpose:
+        // the map keeps insertion order and the sort is stable, so a test with the per-implement
+        // session first would pass with no tiebreak at all - and the list would then be ordered by
+        // which session happened to come first, which is not an order anybody can read.
+        ExerciseProgress progress = ExerciseProgress.of("ex-press", "Desenvolvimento", Arrays.asList(
+                appearance("s1", "2026-09-21", exercise("ex-press", "Desenvolvimento",
+                        TrackingType.WEIGHT_REPS, LoadBasis.TOTAL, 1,
+                        working("a", kg(12), 15))),
+                appearance("s2", "2026-09-28", exercise("ex-press", "Desenvolvimento",
+                        TrackingType.WEIGHT_REPS, LoadBasis.PER_IMPLEMENT, 2,
+                        working("b", kg(12), 10)))));
+
+        List<ExercisePersonalRecords.RepsAtLoad> reps = progress.records().repsAtLoad();
+        assertEquals(2, reps.size());
+        assertTrue("ainda a por implemento primeiro", reps.get(0).loadPerImplement());
+        assertEquals(10, reps.get(0).reps());
+        assertFalse(reps.get(1).loadPerImplement());
     }
 
     @Test

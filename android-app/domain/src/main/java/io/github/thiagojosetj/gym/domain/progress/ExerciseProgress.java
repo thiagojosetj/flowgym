@@ -34,9 +34,15 @@ public record ExerciseProgress(String exerciseId, String name, List<Point> sessi
      *                     body-weight or timed exercise, which is not the same as "no work": the
      *                     repetitions are right there beside it
      * @param performedSets counted sets, warm-ups excluded - a warm-up is not a result (6.2)
+     * @param loadPerImplement whether {@code maxLoadGrams} is the weight of ONE implement, as
+     *                         section 6.4 requires it to be stated. Carried per session because
+     *                         it belongs to that session's snapshot: the same movement can be a
+     *                         pair of dumbbells one month and a barbell the next, and a screen
+     *                         that printed one basis for both would misreport the lighter one
      */
     public record Point(String sessionId, String localDate, long startedAt, int performedSets,
-                        int totalReps, long maxLoadGrams, long volumeGrams) {
+                        int totalReps, long maxLoadGrams, long volumeGrams,
+                        boolean loadPerImplement) {
 
         public boolean hasLoad() {
             return maxLoadGrams != 0L;
@@ -99,6 +105,7 @@ public record ExerciseProgress(String exerciseId, String name, List<Point> sessi
             }
         }
         return new Point(appearance.sessionId(), appearance.localDate(), appearance.startedAt(),
-                performed, totals.totalReps(), maxLoad, totals.loadGrams());
+                performed, totals.totalReps(), maxLoad, totals.loadGrams(),
+                exercise.isLoadPerImplement());
     }
 }

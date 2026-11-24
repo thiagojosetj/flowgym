@@ -330,6 +330,36 @@ public class ProgressRepositoryTest {
         assertEquals(3, progress.sessions().get(1).performedSets());
     }
 
+    @Test
+    public void anExerciseThatLeftTheLibraryKeepsItsNameOnTheScreen() throws Exception {
+        // The history is immutable and nothing leaves it, so work done with an exercise survives
+        // the exercise disappearing from the library. A blank title would be the app forgetting
+        // the name of something the person actually did, so the last snapshot answers instead.
+        performWorkout(SUPINO, 40, 10);
+        String exerciseId = idOf(SUPINO);
+        app.database.getOpenHelper().getWritableDatabase().execSQL(
+                "UPDATE exercise SET deleted_at = 1 WHERE id = ?", new Object[] {exerciseId});
+
+        ExerciseProgress progress = progressOf(exerciseId);
+
+        assertEquals(SUPINO, progress.name());
+        assertEquals("e o historico continua inteiro", 1, progress.sessions().size());
+    }
+
+    @Test
+    public void aRecordKeepsTheBasisItWasLoggedOn() throws Exception {
+        // 40 kg on a barbell is "40 kg"; on dumbbells the same row would mean "40 kg por halter",
+        // which is twice the work. The flag travels with the record so the screen states the one
+        // the person actually typed (section 6.4).
+        performWorkout(SUPINO, 40, 10);
+
+        ExerciseProgress progress = progressOf(idOf(SUPINO));
+
+        assertFalse("supino com barra nao e por implemento",
+                progress.records().maxLoad().loadPerImplement());
+        assertFalse(progress.sessions().get(0).loadPerImplement());
+    }
+
     // ------------------------------------------------------------------ helpers
 
     private ExerciseProgress progressOf(String exerciseId) {
