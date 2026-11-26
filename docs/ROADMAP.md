@@ -250,9 +250,31 @@ achados ao implementar: **salvar** um treino desagrupava tudo (o rascunho não c
     decisão de **biblioteca de gráficos ou `Canvas` próprio** (ADR pendente) — um gráfico de linha
     de volume por sessão é ~150 linhas de Canvas, zero dependência e zero APK, mas é decisão do
     dono do produto.
-- ⬜ **PRG-01/02/03** — gráficos, filtros de janela e tela por exercício.
+- ✅ **PRG-03 — tela de progresso por exercício**, pelo botão "Ver meu progresso" no detalhe do
+  exercício: os recordes da §10 em cima, a lista sessão por sessão embaixo. **Sem esquema novo e
+  sem dependência nova** — os recordes são derivados do histórico, como a §10 permite.
+  - **Uma leitura só**, não uma consulta observada: o histórico é imutável (ADR-0036).
+  - A **base da carga** (por halter ou total) viaja com cada ponto e com o recorde, porque é do
+    snapshot da sessão. Sem ela a tela publicaria 20 kg onde a pessoa levantou 20 kg em cada mão.
+  - Mutação: linha de base não dita, carga de halteres sem o "/halter", sessões da mais antiga
+    para a mais nova, selo também para "mais reps naquela carga", exercício sem carga que não diz
+    que não tem recorde, lista de cargas sem limite, e o resto da lista em silêncio — **todas
+    matam** teste. No domínio: o ponto e o recorde perdendo a base, as duas bases colapsando numa
+    chave, e o desempate da ordenação removido — **todas matam**.
+  - **Pendência de produto anotada, não resolvida em silêncio:** a §10 compara "a carga exata em
+    gramas", e com isso 12 kg por halter **empata** com uma barra de 12 kg, apesar de ser o dobro
+    do trabalho. Implementado como a §10 está escrita. Misturar bases no mesmo exercício é raro
+    (normalmente são dois exercícios diferentes do catálogo), mas se for para mudar a regra, muda
+    na §10 primeiro.
+  - ⬜ **Validar no aparelho**: o Robolectric mede texto a **1 px por caractere**, então os testes
+    desta tela provam o conteúdo e a estrutura e **não provam o layout**. Checar no aparelho se o
+    selo "Recorde" cabe ao lado da data com fonte ampliada, e a tela com um exercício de ~50
+    sessões.
+- ⬜ **PRG-01/02** — gráficos e filtros de janela.
 - ⬜ **PRG-05** — peso corporal (tabelas novas → migração v5).
-- ⬜ Recordes pessoais (§10) — `personal_record`, migração v5.
+- ⬜ **Histórico de recordes** (§10: "cada novo PR é um novo registro") — `personal_record`,
+  migração v5. Os recordes de **hoje** já estão prontos e derivados; o que falta é guardar cada PR
+  já batido, que é a única pergunta que o cálculo não responde.
 - ⬜ **Validar no aparelho**: a lista de grupos musculares com fonte ampliada a 360 dp, e o
   desempenho de um mês com muitas sessões (uma consulta por sessão).
 

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    A label and a figure: one record of PRODUCT_SPEC section 10, or one "most repetitions at this
+    load" row. A single number is a stat tile and not a chart, so there is no bar here.
+
+    Both lines are hidden from the screen reader and the row speaks as one phrase: a label and a
+    number announced separately do not say which belongs to which.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingVertical="@dimen/space_xs">
+
+    <TextView
+        android:id="@+id/record_label"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:importantForAccessibility="no"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        tools:text="Maior carga" />
+
+    <TextView
+        android:id="@+id/record_value"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:importantForAccessibility="no"
+        android:textAppearance="?attr/textAppearanceTitleMedium"
+        tools:text="40 kg · 28 de set. de 2026" />
+</LinearLayout>

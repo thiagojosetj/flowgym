@@ -74,6 +74,22 @@
         <argument
             android:name="exerciseId"
             app:argType="string" />
+        <action
+            android:id="@+id/action_detail_to_exercise_progress"
+            app:destination="@id/exerciseProgressFragment" />
+    </fragment>
+
+    <!--
+        One exercise across its history (PRG-03). Read-only, like the rest of the history: it has
+        no action that writes, and the records it shows are derived from the sessions every time.
+    -->
+    <fragment
+        android:id="@+id/exerciseProgressFragment"
+        android:name="io.github.thiagojosetj.gym.ui.progress.ExerciseProgressFragment"
+        android:label="@string/exercise_progress_title">
+        <argument
+            android:name="exerciseId"
+            app:argType="string" />
     </fragment>
 
     <fragment

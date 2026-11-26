@@ -49,6 +49,21 @@
                 android:textColor="?attr/colorOnSurfaceVariant"
                 tools:text="Empurrar clássico para o peitoral, deitado em banco plano." />
 
+            <!--
+                The way into PRG-03. Always offered, even for an exercise never performed: "I have
+                never done this" is an answer, and the screen says so plainly instead of leaving a
+                button that is sometimes there and sometimes not.
+            -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/open_progress"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_l"
+                android:minHeight="@dimen/touch_target_min"
+                android:text="@string/exercise_progress_open"
+                app:icon="@drawable/ic_progress" />
+
             <!-- Primary muscle: highlighted -->
             <com.google.android.material.card.MaterialCardView
                 style="?attr/materialCardViewFilledStyle"

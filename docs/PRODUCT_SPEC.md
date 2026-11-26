@@ -222,6 +222,38 @@ que param onde o treino para.
 - O dia é sempre o `local_date` **vivido**, e "hoje" é o dia **onde a pessoa está** — não o dia do
   relógio, que é UTC (ver `ui/common/Today`).
 
+**PRG-03 implementado (26/11/2026)**, alcançado pelo botão **"Ver meu progresso"** no detalhe do
+exercício. Um exercício por vez, do primeiro dia ao último.
+
+- **Recordes derivados, sem tabela.** §10 diz que um PR sempre pode ser recalculado do histórico, e
+  é o que acontece: não há `personal_record` e não há nada para manter em sincronia. O que uma
+  tabela acrescentaria é o **histórico de recordes** — cada PR já batido, guardado como linha — e
+  essa é a única pergunta que esta tela não responde. Ela responde quais são os recordes **hoje** e
+  em que dia cada um foi feito.
+- **A carga é dita na base em que foi registrada** (§6.4): "20 kg/halter" e "20 kg" são o mesmo
+  número e trabalhos diferentes. Por isso a base viaja com o recorde e com cada sessão — ela é do
+  snapshot daquela sessão, e o mesmo movimento pode ser halteres num mês e barra no outro. Os
+  recordes de **volume** carregam "sem base" e é verdade: volume é soma de carga **efetiva**, já
+  dobrada onde a §9 manda dobrar.
+- **"Mais reps com a carga X" é chaveado por (gramas, base)**, não por gramas. Juntar os dois faria
+  a tela publicar as repetições de uma sessão sob o peso de outra.
+- **Empate não é recorde** e a **primeira vez diz que é a primeira vez** ("primeira vez" ao lado do
+  número), para a tela não parabenizar ninguém por ter aparecido.
+- **Nada sai em silêncio.** A lista de cargas mostra cinco e **conta em voz alta** quantas ficaram
+  fora. Um exercício **sem carga** diz que não tem recorde de carga nem de volume, em vez de
+  imprimir "0 kg" três vezes — zero seria uma medição.
+- **O selo "Recorde"** marca só as sessões que detêm um dos três recordes de destaque. Os
+  detentores de "mais reps naquela carga" ficam fora de propósito: existe um por carga distinta,
+  então quase toda sessão teria selo e o selo deixaria de significar algo. A palavra carrega o
+  sentido e a cor só reforça.
+- **Uma leitura só.** O histórico é imutável (ADR-0036): nada muda embaixo da tela, então não há
+  segunda emissão para esperar nem estado meio pronto para desenhar. "Nunca fiz este exercício" e
+  "não consegui ler o banco" são estados **diferentes** — mostrar o primeiro quando foi o segundo
+  seria o app inventando uma resposta.
+- **Um exercício que sai da biblioteca mantém o nome na tela**: o histórico é imutável e nada sai
+  dele, então o título cai para o nome do último snapshot. Só o título — todo número continua
+  vindo do snapshot da sua própria sessão.
+
 ### 4.6 Rotinas, metas e notificações (Fase 6)
 - **ROU-01** Rotina semanal fixa (segunda → Push...).
 - **ROU-02** Ciclo de N dias independente do dia da semana (ex.: A, B, C, descanso, D, E, descanso).

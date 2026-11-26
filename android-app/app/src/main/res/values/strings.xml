@@ -476,4 +476,45 @@
     <!-- Name and code: two builds can share a name, and the code is what the phone compares. -->
     <string name="settings_version">Versão %1$s (%2$d)</string>
     <string name="settings_credits">Ícones: Material Design (Google), licença Apache 2.0. Textos dos exercícios: conteúdo próprio.</string>
+    <!-- Progresso de um exercicio (PRODUCT_SPEC PRG-03) -->
+    <string name="exercise_progress_title">Progresso</string>
+    <string name="exercise_progress_open">Ver meu progresso</string>
+    <string name="exercise_progress_failed">Não foi possível carregar o progresso deste exercício.</string>
+    <string name="exercise_progress_empty_title">Você ainda não fez este exercício</string>
+    <string name="exercise_progress_empty_body">Quando ele entrar num treino finalizado, esta tela passa a mostrar sessão por sessão e os seus recordes.</string>
+    <plurals name="exercise_progress_sessions">
+        <item quantity="one">%d sessão</item>
+        <item quantity="other">%d sessões</item>
+    </plurals>
+    <string name="exercise_progress_span">%1$s · de %2$s a %3$s</string>
+    <string name="exercise_progress_span_single">%1$s · %2$s</string>
+
+    <string name="exercise_progress_records_title">Recordes</string>
+    <string name="exercise_progress_records_scope">Calculados de todo o histórico. Aquecimento e séries não feitas não contam.</string>
+    <string name="exercise_progress_record_max_load">Maior carga</string>
+    <string name="exercise_progress_record_set_volume">Maior volume de série</string>
+    <string name="exercise_progress_record_session_volume">Maior volume de sessão</string>
+    <!-- Value and the day it was set; the day is what makes a record checkable. -->
+    <string name="exercise_progress_record_value">%1$s · %2$s</string>
+    <string name="exercise_progress_record_baseline">primeira vez</string>
+    <string name="exercise_progress_record_spoken">%1$s: %2$s</string>
+    <string name="exercise_progress_no_records">Este exercício não registra carga, então não há recorde de carga nem de volume. As repetições de cada sessão estão abaixo.</string>
+    <string name="exercise_progress_reps_title">Mais repetições por carga</string>
+    <plurals name="exercise_progress_reps">
+        <item quantity="one">%d repetição</item>
+        <item quantity="other">%d repetições</item>
+    </plurals>
+    <plurals name="exercise_progress_more_loads">
+        <item quantity="one">E mais %d carga, fora desta lista.</item>
+        <item quantity="other">E mais %d cargas, fora desta lista.</item>
+    </plurals>
+
+    <string name="exercise_progress_sessions_title">Sessão por sessão</string>
+    <string name="exercise_progress_point_sets">Séries: %1$d · reps: %2$d</string>
+    <string name="exercise_progress_point_max_load">Maior carga: %s</string>
+    <string name="exercise_progress_point_volume">Volume: %s</string>
+    <string name="exercise_progress_point_no_load">Sem carga registrada</string>
+    <string name="exercise_progress_point_no_volume">Sem volume de carga</string>
+    <string name="exercise_progress_point_record">Recorde</string>
+    <string name="exercise_progress_point_spoken">%1$s. %2$s</string>
 </resources>
