@@ -41,6 +41,19 @@
                 android:layout_height="@dimen/touch_target_min"
                 android:layout_weight="1"
                 android:text="@string/progress_month" />
+
+            <!--
+                PRG-02's "período personalizado". This one does not switch the period by itself:
+                two dates cannot be derived from the one on screen, so it opens the picker and
+                the period changes only if dates come back.
+            -->
+            <Button
+                android:id="@+id/kind_custom"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/touch_target_min"
+                android:layout_weight="1"
+                android:text="@string/progress_custom" />
         </com.google.android.material.button.MaterialButtonToggleGroup>
 
         <LinearLayout

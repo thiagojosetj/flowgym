@@ -2,6 +2,7 @@ package io.github.thiagojosetj.gym.domain.progress;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
 
 /**
@@ -16,7 +17,14 @@ import java.time.temporal.TemporalAdjusters;
  */
 public record TrainingPeriod(Kind kind, LocalDate from, LocalDate to) {
 
-    public enum Kind { WEEK, MONTH }
+    /**
+     * The kinds of period the screen offers.
+     *
+     * <p>{@code CUSTOM} is the "período personalizado" of PRG-02: any two days, picked by hand.
+     * It is the only kind that cannot be derived from a single day, which is why {@link #as} does
+     * not produce one - {@link #custom} does, from the two dates it needs.
+     */
+    public enum Kind { WEEK, MONTH, CUSTOM }
 
     public static TrainingPeriod weekOf(LocalDate day, DayOfWeek firstDayOfWeek) {
         LocalDate start = day.with(TemporalAdjusters.previousOrSame(firstDayOfWeek));
@@ -28,8 +36,33 @@ public record TrainingPeriod(Kind kind, LocalDate from, LocalDate to) {
         return new TrainingPeriod(Kind.MONTH, start, start.plusMonths(1).minusDays(1));
     }
 
+    /**
+     * Any two days, both inclusive (PRODUCT_SPEC PRG-02).
+     *
+     * <p>Given back to front they are swapped rather than refused: somebody who picks the 20th
+     * and then the 10th meant the days between them, and an error message would be the app being
+     * pedantic about an order it can work out.
+     */
+    public static TrainingPeriod custom(LocalDate from, LocalDate to) {
+        return from.isAfter(to)
+                ? new TrainingPeriod(Kind.CUSTOM, to, from)
+                : new TrainingPeriod(Kind.CUSTOM, from, to);
+    }
+
+    /** How many days this period covers, both ends counted. */
+    public long lengthInDays() {
+        return ChronoUnit.DAYS.between(from, to) + 1L;
+    }
+
     /** The same kind of period, {@code steps} of it away. Negative goes back. */
     public TrainingPeriod shifted(int steps) {
+        if (kind == Kind.CUSTOM) {
+            // A hand-picked range steps by its OWN length: the eleven days before these eleven.
+            // Stepping by a week or a month would be the app answering a question about a period
+            // the person never asked for.
+            long days = lengthInDays() * steps;
+            return new TrainingPeriod(kind, from.plusDays(days), to.plusDays(days));
+        }
         LocalDate anchor = kind == Kind.WEEK
                 ? from.plusWeeks(steps)
                 : from.plusMonths(steps);
@@ -40,9 +73,15 @@ public record TrainingPeriod(Kind kind, LocalDate from, LocalDate to) {
                 : monthOf(anchor);
     }
 
-    /** The same day, read as the other kind of period. */
+    /**
+     * The same day, read as the other kind of period.
+     *
+     * <p>Never produces a {@code CUSTOM} one: a hand-picked range is two dates and there is
+     * nothing here to derive them from. Asking for it leaves the period alone, and the screen
+     * asks for the dates instead.
+     */
     public TrainingPeriod as(Kind other, DayOfWeek firstDayOfWeek, LocalDate today) {
-        if (other == kind) {
+        if (other == kind || other == Kind.CUSTOM) {
             return this;
         }
         // Anchored on today when today is inside, so switching Week/Month on the current period

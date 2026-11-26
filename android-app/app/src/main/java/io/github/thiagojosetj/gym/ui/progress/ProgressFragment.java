@@ -7,8 +7,11 @@ import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.util.Pair;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+
+import com.google.android.material.datepicker.MaterialDatePicker;
 
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -27,6 +30,7 @@ import io.github.thiagojosetj.gym.domain.progress.ProgressSnapshot;
 import io.github.thiagojosetj.gym.domain.progress.TrainingPeriod;
 import io.github.thiagojosetj.gym.ui.common.Durations;
 import io.github.thiagojosetj.gym.ui.common.NumberInput;
+import io.github.thiagojosetj.gym.ui.common.PickedDays;
 import io.github.thiagojosetj.gym.ui.common.ViewModelFactories;
 import io.github.thiagojosetj.gym.domain.model.WeightUnit;
 
@@ -41,6 +45,9 @@ public class ProgressFragment extends Fragment {
 
     /** Units are kg for now; lb support is planned (docs/ROADMAP.md). */
     private static final WeightUnit UNIT = WeightUnit.KILOGRAM;
+
+    /** Tag the range picker is found again by after a rotation. */
+    private static final String DATE_PICKER_TAG = "progress-date-range";
 
     private FragmentProgressBinding binding;
     private ProgressViewModel viewModel;
@@ -69,10 +76,20 @@ public class ProgressFragment extends Fragment {
             if (applyingState || !isChecked) {
                 return;
             }
+            if (checkedId == R.id.kind_custom) {
+                askForDates();
+                return;
+            }
             viewModel.show(checkedId == R.id.kind_month
                     ? TrainingPeriod.Kind.MONTH
                     : TrainingPeriod.Kind.WEEK);
         });
+        // A picker open across a rotation comes back without its listeners, and the dates the
+        // person chose would land nowhere. Found again by tag and rewired.
+        Fragment open = getParentFragmentManager().findFragmentByTag(DATE_PICKER_TAG);
+        if (open instanceof MaterialDatePicker) {
+            listenTo(asRangePicker(open));
+        }
         binding.measureGroup.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
             if (applyingState || !isChecked) {
                 return;
@@ -89,8 +106,7 @@ public class ProgressFragment extends Fragment {
     private void render(ProgressViewModel.State state) {
         TrainingPeriod period = state.period();
         applyingState = true;
-        binding.kindGroup.check(period.kind() == TrainingPeriod.Kind.MONTH
-                ? R.id.kind_month : R.id.kind_week);
+        binding.kindGroup.check(idOf(period.kind()));
         applyingState = false;
 
         binding.periodTitle.setText(titleOf(period));
@@ -347,9 +363,71 @@ public class ProgressFragment extends Fragment {
         if (period.kind() == TrainingPeriod.Kind.MONTH) {
             return DateTimeFormatter.ofPattern("MMMM yyyy", locale()).format(period.from());
         }
+        // A week and a hand-picked range read the same way: two ends. Only a month is named.
         DateTimeFormatter day = DateTimeFormatter.ofPattern("d MMM", locale());
         return getString(R.string.progress_range, day.format(period.from()),
                 day.format(period.to()));
+    }
+
+    private static int idOf(TrainingPeriod.Kind kind) {
+        switch (kind) {
+            case MONTH:
+                return R.id.kind_month;
+            case CUSTOM:
+                return R.id.kind_custom;
+            default:
+                return R.id.kind_week;
+        }
+    }
+
+    /**
+     * Opens Material's range picker, prefilled with whatever is on screen.
+     *
+     * <p>If it is dismissed without a choice the button goes back to the period that is actually
+     * showing. Leaving "Período" selected while the screen still shows the week would be the
+     * control lying about what it did.
+     */
+    private void askForDates() {
+        ProgressViewModel.State state = viewModel.state().getValue();
+        if (state == null) {
+            return;
+        }
+        MaterialDatePicker<Pair<Long, Long>> picker = MaterialDatePicker.Builder.dateRangePicker()
+                .setTitleText(R.string.progress_custom_title)
+                .setSelection(new Pair<>(PickedDays.millisOf(state.period().from()),
+                        PickedDays.millisOf(state.period().to())))
+                .build();
+        listenTo(picker);
+        picker.show(getParentFragmentManager(), DATE_PICKER_TAG);
+    }
+
+    private void listenTo(MaterialDatePicker<Pair<Long, Long>> picker) {
+        picker.addOnPositiveButtonClickListener(selection -> {
+            if (selection == null || selection.first == null || selection.second == null) {
+                restoreKind();
+                return;
+            }
+            // The picker's milliseconds are UTC whatever zone the phone is in; see PickedDays.
+            viewModel.showCustom(PickedDays.of(selection.first), PickedDays.of(selection.second));
+        });
+        picker.addOnNegativeButtonClickListener(click -> restoreKind());
+        picker.addOnCancelListener(dialog -> restoreKind());
+    }
+
+    @SuppressWarnings("unchecked")
+    private static MaterialDatePicker<Pair<Long, Long>> asRangePicker(Fragment fragment) {
+        return (MaterialDatePicker<Pair<Long, Long>>) fragment;
+    }
+
+    /** Puts the toggle back on the period actually being shown. */
+    private void restoreKind() {
+        ProgressViewModel.State state = viewModel.state().getValue();
+        if (binding == null || state == null) {
+            return;
+        }
+        applyingState = true;
+        binding.kindGroup.check(idOf(state.period().kind()));
+        applyingState = false;
     }
 
     /** Dimmed as well as disabled: an arrow that looks live and does nothing reads as a defect. */

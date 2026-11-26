@@ -254,8 +254,8 @@ exercício. Um exercício por vez, do primeiro dia ao último.
   dele, então o título cai para o nome do último snapshot. Só o título — todo número continua
   vindo do snapshot da sua própria sessão.
 
-**PRG-02 (janelas) implementado (26/11/2026)** na mesma tela: **últimas 5 / 10 / 30 / Tudo**.
-Falta o **período personalizado**, que a PRG-02 também pede (ver ROADMAP).
+**PRG-02 implementado (26/11/2026)**, em duas partes: **últimas 5 / 10 / 30 / Tudo** na tela por
+exercício, e o **período personalizado** na aba Progresso, ao lado de Semana e Mês.
 
 - **A janela fica embaixo dos recordes, e isso é a regra desenhada.** Ela delimita a lista (e o
   gráfico da PRG-01) e **nunca** os recordes: "seu melhor nas últimas cinco sessões" não é um
@@ -268,6 +268,18 @@ Falta o **período personalizado**, que a PRG-02 também pede (ver ROADMAP).
   controle que parece vivo e não faz nada é lido como defeito.
 - **"Últimas" significa últimas**, e a lista diz "Mostrando as últimas 5 de 7 sessões." quando
   esconde algo. Trocar a janela não lê o banco: ela recorta uma lista que já está na memória.
+- **O período personalizado** (botão "Período") abre o seletor de intervalo do Material, já
+  preenchido com o que está na tela. Ele é o único tipo de período que **não dá para deduzir** do
+  dia mostrado — precisa de duas datas —, então o botão não troca nada sozinho: pergunta, e só
+  muda se vierem datas. Cancelar devolve o botão ao período que está de fato na tela.
+  - **Duas datas ao contrário são o mesmo intervalo** (quem escolhe o dia 20 e depois o 10 quis os
+    dias entre eles).
+  - **As setas andam o tamanho do próprio intervalo**: seis dias para trás de um intervalo de seis
+    dias. Andar uma semana responderia sobre um período que ninguém pediu.
+  - **O seletor do Material fala em milissegundos UTC**, sempre, qualquer que seja o fuso do
+    aparelho. Ler isso com o fuso do telefone transforma 20 de outubro em 19 para quem está a
+    oeste de Greenwich — quase todo o Brasil. A conversão mora num lugar só (`ui/common/PickedDays`)
+    e tem teste, porque este app já entregou um bug exatamente dessa forma.
 
 **PRG-01 implementado (26/11/2026)**, desenhado em `Canvas` sem biblioteca nenhuma — **ADR-0042**.
 Dois gráficos, a mesma `View`: um **por exercício** (nesta tela) e um **do treino** (na aba

@@ -270,15 +270,25 @@ achados ao implementar: **salvar** um treino desagrupava tudo (o rascunho não c
     desta tela provam o conteúdo e a estrutura e **não provam o layout**. Checar no aparelho se o
     selo "Recorde" cabe ao lado da data com fonte ampliada, e a tela com um exercício de ~50
     sessões.
-- ✅ **PRG-02 — janelas** na tela por exercício: últimas 5 / 10 / 30 / Tudo. A regra mora no
-  domínio (`ProgressWindow`), não no widget: quais janelas existem é regra de produto.
+- ✅ **PRG-02 — filtros**, completo: **últimas 5 / 10 / 30 / Tudo** na tela por exercício e
+  **período personalizado** na aba Progresso. As regras moram no domínio (`ProgressWindow` e
+  `TrainingPeriod.Kind.CUSTOM`), não no widget: quais filtros existem é regra de produto.
   - **Os recordes ficam fora da janela** de propósito, e a tela diz isso em palavras.
   - Mutação: a lista ignorando a janela, janela inútil seguindo clicável, sessões escondidas em
     silêncio, o aviso dizendo o total no lugar do mostrado, janela igual ao total contando como
     filtro, e a janela pegando as **primeiras** sessões em vez das últimas — **todas matam** teste
     (as duas últimas no domínio e na tela).
-  - ⬜ Falta o **período personalizado** que a PRG-02 também pede: precisa de seletor de datas, e
-    é mais trabalho de interface do que de regra.
+  - O **período personalizado** usa o seletor de intervalo do Material (sem dependência nova) e
+    anda o tamanho do próprio intervalo. O botão "Período" **pergunta** em vez de trocar sozinho,
+    porque duas datas não se deduzem do dia na tela, e cancelar devolve o botão ao período real.
+  - **A conversão do seletor é UTC** (`ui/common/PickedDays`), e isso tem história: o Material
+    entrega milissegundos UTC, e lê-los no fuso do aparelho tira um dia de quem está a oeste de
+    Greenwich. O teste de fluxo do seletor roda **de propósito em São Paulo**: o padrão do
+    Robolectric é UTC, que é o único fuso onde a leitura certa e a errada dão o mesmo resultado —
+    sob ele o teste passaria com o bug dentro.
+  - Mutação (personalizado): intervalo andando uma semana em vez do próprio tamanho, o botão
+    "Período" nunca acendendo, "Período" trocando sozinho em vez de perguntar, cancelar deixando
+    o botão mentindo, e a data do seletor lida no fuso do aparelho — **todas matam** teste.
 - ✅ **PRG-01 — gráficos**: um por exercício (carga, volume ou repetições por sessão) e um do
   treino (volume, séries ou repetições por sessão do período, na aba Progresso). A mesma `View`
   desenha os dois. Linha de carga, volume ou repetições por sessão,

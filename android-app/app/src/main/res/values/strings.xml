@@ -392,6 +392,8 @@
     <!-- Progresso (PRG-04) -->
     <string name="progress_week">Semana</string>
     <string name="progress_month">Mês</string>
+    <string name="progress_custom">Período</string>
+    <string name="progress_custom_title">Escolha os dois dias</string>
     <string name="progress_previous_period">Período anterior</string>
     <string name="progress_next_period">Próximo período</string>
     <string name="progress_range">%1$s – %2$s</string>

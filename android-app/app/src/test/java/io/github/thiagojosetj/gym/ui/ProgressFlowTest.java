@@ -4,6 +4,8 @@ import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.action.ViewActions.scrollTo;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
+import static androidx.test.espresso.matcher.RootMatchers.isDialog;
+import static androidx.test.espresso.matcher.ViewMatchers.isChecked;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.isEnabled;
 import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription;
@@ -20,16 +22,20 @@ import androidx.test.core.app.ActivityScenario;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.espresso.matcher.ViewMatchers.Visibility;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.annotation.Config;
 
 import java.time.Duration;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicReference;
 
 import io.github.thiagojosetj.gym.AppContainer;
@@ -48,6 +54,8 @@ import io.github.thiagojosetj.gym.domain.template.TemplateDefaults;
 import io.github.thiagojosetj.gym.domain.template.TemplateDraft;
 import io.github.thiagojosetj.gym.testutil.LiveDataTestUtil;
 import io.github.thiagojosetj.gym.testutil.TestGymApplication;
+import io.github.thiagojosetj.gym.ui.progress.ProgressFragment;
+import io.github.thiagojosetj.gym.ui.progress.ProgressViewModel;
 
 /**
  * "Progresso" (PRODUCT_SPEC PRG-04) as the screen shows it.
@@ -252,7 +260,137 @@ public class ProgressFlowTest {
         }
     }
 
+    @Test
+    public void aCustomPeriodShowsItsOwnRangeAndStepsByItsOwnLength() {
+        try (ActivityScenario<MainActivity> scenario =
+                     ActivityScenario.launch(MainActivity.class)) {
+            performWorkout(40, 10);
+            aWeekLater();
+            performWorkout(40, 10);
+            openProgress();
+
+            // Six days, by hand: 25 to 30 September, which holds the second session only.
+            customPeriod(scenario, LocalDate.of(2026, 9, 25), LocalDate.of(2026, 9, 30));
+
+            onView(withId(R.id.kind_custom)).check(matches(isChecked()));
+            onView(withId(R.id.period_title)).check(matches(withText("25 set. – 30 set.")));
+            onView(withText("1 treino")).check(matches(isDisplayed()));
+
+            onView(withId(R.id.previous_period)).perform(click());
+
+            // Six days back, not a week back: a hand-picked range steps by its OWN length, or
+            // the app would be answering about a period nobody asked for. A week step would
+            // have landed on 18 September.
+            onView(withId(R.id.period_title)).check(matches(withText("19 set. – 24 set.")));
+            onView(withText("1 treino")).check(matches(isDisplayed()));
+        }
+    }
+
+    @Test
+    public void thePeriodButtonAsksForTwoDatesInsteadOfGuessingThem() {
+        try (ActivityScenario<MainActivity> scenario =
+                     ActivityScenario.launch(MainActivity.class)) {
+            performWorkout(40, 10);
+            openProgress();
+
+            onView(withId(R.id.kind_custom)).perform(click());
+
+            // Two dates cannot be derived from the week on screen, so the button opens the
+            // picker and changes nothing by itself: the week is still what is shown.
+            assertNotNull("o seletor de datas devia ter aberto", datePicker(scenario));
+            onView(withId(R.id.period_title)).check(matches(withText("20 set. – 26 set.")));
+        }
+    }
+
+    @Test
+    public void confirmingThePickerKeepsTheDaysThatWereOnIt() {
+        // Run west of Greenwich on purpose. Robolectric's default is UTC, which is the one zone
+        // where reading the picker's milliseconds correctly and reading them wrongly give the
+        // same answer - a test under it would pass with the bug in place. Set after the
+        // application is built, so only the picker's conversion is affected and the week on
+        // screen stays where the test clock put it.
+        TimeZone original = TimeZone.getDefault();
+        TimeZone.setDefault(TimeZone.getTimeZone("America/Sao_Paulo"));
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            performWorkout(40, 10);
+            openProgress();
+
+            // The picker opens prefilled with the week on screen, so confirming it straight away
+            // asks for exactly those two days back. Material hands them over as UTC
+            // milliseconds; read in Sao Paulo's zone they come back a day early and the title
+            // would say "19 set. – 25 set." (see PickedDays).
+            onView(withId(R.id.kind_custom)).perform(click());
+            onView(withId(com.google.android.material.R.id.confirm_button))
+                    .inRoot(isDialog()).perform(click());
+
+            onView(withId(R.id.period_title)).check(matches(withText("20 set. – 26 set.")));
+            onView(withId(R.id.kind_custom)).check(matches(isChecked()));
+        } finally {
+            TimeZone.setDefault(original);
+        }
+    }
+
+    @Test
+    public void dismissingThePickerPutsTheButtonBackWhereItWas() {
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            performWorkout(40, 10);
+            openProgress();
+
+            onView(withId(R.id.kind_custom)).perform(click());
+            onView(withId(com.google.android.material.R.id.cancel_button))
+                    .inRoot(isDialog()).perform(click());
+
+            // "Período" still lit while the screen shows the week would be the control lying
+            // about what it did.
+            onView(withId(R.id.kind_week)).check(matches(isChecked()));
+            onView(withId(R.id.period_title)).check(matches(withText("20 set. – 26 set.")));
+        }
+    }
+
+    @Test
+    public void goingBackToTheWeekFromACustomPeriodLandsOnTheWeekOfThatRange() {
+        try (ActivityScenario<MainActivity> scenario =
+                     ActivityScenario.launch(MainActivity.class)) {
+            performWorkout(40, 10);
+            openProgress();
+            customPeriod(scenario, LocalDate.of(2026, 9, 25), LocalDate.of(2026, 9, 30));
+
+            onView(withId(R.id.kind_week)).perform(click());
+
+            // Today (21 September) is not inside 25-30 September, so the week is the one of the
+            // range's first day, not the one of today: the screen stays where the person was.
+            onView(withId(R.id.period_title)).check(matches(withText("20 set. – 26 set.")));
+            onView(withId(R.id.kind_week)).check(matches(isChecked()));
+        }
+    }
+
     // ------------------------------------------------------------------ helpers
+
+    /** Drives the screen's own ViewModel, the way the date picker's callback does. */
+    private static void customPeriod(ActivityScenario<MainActivity> scenario, LocalDate from,
+                                     LocalDate to) {
+        scenario.onActivity(activity ->
+                new ViewModelProvider(progressFragment(activity))
+                        .get(ProgressViewModel.class).showCustom(from, to));
+    }
+
+    private static Fragment datePicker(ActivityScenario<MainActivity> scenario) {
+        AtomicReference<Fragment> picker = new AtomicReference<>();
+        scenario.onActivity(activity -> picker.set(progressFragment(activity)
+                .getParentFragmentManager().findFragmentByTag("progress-date-range")));
+        return picker.get();
+    }
+
+    private static Fragment progressFragment(MainActivity activity) {
+        Fragment host = activity.getSupportFragmentManager().findFragmentById(R.id.nav_host);
+        assertNotNull("sem NavHostFragment", host);
+        for (Fragment child : host.getChildFragmentManager().getFragments()) {
+            if (child instanceof ProgressFragment) {
+                return child;
+            }
+        }
+        throw new AssertionError("A tela Progresso nao esta aberta");
+    }
 
     private static void aDayLater() {
         ((TestGymApplication) ApplicationProvider.getApplicationContext()).clock()

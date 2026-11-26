@@ -100,6 +100,22 @@ public final class ProgressViewModel extends ViewModel {
         }
     }
 
+    /**
+     * Any two days, picked by hand (PRODUCT_SPEC PRG-02).
+     *
+     * <p>Separate from {@link #show(TrainingPeriod.Kind)} because a custom range is the one kind
+     * that cannot be worked out from the period already on screen: it needs the two dates.
+     */
+    public void showCustom(LocalDate from, LocalDate to) {
+        if (from == null || to == null) {
+            return;
+        }
+        TrainingPeriod next = TrainingPeriod.custom(from, to);
+        if (!Objects.equals(next, period.getValue())) {
+            period.setValue(next);
+        }
+    }
+
     /** Which measure the period's chart draws (PRG-01). Kept here so a rotation does not reset it. */
     public void show(PeriodMeasure next) {
         if (next != null && next != measure.getValue()) {
