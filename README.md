@@ -180,6 +180,19 @@ docs/          Produto, arquitetura, banco, sincronização, roadmap, decisões 
 Fundação → Biblioteca → Templates → **Treino ativo** → Histórico → Progresso → Rotinas → Conquistas →
 Backend → Sync → Compartilhamento → Dados corporais. Status detalhado em [docs/ROADMAP.md](docs/ROADMAP.md).
 
+## Vai mexer no código?
+
+Comece por estes dois, nesta ordem:
+
+1. **[AGENTS.md](AGENTS.md)** — as regras deste repositório. Valem para pessoas e para agentes de
+   IA: o que é inegociável (Java e Views, nunca Kotlin nem Compose), o portão que tem de estar
+   verde antes de cada commit, como se testa aqui, e as armadilhas que já custaram um bug.
+2. **[docs/HANDOVER.md](docs/HANDOVER.md)** — onde o projeto parou, como montar o ambiente do
+   zero, o mapa do código e por onde começar.
+
+Quem usa Claude Code: o [CLAUDE.md](CLAUDE.md) aponta para o `AGENTS.md` e acrescenta só o que é
+específico dele.
+
 ## Créditos e licença
 
 - Textos dos exercícios: conteúdo próprio.

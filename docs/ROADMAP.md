@@ -416,7 +416,13 @@ Levantadas pela revisão de 22/09/2026 e **não corrigidas às cegas**, porque d
 ## Próxima etapa recomendada
 **Rodar as Fases 3 e 4 no aparelho** (`./gradlew :app:connectedDebugAndroidTest` + uso real no
 S24+): é o único jeito de provar a notificação, o serviço em primeiro plano na API 34+, o alerta de
-descanso com a tela apagada, o teclado, e a migração v3→v4 com dados reais — que convém exercitar
-**antes** de a Fase 5 empilhar uma v5 em cima. Depois disso, dentro da **Fase 5**: decidir
-gráficos (biblioteca ou `Canvas`, com ADR) e os **recordes pessoais** (§10), que fecham a lacuna
-que o resumo de finalização ainda anuncia.
+descanso com a tela apagada, o teclado, e **a migração v3 → v4 com dados reais**.
+
+Essa migração é hoje o **bloqueio da Fase 5**: o que falta nela — peso corporal (PRG-05) e o
+histórico de recordes da §10 — precisa de uma **v5**, e empilhar uma v5 sobre uma v4 que nunca
+rodou com dados reais é apostar duas migrações de uma vez. Tudo o mais da Fase 5 já está pronto:
+os gráficos deixaram de ser decisão pendente (**ADR-0042**, `Canvas` sem biblioteca) e os recordes
+pessoais da §10 já existem, derivados do histórico e sem tabela.
+
+Quem for continuar o projeto começa por [`HANDOVER.md`](HANDOVER.md), depois do
+[`AGENTS.md`](../AGENTS.md).

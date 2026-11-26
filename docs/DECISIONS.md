@@ -215,7 +215,11 @@ service tipo `health` (+ `HIGH_SAMPLING_RATE_SENSORS`) enquanto houver treino at
 - A atualização por segundo **não** é um LiveData observado pelo adapter (isso reenviaria a lista
   inteira a cada segundo), e sim um ticker que alimenta dois TextViews fixos fora da RecyclerView.
 
-### ADR-0023 — Gráficos (pendente)
+### ADR-0023 — Gráficos (pendente) — **SUBSTITUÍDO pela ADR-0042 em 26/11/2026**
+> Esta entrada ficou **resolvida** pela [ADR-0042](#adr-0042--os-gráficos-são-desenhados-em-canvas-neste-projeto-sem-biblioteca):
+> views próprias com `Canvas`, sem biblioteca. O texto abaixo fica como está, porque é o registro
+> do que se sabia em setembro; a decisão está na 0042, não aqui.
+
 Candidatos avaliados preliminarmente em 21/09/2026:
 - **MPAndroidChart** — Java, Apache 2.0, mas sem release desde 2020 (efetivamente sem manutenção).
 - **Vico** — mantida, Apache 2.0, porém API pensada para Kotlin.
