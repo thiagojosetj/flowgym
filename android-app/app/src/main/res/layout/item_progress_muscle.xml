@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    One muscle group's row. Numbers only, no bar: a bar is a chart, and which library (or none)
-    draws the charts of PRG-01 is still an open decision — see docs/ROADMAP.md.
+    One muscle group's row. Numbers only, no bar - and that is about this screen, not about
+    charts in general: ADR-0042 settled how this app draws them. Two counts per muscle (principal
+    and auxiliar) do not share a scale with each other or with the sets total, so a bar here would
+    be a length standing for nothing.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"

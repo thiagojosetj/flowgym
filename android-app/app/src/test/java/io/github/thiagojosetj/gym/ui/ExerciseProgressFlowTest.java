@@ -11,6 +11,7 @@ import static androidx.test.espresso.matcher.ViewMatchers.isChecked;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.isEnabled;
 import static androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility;
+import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static org.hamcrest.Matchers.allOf;
@@ -285,6 +286,152 @@ public class ExerciseProgressFlowTest {
         }
     }
 
+    @Test
+    public void theChartDrawsOneMeasureAtATime() {
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            performWorkout(BARBELL_BENCH, 40d, 10);
+            aWeekLater();
+            performWorkout(BARBELL_BENCH, 45d, 8);
+            openProgressOf(BARBELL_BENCH);
+
+            // Three measures on one plot would need two or three y scales, and the alignment
+            // between two y scales is arbitrary (ADR-0042). So the chart's title always names
+            // exactly what is drawn - with one series there is no legend to do it.
+            onView(withId(R.id.chart_caption)).check(matches(withText("Maior carga por sessão")));
+
+            onView(withId(R.id.measure_volume)).perform(scrollTo(), click());
+            onView(withId(R.id.chart_caption))
+                    .check(matches(withText("Volume de carga por sessão")));
+
+            onView(withId(R.id.measure_reps)).perform(scrollTo(), click());
+            onView(withId(R.id.chart_caption)).check(matches(withText("Repetições por sessão")));
+        }
+    }
+
+    @Test
+    public void theChartReadsOutTheNewestSessionWithoutBeingTouched() {
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            performWorkout(BARBELL_BENCH, 40d, 10);
+            aWeekLater();
+            performWorkout(BARBELL_BENCH, 45d, 8);
+            openProgressOf(BARBELL_BENCH);
+
+            // A chart is not the only way to read a value, and the line under it is never blank:
+            // the newest session is selected to begin with, which is the one somebody opening
+            // this screen is asking about. It also holds the load record, and says so.
+            onView(withId(R.id.chart_reading))
+                    .check(matches(withText("28 de set. de 2026 · 45 kg · recorde")));
+        }
+    }
+
+    @Test
+    public void oneSessionIsNotATrendAndSaysSo() {
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            performWorkout(BARBELL_BENCH, 40d, 10);
+            openProgressOf(BARBELL_BENCH);
+
+            onView(withId(R.id.chart_card))
+                    .check(matches(withEffectiveVisibility(Visibility.GONE)));
+            onView(withId(R.id.chart_note)).check(matches(allOf(
+                    withEffectiveVisibility(Visibility.VISIBLE),
+                    withText(R.string.exercise_progress_chart_needs_two))));
+        }
+    }
+
+    @Test
+    public void aBodyWeightExerciseHasNoVolumeLineToDraw() {
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            performWorkout(PUSH_UPS, null, 12);
+            aWeekLater();
+            performWorkout(PUSH_UPS, null, 15);
+            openProgressOf(PUSH_UPS);
+
+            onView(withId(R.id.measure_volume)).perform(scrollTo(), click());
+
+            // A flat line at zero would be a measurement. Section 9 keeps body weight out of load
+            // volume, and the chart says that rather than drawing it.
+            onView(withId(R.id.chart_card))
+                    .check(matches(withEffectiveVisibility(Visibility.GONE)));
+            onView(withId(R.id.chart_note))
+                    .check(matches(withText(R.string.exercise_progress_chart_no_volume)));
+
+            // The repetitions are real work and do have a line.
+            onView(withId(R.id.measure_reps)).perform(scrollTo(), click());
+            onView(withId(R.id.chart_card))
+                    .check(matches(withEffectiveVisibility(Visibility.VISIBLE)));
+            onView(withId(R.id.chart_caption)).check(matches(withText("Repetições por sessão")));
+        }
+    }
+
+    @Test
+    public void aCatalogueCorrectionThatChangesTheBasisStopsTheLoadLine() {
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            // The basis is snapshotted into each session, so correcting the catalogue later
+            // leaves a history logged on two different bases. 20 kg per dumbbell and a 20 kg bar
+            // are the same number and twice the work: a line through both compares nothing.
+            performWorkout(DUMBBELL_BENCH, 20d, 10);
+            String exerciseId = idOf(DUMBBELL_BENCH);
+            container().database.getOpenHelper().getWritableDatabase().execSQL(
+                    "UPDATE exercise SET load_basis = 'TOTAL' WHERE id = ?",
+                    new Object[] {exerciseId});
+            aWeekLater();
+            performWorkout(DUMBBELL_BENCH, 40d, 10);
+            openProgressOf(DUMBBELL_BENCH);
+
+            onView(withId(R.id.chart_card))
+                    .check(matches(withEffectiveVisibility(Visibility.GONE)));
+            onView(withId(R.id.chart_note))
+                    .check(matches(withText(R.string.exercise_progress_chart_mixed_basis)));
+
+            // Volume is a sum of EFFECTIVE load, already doubled where section 9 says to double
+            // it, so it stays comparable and keeps its line.
+            onView(withId(R.id.measure_volume)).perform(scrollTo(), click());
+            onView(withId(R.id.chart_card))
+                    .check(matches(withEffectiveVisibility(Visibility.VISIBLE)));
+        }
+    }
+
+    @Test
+    public void theWindowScopesTheChartAndTheChartSaysSoOutLoud() {
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            sevenSessions();
+            openProgressOf(BARBELL_BENCH);
+
+            // A canvas says nothing to a screen reader, so the chart states what it draws - and
+            // what it draws follows the window, like the list does.
+            onView(withId(R.id.chart)).check(matches(withContentDescription(
+                    "Maior carga por sessão. 7 sessões, de 21 de set. de 2026 a 2 de nov. de 2026."
+                            + " Do menor, 40 kg, ao maior, 60 kg.")));
+
+            onView(withId(R.id.window_5)).perform(scrollTo(), click());
+
+            onView(withId(R.id.chart)).check(matches(withContentDescription(
+                    "Maior carga por sessão. 5 sessões, de 5 de out. de 2026 a 2 de nov. de 2026."
+                            + " Do menor, 40 kg, ao maior, 40 kg.")));
+        }
+    }
+
+    @Test
+    public void repetitionsHaveNoSessionRecordSoNoPointIsHaloed() {
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            performWorkout(BARBELL_BENCH, 40d, 10);
+            aWeekLater();
+            performWorkout(BARBELL_BENCH, 45d, 8);
+            openProgressOf(BARBELL_BENCH);
+
+            // Load has a record, so one point wears a halo and a line explains what it means.
+            onView(withId(R.id.chart_halo))
+                    .check(matches(withEffectiveVisibility(Visibility.VISIBLE)));
+
+            onView(withId(R.id.measure_reps)).perform(scrollTo(), click());
+
+            // Section 10's repetition record is per LOAD, not per session. Haloing the session
+            // with the most repetitions would be inventing a record the spec never defined.
+            onView(withId(R.id.chart_halo))
+                    .check(matches(withEffectiveVisibility(Visibility.GONE)));
+        }
+    }
+
     // ------------------------------------------------------------------ helpers
 
     /**
@@ -391,6 +538,11 @@ public class ExerciseProgressFlowTest {
         }
         app.activeSessions.finish(sessionId.get(), summary -> { },
                 ExerciseProgressFlowTest::rethrow);
+    }
+
+    /** The library's id for an exercise, so a test can reach its row. */
+    private static String idOf(String exerciseName) {
+        return refsOf(container(), exerciseName).get(0).id();
     }
 
     private static AppContainer container() {

@@ -509,6 +509,27 @@
         <item quantity="other">E mais %d cargas, fora desta lista.</item>
     </plurals>
 
+    <string name="exercise_progress_chart_title">Gráfico</string>
+    <string name="exercise_progress_measure_load">Carga</string>
+    <string name="exercise_progress_measure_volume">Volume</string>
+    <string name="exercise_progress_measure_reps">Reps</string>
+    <!-- The chart's own title. With a single series there is no legend, so this names what is drawn. -->
+    <string name="exercise_progress_chart_load">Maior carga por sessão</string>
+    <string name="exercise_progress_chart_load_per_implement">Maior carga por sessão, por halter</string>
+    <string name="exercise_progress_chart_volume">Volume de carga por sessão</string>
+    <string name="exercise_progress_chart_reps">Repetições por sessão</string>
+    <string name="exercise_progress_chart_reading">%1$s · %2$s</string>
+    <string name="exercise_progress_chart_reading_record">%1$s · %2$s · recorde</string>
+    <string name="exercise_progress_chart_halo">O ponto com anel é a sessão que tem o recorde desta medida.</string>
+    <string name="exercise_progress_chart_needs_two">Um gráfico precisa de pelo menos duas sessões. Com uma só não há tendência para mostrar.</string>
+    <string name="exercise_progress_chart_no_volume">Este exercício não tem volume de carga (§9), então não há linha para desenhar aqui. Veja as repetições.</string>
+    <string name="exercise_progress_chart_no_load">Este exercício não registra carga. Veja as repetições.</string>
+    <string name="exercise_progress_chart_mixed_basis">Este exercício foi registrado em bases diferentes: em algumas sessões por halter, em outras no total. Os dois não são o mesmo número, então não há uma linha de carga honesta a desenhar. O volume e as repetições continuam comparáveis.</string>
+    <!-- A canvas is invisible to a screen reader, so the chart says out loud what it draws. -->
+    <plurals name="exercise_progress_chart_spoken">
+        <item quantity="one">%1$s. %2$d sessão, em %3$s. Valor %5$s.</item>
+        <item quantity="other">%1$s. %2$d sessões, de %3$s a %4$s. Do menor, %5$s, ao maior, %6$s.</item>
+    </plurals>
     <string name="exercise_progress_sessions_title">Sessão por sessão</string>
     <string name="exercise_progress_window_label">Últimas sessões</string>
     <string name="exercise_progress_window_all">Tudo</string>

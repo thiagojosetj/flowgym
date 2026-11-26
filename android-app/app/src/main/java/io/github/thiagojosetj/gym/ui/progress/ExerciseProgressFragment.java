@@ -61,6 +61,7 @@ public class ExerciseProgressFragment extends Fragment {
     private static final float DISABLED_ALPHA = 0.38f;
 
     private FragmentExerciseProgressBinding binding;
+    private ExerciseProgressViewModel viewModel;
     /** Set while the stored window is applied, so checking a button does not report a tap. */
     private boolean applyingState;
 
@@ -82,7 +83,7 @@ public class ExerciseProgressFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         String exerciseId = requireArguments().getString(ARG_EXERCISE_ID);
         AppContainer app = ViewModelFactories.container(this);
-        ExerciseProgressViewModel viewModel = new ViewModelProvider(this, ViewModelFactories.of(
+        viewModel = new ViewModelProvider(this, ViewModelFactories.of(
                 ExerciseProgressViewModel.class,
                 () -> new ExerciseProgressViewModel(app.progress, exerciseId)))
                 .get(ExerciseProgressViewModel.class);
@@ -93,6 +94,13 @@ public class ExerciseProgressFragment extends Fragment {
             }
             viewModel.show(windowOf(checkedId));
         });
+        binding.measureGroup.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+            if (applyingState || !isChecked) {
+                return;
+            }
+            viewModel.show(measureOf(checkedId));
+        });
+        binding.chart.setOnPointSelectedListener(this::readOut);
 
         viewModel.state().observe(getViewLifecycleOwner(), this::render);
     }
@@ -121,7 +129,183 @@ public class ExerciseProgressFragment extends Fragment {
         binding.span.setText(spanOf(progress));
         renderRecords(progress.records());
         renderWindow(state.window(), progress.sessions().size(), state.shown().size());
+        renderChart(state.measure(), state.shown(), progress.records());
         renderSessions(state.shown(), progress.records());
+    }
+
+    /**
+     * The chart of PRG-01, or the reason there is none.
+     *
+     * <p>Every case that cannot be drawn is a sentence, never a blank space: one session is not a
+     * trend, a body-weight exercise has no load volume, and an exercise logged on two different
+     * bases has no honest load line at all - 20 kg per dumbbell and a 20 kg bar are the same
+     * number and twice the work, so a line through both would be comparing nothing.
+     */
+    private void renderChart(ChartMeasure measure, List<ExerciseProgress.Point> points,
+                             ExercisePersonalRecords records) {
+        applyingState = true;
+        binding.measureGroup.check(idOf(measure));
+        applyingState = false;
+
+        String blocked = whyNoChart(measure, points);
+        binding.chartNote.setVisibility(blocked == null ? View.GONE : View.VISIBLE);
+        binding.chartCard.setVisibility(blocked == null ? View.VISIBLE : View.GONE);
+        if (blocked != null) {
+            binding.chartNote.setText(blocked);
+            return;
+        }
+        boolean perImplement = measure == ChartMeasure.LOAD && points.get(0).loadPerImplement();
+        String recordSession = recordSessionOf(measure, records);
+        List<SessionChartView.Point> plotted = new ArrayList<>(points.size());
+        for (ExerciseProgress.Point point : points) {
+            plotted.add(new SessionChartView.Point(valueOf(measure, point),
+                    dayOf(point.localDate()), point.sessionId().equals(recordSession)));
+        }
+        binding.chartCaption.setText(captionOf(measure, perImplement));
+        // The basis is in the caption, not on every axis tick: the axis stays short and the claim
+        // is still stated, once, where it is read first.
+        binding.chart.setPoints(plotted, value -> measure == ChartMeasure.REPS
+                ? String.valueOf(value)
+                : loadText(value, false));
+        binding.chartHalo.setVisibility(recordSession == null ? View.GONE : View.VISIBLE);
+        binding.chart.setContentDescription(spokenChart(measure, perImplement, points));
+        readOut(binding.chart.selectedIndex());
+    }
+
+    /** The line under the chart: what the selected session actually was, as text. */
+    private void readOut(int index) {
+        ExerciseProgressViewModel.State state = viewModel.state().getValue();
+        if (state == null || index < 0 || index >= state.shown().size()) {
+            return;
+        }
+        ExerciseProgress.Point point = state.shown().get(index);
+        ChartMeasure measure = state.measure();
+        String value = measure == ChartMeasure.REPS
+                ? String.valueOf(point.totalReps())
+                : loadText(valueOf(measure, point),
+                        measure == ChartMeasure.LOAD && point.loadPerImplement());
+        String record = state.progress() == null
+                ? null : recordSessionOf(measure, state.progress().records());
+        binding.chartReading.setText(getString(
+                point.sessionId().equals(record)
+                        ? R.string.exercise_progress_chart_reading_record
+                        : R.string.exercise_progress_chart_reading,
+                dayOf(point.localDate()), value));
+    }
+
+    @Nullable
+    private String whyNoChart(ChartMeasure measure, List<ExerciseProgress.Point> points) {
+        if (points.size() < 2) {
+            return getString(R.string.exercise_progress_chart_needs_two);
+        }
+        if (measure == ChartMeasure.LOAD && mixesBases(points)) {
+            return getString(R.string.exercise_progress_chart_mixed_basis);
+        }
+        boolean anything = false;
+        for (ExerciseProgress.Point point : points) {
+            anything |= valueOf(measure, point) != 0L;
+        }
+        if (anything) {
+            return null;
+        }
+        switch (measure) {
+            case LOAD:
+                return getString(R.string.exercise_progress_chart_no_load);
+            case VOLUME:
+                return getString(R.string.exercise_progress_chart_no_volume);
+            default:
+                // Repetitions at zero across every session cannot happen: a session with no
+                // completed set is not an appearance.
+                return getString(R.string.exercise_progress_chart_needs_two);
+        }
+    }
+
+    private static boolean mixesBases(List<ExerciseProgress.Point> points) {
+        boolean first = points.get(0).loadPerImplement();
+        for (ExerciseProgress.Point point : points) {
+            if (point.loadPerImplement() != first) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static long valueOf(ChartMeasure measure, ExerciseProgress.Point point) {
+        switch (measure) {
+            case VOLUME:
+                return point.volumeGrams();
+            case REPS:
+                return point.totalReps();
+            default:
+                return point.maxLoadGrams();
+        }
+    }
+
+    /**
+     * Which session the halo marks, for this measure.
+     *
+     * <p>Null for repetitions on purpose: section 10 has no "most repetitions in a session"
+     * record - its repetition record is per load - and drawing a halo for a record that does not
+     * exist would be inventing one.
+     */
+    @Nullable
+    private static String recordSessionOf(ChartMeasure measure,
+                                          ExercisePersonalRecords records) {
+        ExercisePersonalRecords.Record record = measure == ChartMeasure.LOAD
+                ? records.maxLoad()
+                : measure == ChartMeasure.VOLUME ? records.maxSessionVolume() : null;
+        return record == null ? null : record.sessionId();
+    }
+
+    private String captionOf(ChartMeasure measure, boolean perImplement) {
+        switch (measure) {
+            case VOLUME:
+                return getString(R.string.exercise_progress_chart_volume);
+            case REPS:
+                return getString(R.string.exercise_progress_chart_reps);
+            default:
+                return getString(perImplement
+                        ? R.string.exercise_progress_chart_load_per_implement
+                        : R.string.exercise_progress_chart_load);
+        }
+    }
+
+    /** A canvas says nothing to a screen reader, so the chart states what it draws. */
+    private String spokenChart(ChartMeasure measure, boolean perImplement,
+                               List<ExerciseProgress.Point> points) {
+        long min = valueOf(measure, points.get(0));
+        long max = min;
+        for (ExerciseProgress.Point point : points) {
+            min = Math.min(min, valueOf(measure, point));
+            max = Math.max(max, valueOf(measure, point));
+        }
+        return getResources().getQuantityString(R.plurals.exercise_progress_chart_spoken,
+                points.size(), captionOf(measure, perImplement), points.size(),
+                dayOf(points.get(0).localDate()),
+                dayOf(points.get(points.size() - 1).localDate()),
+                measure == ChartMeasure.REPS ? String.valueOf(min) : loadText(min, false),
+                measure == ChartMeasure.REPS ? String.valueOf(max) : loadText(max, false));
+    }
+
+    private static int idOf(ChartMeasure measure) {
+        switch (measure) {
+            case VOLUME:
+                return R.id.measure_volume;
+            case REPS:
+                return R.id.measure_reps;
+            default:
+                return R.id.measure_load;
+        }
+    }
+
+    private static ChartMeasure measureOf(int buttonId) {
+        if (buttonId == R.id.measure_volume) {
+            return ChartMeasure.VOLUME;
+        }
+        if (buttonId == R.id.measure_reps) {
+            return ChartMeasure.REPS;
+        }
+        return ChartMeasure.LOAD;
     }
 
     /**

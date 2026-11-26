@@ -246,10 +246,9 @@ achados ao implementar: **salvar** um treino desagrupava tudo (o rascunho não c
     consulta que devolvesse sessões excluídas seria uma armadilha para o próximo a usá-la; (b) o
     `DISTINCT` da consulta de músculos é redução de linhas, não garantia de correção — quem garante
     é o domínio, que indexa por (exercício, grupo).
-  - **Gráficos (PRG-01) não entraram**: nem uma barra proporcional, que já é gráfico. Falta a
-    decisão de **biblioteca de gráficos ou `Canvas` próprio** (ADR pendente) — um gráfico de linha
-    de volume por sessão é ~150 linhas de Canvas, zero dependência e zero APK, mas é decisão do
-    dono do produto.
+  - **Gráficos não entraram nesta aba**: nem uma barra proporcional, que já é gráfico. A decisão
+    que faltava virou a **ADR-0042** (`Canvas`, sem biblioteca) e os gráficos por exercício já
+    existem; o gráfico **dos totais do período**, nesta aba, continua pendente.
 - ✅ **PRG-03 — tela de progresso por exercício**, pelo botão "Ver meu progresso" no detalhe do
   exercício: os recordes da §10 em cima, a lista sessão por sessão embaixo. **Sem esquema novo e
   sem dependência nova** — os recordes são derivados do histórico, como a §10 permite.
@@ -279,7 +278,24 @@ achados ao implementar: **salvar** um treino desagrupava tudo (o rascunho não c
     (as duas últimas no domínio e na tela).
   - ⬜ Falta o **período personalizado** que a PRG-02 também pede: precisa de seletor de datas, e
     é mais trabalho de interface do que de regra.
-- ⬜ **PRG-01** — gráficos.
+- 🟡 **PRG-01 — gráficos**, por exercício: linha de carga, volume ou repetições por sessão,
+  desenhada em `Canvas`. **Nenhuma dependência nova** — a decisão que estava pendente desde a
+  PRG-04 virou a **ADR-0042**, com as alternativas reais (MPAndroidChart sem manutenção, Vico
+  exigindo Compose, `WebView` com JS) e o porquê de cada uma não servir.
+  - O desenho é **renderizado de verdade no teste** (Robolectric com `GraphicsMode.NATIVE`) e os
+    PNGs ficam em `app/build/chart-previews/`. Foi olhando para eles que apareceram dois defeitos
+    que nenhum teste pegava: o marcador da sessão mais nova **fatiado** pela borda direita e o
+    rótulo do ponto mais alto desenhado **por cima do topo**. Os dois agora têm teste — a view é
+    desenhada com margem em volta e **nada pode ser pintado fora dela**.
+  - Mutação: uma sessão virando tendência, bases misturadas desenhando uma linha só, o gráfico
+    ignorando a janela, halo inventado para repetições, medida toda zerada desenhando reta no
+    zero, a leitura não dizendo que é recorde, e os três insets de geometria removidos — **todas
+    matam** teste.
+  - ⬜ Falta o **gráfico do treino** (totais do período, na aba Progresso), que a PRG-01 também
+    pede. Não entrou aqui para não misturar com a tela por exercício.
+  - ⬜ **Validar no aparelho**: o Robolectric mede texto a 1 px por caractere, então o PNG prova
+    a geometria do desenho e **não** prova que os rótulos cabem com fonte real. Checar com fonte
+    ampliada e um exercício de ~50 sessões.
 - ⬜ **PRG-05** — peso corporal (tabelas novas → migração v5).
 - ⬜ **Histórico de recordes** (§10: "cada novo PR é um novo registro") — `personal_record`,
   migração v5. Os recordes de **hoje** já estão prontos e derivados; o que falta é guardar cada PR

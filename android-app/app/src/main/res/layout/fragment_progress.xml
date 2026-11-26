@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    "Progresso" (PRODUCT_SPEC PRG-04): one week or one month at a time. The charts of PRG-01 are
-    not here yet - which library, or none, is an open decision (docs/ROADMAP.md).
+    "Progresso" (PRODUCT_SPEC PRG-04): one week or one month at a time. A chart of the period's
+    totals is not here yet; the per-exercise charts of PRG-01 are on the exercise's own screen,
+    drawn the way ADR-0042 settled.
 -->
 <androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"

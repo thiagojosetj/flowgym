@@ -487,3 +487,50 @@ não medição. Nenhuma série, carga ou duração é tocada. É por isso que el
 lugar, onde a regra pode ser lida de uma vez.
 **Alternativas:** apagar a linha de verdade (quebra o sync); permitir editar a sessão em vez de
 excluir (aí sim feriria a imutabilidade, e é o que a ADR-0036 recusa).
+
+### ADR-0042 — Os gráficos são desenhados em `Canvas` neste projeto, sem biblioteca
+**Contexto:** a PRG-01 pede gráficos de carga, volume e repetições. A decisão "biblioteca de
+gráficos ou `Canvas` próprio" estava registrada como pendente desde a PRG-04, e nem uma barra
+proporcional foi desenhada enquanto ela estava aberta — barra proporcional já é gráfico.
+**Decisão:** `View` própria desenhando em `Canvas`. **Nenhuma dependência nova.**
+**Por quê:**
+- O que este app precisa é **uma série por vez** sobre algumas dezenas de pontos, com eixos
+  discretos. São ~300 linhas de desenho. Biblioteca se paga quando se precisa de zoom, pan,
+  combinação de tipos, milhares de pontos — nada disso está pedido.
+- **As candidatas reais não servem.** A MPAndroidChart é Java/Views e encaixaria, mas está sem
+  release há anos: seria uma dependência que este projeto não consegue atualizar, num app cujo
+  `minSdk`/`target` sobem. Vico e as alternativas modernas são **Compose primeiro**, e Compose está
+  vetado neste projeto. AnyChart/Highcharts são licença comercial ou `WebView` — um `WebView` para
+  desenhar oito pontos é absurdo, e leva a superfície de rede para dentro de um app offline-first.
+- **Estilo.** Toda biblioteca traz o próprio sistema de cores e tipografia, que briga com os tokens
+  do Material 3 daqui. Desenhando, o gráfico lê `?attr/colorPrimary` e companhia e acerta claro e
+  escuro de graça, pelo mesmo tema do resto.
+- **Testável onde este projeto testa.** O desenho roda na JVM (Robolectric com gráficos nativos):
+  dá para renderizar num `Bitmap` e afirmar coisas sobre o resultado, e até salvar o PNG e olhar.
+  Isso não substitui aparelho, e está dito no ROADMAP.
+**Regras que o gráfico obedece, registradas para não serem rediscutidas:**
+- **Nunca dois eixos Y.** Carga (kg), volume (kg) e repetições (contagem) são escalas diferentes, e
+  dois eixos no mesmo desenho inventam uma correlação que não está no dado. Por isso é **uma medida
+  por vez**, escolhida por botão — e não três séries empilhadas.
+- **Uma cor só, e os recordes marcados por forma, não por cor.** Isto saiu de uma medição, não de
+  gosto: rodando o validador de paleta com a `colorPrimary` e a `colorTertiary` deste app como duas
+  fatias de gráfico, o par **reprova** — ΔE 14,0 no claro (o piso para visão normal é 15), e no
+  escuro as duas caem fora da faixa de luminosidade. Teal escuro e âmbar escuro são difíceis de
+  separar até com visão de cores completa. Com **uma** série não existe par para confundir: a linha
+  é a `colorPrimary` (contraste 5,83:1 no claro e 9,52:1 no escuro contra a superfície do cartão,
+  bem acima do piso de 3:1), e o ponto que detém recorde se distingue por marcador maior com anel e
+  por rótulo escrito.
+- **Grade e eixos recessivos** (1 px, sólidos, uma lasca acima da superfície: 1,53:1 no claro,
+  1,75:1 no escuro — baixo **de propósito**, grade não é dado), **texto nunca na cor do dado**, e
+  **rótulo só no extremo e no último ponto** — número em cima de cada ponto não é lido.
+- **O gráfico nunca é o único caminho para um valor.** A lista sessão por sessão embaixo é a visão
+  em tabela, e ela existia antes do gráfico de propósito.
+- **Toque no lugar de hover.** Celular não tem hover: tocar perto de um ponto o seleciona e os
+  valores daquela sessão aparecem como texto, com a coluna inteira como área de toque.
+**Consequências:** o desenho, os eixos e o toque são nossos para manter, e não há zoom nem pan (não
+está pedido; se for pedido, reabrir esta decisão). Acessibilidade exige `contentDescription` no
+desenho, porque um `Canvas` é invisível para o leitor de tela — a tabela embaixo é o que garante o
+acesso ao valor.
+**Alternativas:** MPAndroidChart (sem manutenção), Vico (exige Compose), `WebView` com biblioteca JS
+(rede e peso num app offline-first), e "sem gráfico nenhum" (que era o estado até aqui, e deixa a
+PRG-01 inteira de fora).

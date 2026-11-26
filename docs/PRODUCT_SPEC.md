@@ -269,6 +269,29 @@ Falta o **período personalizado**, que a PRG-02 também pede (ver ROADMAP).
 - **"Últimas" significa últimas**, e a lista diz "Mostrando as últimas 5 de 7 sessões." quando
   esconde algo. Trocar a janela não lê o banco: ela recorta uma lista que já está na memória.
 
+**PRG-01 (gráficos por exercício) implementado (26/11/2026)**, na mesma tela, desenhado em
+`Canvas` sem biblioteca nenhuma — **ADR-0042**. Falta o gráfico **do treino** (dos totais do
+período, na aba Progresso), que a PRG-01 também pede.
+
+- **Uma medida por vez** — carga, volume ou repetições — escolhida por botão. Nunca dois eixos Y:
+  o alinhamento entre duas escalas é arbitrário, e o gráfico inventaria uma correlação que não
+  está no dado. Com uma série só não há legenda, então o **título do gráfico diz o que está
+  desenhado**, inclusive a base ("Maior carga por sessão, por halter").
+- **Uma cor só, e o recorde marcado por halo** — forma, não cor. Saiu de medição: a `colorPrimary`
+  e a `colorTertiary` deste app, como duas fatias de gráfico, **reprovam** no piso de visão normal
+  (ADR-0042).
+- **Quando não há linha honesta, há uma frase.** Uma sessão não é tendência. Um exercício de peso
+  corporal não tem volume de carga (§9). E um exercício registrado em **bases diferentes** — por
+  halter numa época, total noutra, o que acontece se o catálogo for corrigido — não tem linha de
+  carga: 20 kg por halter e uma barra de 20 kg são o mesmo número e o dobro do trabalho. Volume e
+  repetições seguem comparáveis e seguem desenhados.
+- **Repetições não têm halo**: a §10 não define recorde de repetições *por sessão* (o dela é por
+  carga), e desenhar um seria inventar um recorde.
+- **Toque no lugar de hover**, com a coluna inteira como alvo, e a linha de texto embaixo do
+  gráfico começa já lendo a sessão mais nova — nunca em branco. O gráfico também **fala**: um
+  `Canvas` é invisível para o leitor de tela, então ele descreve o que desenha.
+- **A janela da PRG-02 vale para o gráfico**, como vale para a lista.
+
 ### 4.6 Rotinas, metas e notificações (Fase 6)
 - **ROU-01** Rotina semanal fixa (segunda → Push...).
 - **ROU-02** Ciclo de N dias independente do dia da semana (ex.: A, B, C, descanso, D, E, descanso).

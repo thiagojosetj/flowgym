@@ -39,15 +39,18 @@ public final class ExerciseProgressViewModel extends ViewModel {
      * first when the second happened would be the app inventing an answer.
      */
     public record State(boolean loading, @Nullable ExerciseProgress progress, boolean failed,
-                        ProgressWindow window, List<ExerciseProgress.Point> shown) {
+                        ProgressWindow window, ChartMeasure measure,
+                        List<ExerciseProgress.Point> shown) {
     }
 
     private final MutableLiveData<State> state = new MutableLiveData<>(
-            new State(true, null, false, ProgressWindow.ALL, Collections.emptyList()));
+            new State(true, null, false, ProgressWindow.ALL, ChartMeasure.LOAD,
+                    Collections.emptyList()));
 
     @Nullable
     private ExerciseProgress loaded;
     private ProgressWindow window = ProgressWindow.ALL;
+    private ChartMeasure measure = ChartMeasure.LOAD;
 
     public ExerciseProgressViewModel(ProgressRepository progress, String exerciseId) {
         progress.loadExercise(exerciseId, result -> {
@@ -75,10 +78,19 @@ public final class ExerciseProgressViewModel extends ViewModel {
         publish(state.getValue() != null && state.getValue().failed());
     }
 
+    /** Which measure the chart draws (PRG-01). Kept here so a rotation does not reset it. */
+    public void show(ChartMeasure next) {
+        if (next == null || next == measure) {
+            return;
+        }
+        measure = next;
+        publish(state.getValue() != null && state.getValue().failed());
+    }
+
     private void publish(boolean failed) {
         List<ExerciseProgress.Point> shown = loaded == null
                 ? Collections.emptyList()
                 : window.applyTo(loaded.sessions());
-        state.setValue(new State(false, loaded, failed, window, shown));
+        state.setValue(new State(false, loaded, failed, window, measure, shown));
     }
 }

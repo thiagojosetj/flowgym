@@ -182,6 +182,109 @@
                 style="@style/Widget.Gym.SectionTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:text="@string/exercise_progress_chart_title" />
+
+            <!--
+                One measure at a time (ADR-0042). Three measures on one plot would need two or
+                three y scales, and the alignment between two y scales is arbitrary: the chart
+                would invent a correlation that is not in the data.
+            -->
+            <com.google.android.material.button.MaterialButtonToggleGroup
+                android:id="@+id/measure_group"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:selectionRequired="true"
+                app:singleSelection="true">
+
+                <Button
+                    android:id="@+id/measure_load"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/touch_target_min"
+                    android:layout_weight="1"
+                    android:text="@string/exercise_progress_measure_load" />
+
+                <Button
+                    android:id="@+id/measure_volume"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/touch_target_min"
+                    android:layout_weight="1"
+                    android:text="@string/exercise_progress_measure_volume" />
+
+                <Button
+                    android:id="@+id/measure_reps"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/touch_target_min"
+                    android:layout_weight="1"
+                    android:text="@string/exercise_progress_measure_reps" />
+            </com.google.android.material.button.MaterialButtonToggleGroup>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/chart_card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_s"
+                app:cardBackgroundColor="?attr/colorSurfaceContainerLow">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/space_m">
+
+                    <!-- With one series there is no legend, so the title says what is drawn. -->
+                    <TextView
+                        android:id="@+id/chart_caption"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="?attr/textAppearanceTitleSmall"
+                        tools:text="Maior carga por sessão" />
+
+                    <io.github.thiagojosetj.gym.ui.progress.SessionChartView
+                        android:id="@+id/chart"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_s" />
+
+                    <TextView
+                        android:id="@+id/chart_reading"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_xs"
+                        android:textAppearance="?attr/textAppearanceBodyMedium"
+                        tools:text="21 de jul. de 2026 · 50 kg · recorde" />
+
+                    <TextView
+                        android:id="@+id/chart_halo"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_xs"
+                        android:text="@string/exercise_progress_chart_halo"
+                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:visibility="gone"
+                        tools:visibility="visible" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Why there is no line, when there is no line. Never a blank space. -->
+            <TextView
+                android:id="@+id/chart_note"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_s"
+                android:textAppearance="?attr/textAppearanceBodyMedium"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:visibility="gone"
+                tools:text="Um gráfico precisa de pelo menos duas sessões."
+                tools:visibility="visible" />
+
+            <TextView
+                style="@style/Widget.Gym.SectionTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:text="@string/exercise_progress_sessions_title" />
 
             <!-- What the window left out, counted: nothing disappears in silence. -->
