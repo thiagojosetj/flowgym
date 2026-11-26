@@ -270,7 +270,16 @@ achados ao implementar: **salvar** um treino desagrupava tudo (o rascunho não c
     desta tela provam o conteúdo e a estrutura e **não provam o layout**. Checar no aparelho se o
     selo "Recorde" cabe ao lado da data com fonte ampliada, e a tela com um exercício de ~50
     sessões.
-- ⬜ **PRG-01/02** — gráficos e filtros de janela.
+- ✅ **PRG-02 — janelas** na tela por exercício: últimas 5 / 10 / 30 / Tudo. A regra mora no
+  domínio (`ProgressWindow`), não no widget: quais janelas existem é regra de produto.
+  - **Os recordes ficam fora da janela** de propósito, e a tela diz isso em palavras.
+  - Mutação: a lista ignorando a janela, janela inútil seguindo clicável, sessões escondidas em
+    silêncio, o aviso dizendo o total no lugar do mostrado, janela igual ao total contando como
+    filtro, e a janela pegando as **primeiras** sessões em vez das últimas — **todas matam** teste
+    (as duas últimas no domínio e na tela).
+  - ⬜ Falta o **período personalizado** que a PRG-02 também pede: precisa de seletor de datas, e
+    é mais trabalho de interface do que de regra.
+- ⬜ **PRG-01** — gráficos.
 - ⬜ **PRG-05** — peso corporal (tabelas novas → migração v5).
 - ⬜ **Histórico de recordes** (§10: "cada novo PR é um novo registro") — `personal_record`,
   migração v5. Os recordes de **hoje** já estão prontos e derivados; o que falta é guardar cada PR

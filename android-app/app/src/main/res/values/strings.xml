@@ -490,7 +490,7 @@
     <string name="exercise_progress_span_single">%1$s · %2$s</string>
 
     <string name="exercise_progress_records_title">Recordes</string>
-    <string name="exercise_progress_records_scope">Calculados de todo o histórico. Aquecimento e séries não feitas não contam.</string>
+    <string name="exercise_progress_records_scope">Calculados de todo o histórico, independente do filtro abaixo. Aquecimento e séries não feitas não contam.</string>
     <string name="exercise_progress_record_max_load">Maior carga</string>
     <string name="exercise_progress_record_set_volume">Maior volume de série</string>
     <string name="exercise_progress_record_session_volume">Maior volume de sessão</string>
@@ -510,6 +510,23 @@
     </plurals>
 
     <string name="exercise_progress_sessions_title">Sessão por sessão</string>
+    <string name="exercise_progress_window_label">Últimas sessões</string>
+    <string name="exercise_progress_window_all">Tudo</string>
+    <plurals name="exercise_progress_window_last">
+        <item quantity="one">Última %d sessão</item>
+        <item quantity="other">Últimas %d sessões</item>
+    </plurals>
+    <string name="exercise_progress_window_all_spoken">Todas as sessões</string>
+    <!--
+        The quantity is the TOTAL, which is the number "sessões" agrees with. The singular is
+        unreachable today - a window is only offered when the history has more sessions than it
+        shows, so the total is always above one - and it is written out anyway, because the next
+        window somebody adds should not be the thing that discovers it was missing.
+    -->
+    <plurals name="exercise_progress_showing">
+        <item quantity="one">Mostrando %1$d de %2$d sessão.</item>
+        <item quantity="other">Mostrando as últimas %1$d de %2$d sessões.</item>
+    </plurals>
     <string name="exercise_progress_point_sets">Séries: %1$d · reps: %2$d</string>
     <string name="exercise_progress_point_max_load">Maior carga: %s</string>
     <string name="exercise_progress_point_volume">Volume: %s</string>

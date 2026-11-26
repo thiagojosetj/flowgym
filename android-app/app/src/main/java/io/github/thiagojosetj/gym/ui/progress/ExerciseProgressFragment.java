@@ -11,6 +11,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
+import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -29,6 +30,7 @@ import io.github.thiagojosetj.gym.databinding.ItemExerciseProgressSessionBinding
 import io.github.thiagojosetj.gym.domain.model.WeightUnit;
 import io.github.thiagojosetj.gym.domain.progress.ExercisePersonalRecords;
 import io.github.thiagojosetj.gym.domain.progress.ExerciseProgress;
+import io.github.thiagojosetj.gym.domain.progress.ProgressWindow;
 import io.github.thiagojosetj.gym.ui.common.NumberInput;
 import io.github.thiagojosetj.gym.ui.common.ViewModelFactories;
 
@@ -55,7 +57,12 @@ public class ExerciseProgressFragment extends Fragment {
      */
     private static final int MAX_REPS_ROWS = 5;
 
+    /** Material's own disabled opacity, so a dimmed window button matches the rest of the app. */
+    private static final float DISABLED_ALPHA = 0.38f;
+
     private FragmentExerciseProgressBinding binding;
+    /** Set while the stored window is applied, so checking a button does not report a tap. */
+    private boolean applyingState;
 
     /** Navigation arguments for this screen (ADR-0018: no Safe Args plugin). */
     public static Bundle args(String exerciseId) {
@@ -79,6 +86,13 @@ public class ExerciseProgressFragment extends Fragment {
                 ExerciseProgressViewModel.class,
                 () -> new ExerciseProgressViewModel(app.progress, exerciseId)))
                 .get(ExerciseProgressViewModel.class);
+
+        binding.windowGroup.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+            if (applyingState || !isChecked) {
+                return;
+            }
+            viewModel.show(windowOf(checkedId));
+        });
 
         viewModel.state().observe(getViewLifecycleOwner(), this::render);
     }
@@ -106,7 +120,74 @@ public class ExerciseProgressFragment extends Fragment {
         }
         binding.span.setText(spanOf(progress));
         renderRecords(progress.records());
-        renderSessions(progress);
+        renderWindow(state.window(), progress.sessions().size(), state.shown().size());
+        renderSessions(state.shown(), progress.records());
+    }
+
+    /**
+     * The window buttons: their labels, which of them lead anywhere, and which one is on.
+     *
+     * <p>A window that would leave nothing out is disabled and dimmed rather than quietly
+     * equivalent to "Tudo" - the same rule the history calendar's arrows follow, and for the same
+     * reason: a control that looks live and does nothing reads as a defect.
+     */
+    private void renderWindow(ProgressWindow window, int total, int shown) {
+        applyingState = true;
+        for (ProgressWindow option : ProgressWindow.values()) {
+            View button = binding.getRoot().findViewById(idOf(option));
+            if (option != ProgressWindow.ALL) {
+                ((android.widget.Button) button).setText(numberOf(option.size()));
+                button.setContentDescription(getResources().getQuantityString(
+                        R.plurals.exercise_progress_window_last, option.size(), option.size()));
+            } else {
+                button.setContentDescription(
+                        getString(R.string.exercise_progress_window_all_spoken));
+            }
+            boolean usable = option == ProgressWindow.ALL || option.narrows(total);
+            button.setEnabled(usable);
+            button.setAlpha(usable ? 1f : DISABLED_ALPHA);
+        }
+        binding.windowGroup.check(idOf(window));
+        applyingState = false;
+        // Nothing disappears in silence: when the window hides sessions, it says how many of how
+        // many are on screen.
+        boolean narrowed = shown < total;
+        binding.showing.setVisibility(narrowed ? View.VISIBLE : View.GONE);
+        if (narrowed) {
+            binding.showing.setText(getResources().getQuantityString(
+                    R.plurals.exercise_progress_showing, total, shown, total));
+        }
+    }
+
+    private static int idOf(ProgressWindow window) {
+        switch (window) {
+            case LAST_5:
+                return R.id.window_5;
+            case LAST_10:
+                return R.id.window_10;
+            case LAST_30:
+                return R.id.window_30;
+            default:
+                return R.id.window_all;
+        }
+    }
+
+    private static ProgressWindow windowOf(int buttonId) {
+        if (buttonId == R.id.window_5) {
+            return ProgressWindow.LAST_5;
+        }
+        if (buttonId == R.id.window_10) {
+            return ProgressWindow.LAST_10;
+        }
+        if (buttonId == R.id.window_30) {
+            return ProgressWindow.LAST_30;
+        }
+        return ProgressWindow.ALL;
+    }
+
+    /** The window's size in the reader's own digits, not a hardcoded numeral. */
+    private String numberOf(int value) {
+        return NumberFormat.getIntegerInstance(locale()).format(value);
     }
 
     /** "12 sessões · de 2 de jun. a 28 de set.", or one date when there is only one session. */
@@ -191,10 +272,10 @@ public class ExerciseProgressFragment extends Fragment {
      * order that decides what counts as a baseline. A list is scanned the other way: what happened
      * last is what the person is looking for.
      */
-    private void renderSessions(ExerciseProgress progress) {
+    private void renderSessions(List<ExerciseProgress.Point> points,
+                                ExercisePersonalRecords records) {
         binding.sessionRows.removeAllViews();
-        Set<String> recordHolders = recordHolders(progress.records());
-        List<ExerciseProgress.Point> points = progress.sessions();
+        Set<String> recordHolders = recordHolders(records);
         LayoutInflater inflater = LayoutInflater.from(requireContext());
         for (int i = points.size() - 1; i >= 0; i--) {
             ExerciseProgress.Point point = points.get(i);

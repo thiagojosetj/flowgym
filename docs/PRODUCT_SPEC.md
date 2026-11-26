@@ -254,6 +254,21 @@ exercício. Um exercício por vez, do primeiro dia ao último.
   dele, então o título cai para o nome do último snapshot. Só o título — todo número continua
   vindo do snapshot da sua própria sessão.
 
+**PRG-02 (janelas) implementado (26/11/2026)** na mesma tela: **últimas 5 / 10 / 30 / Tudo**.
+Falta o **período personalizado**, que a PRG-02 também pede (ver ROADMAP).
+
+- **A janela fica embaixo dos recordes, e isso é a regra desenhada.** Ela delimita a lista (e o
+  gráfico da PRG-01) e **nunca** os recordes: "seu melhor nas últimas cinco sessões" não é um
+  recorde, e recalcular os três por janela seria publicar uma afirmação diferente sob a mesma
+  palavra. A legenda dos recordes diz "independente do filtro abaixo".
+- **A tela abre em "Tudo".** Abrir já filtrando seria responder uma pergunta que ninguém fez, e a
+  contagem do que ficou de fora só é honesta depois que alguém escolheu deixar de fora.
+- **Janela que não esconde nada é oferecida morta** (desabilitada e esmaecida): com sete sessões,
+  "últimas 10" mostra exatamente o que "Tudo" mostra. Mesma regra das setas do calendário — um
+  controle que parece vivo e não faz nada é lido como defeito.
+- **"Últimas" significa últimas**, e a lista diz "Mostrando as últimas 5 de 7 sessões." quando
+  esconde algo. Trocar a janela não lê o banco: ela recorta uma lista que já está na memória.
+
 ### 4.6 Rotinas, metas e notificações (Fase 6)
 - **ROU-01** Rotina semanal fixa (segunda → Push...).
 - **ROU-02** Ciclo de N dias independente do dia da semana (ex.: A, B, C, descanso, D, E, descanso).

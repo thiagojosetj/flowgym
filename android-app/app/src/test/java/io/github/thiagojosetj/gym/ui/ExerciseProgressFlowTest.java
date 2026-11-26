@@ -2,16 +2,20 @@ package io.github.thiagojosetj.gym.ui;
 
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
+import static androidx.test.espresso.action.ViewActions.scrollTo;
 import static androidx.test.espresso.assertion.ViewAssertions.doesNotExist;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.ViewMatchers.hasDescendant;
 import static androidx.test.espresso.matcher.ViewMatchers.hasSibling;
+import static androidx.test.espresso.matcher.ViewMatchers.isChecked;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
+import static androidx.test.espresso.matcher.ViewMatchers.isEnabled;
 import static androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -208,7 +212,102 @@ public class ExerciseProgressFlowTest {
         }
     }
 
+    @Test
+    public void theScreenOpensShowingEverySession() {
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            sevenSessions();
+            openProgressOf(BARBELL_BENCH);
+
+            // Opening already filtered would be answering a question nobody asked, and the count
+            // of what is left out is only honest once somebody chose to leave it out.
+            onView(withId(R.id.showing)).check(matches(withEffectiveVisibility(Visibility.GONE)));
+            assertEquals(7, rowCount());
+            onView(withId(R.id.window_all)).check(matches(isChecked()));
+        }
+    }
+
+    @Test
+    public void aWindowThatWouldHideNothingIsOfferedDead() {
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            sevenSessions();
+            openProgressOf(BARBELL_BENCH);
+
+            // Seven sessions: "the last 5" is a real choice, "the last 10" and "the last 30" show
+            // exactly what "Tudo" shows. A control that looks live and does nothing reads as a
+            // defect, so they are disabled - the same rule the calendar's arrows follow.
+            onView(withId(R.id.window_5)).check(matches(isEnabled()));
+            onView(withId(R.id.window_10)).check(matches(not(isEnabled())));
+            onView(withId(R.id.window_30)).check(matches(not(isEnabled())));
+            onView(withId(R.id.window_all)).check(matches(isEnabled()));
+        }
+    }
+
+    @Test
+    public void narrowingTheWindowSaysHowManySessionsAreLeftOut() {
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            sevenSessions();
+            openProgressOf(BARBELL_BENCH);
+
+            onView(withId(R.id.window_5)).perform(scrollTo(), click());
+
+            assertEquals(5, rowCount());
+            onView(withId(R.id.showing)).check(matches(allOf(
+                    withEffectiveVisibility(Visibility.VISIBLE),
+                    withText("Mostrando as últimas 5 de 7 sessões."))));
+            // "Últimas" has to mean últimas. The two oldest days are the ones that go, and the
+            // newest is still there - a window that kept the FIRST five would also show five rows
+            // and also say "5 de 7", so the count alone proves nothing.
+            onView(withText("21 de set. de 2026")).check(doesNotExist());
+            onView(withText("28 de set. de 2026")).check(doesNotExist());
+            // Asserted by position rather than by isDisplayed(): the fifth row is below the fold
+            // and where a row sits is not a question about how far the screen is scrolled.
+            assertEquals("a mais nova em cima", 0, indexOfRow("2 de nov. de 2026"));
+            assertEquals("e a mais antiga que sobrou embaixo", 4, indexOfRow("5 de out. de 2026"));
+        }
+    }
+
+    @Test
+    public void theRecordsDoNotMoveWhenTheWindowDoes() {
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            // The heaviest session is the OLDEST, so narrowing to the last five takes it off the
+            // list. The record stays: "your best in the last five sessions" is not a record, and
+            // recomputing it per window would publish a different claim under the same word.
+            sevenSessions();
+            openProgressOf(BARBELL_BENCH);
+            onView(valueOf(R.string.exercise_progress_record_max_load))
+                    .check(matches(withText("60 kg · 21 de set. de 2026 · primeira vez")));
+
+            onView(withId(R.id.window_5)).perform(scrollTo(), click());
+
+            onView(valueOf(R.string.exercise_progress_record_max_load))
+                    .check(matches(withText("60 kg · 21 de set. de 2026 · primeira vez")));
+            assertEquals("e a sessao de 60 kg saiu da lista", 5, rowCount());
+        }
+    }
+
     // ------------------------------------------------------------------ helpers
+
+    /**
+     * Seven weekly sessions, the heaviest first.
+     *
+     * <p>60 kg on the oldest day and 40 kg on the other six, so narrowing the window removes the
+     * session that holds every record and the records can be seen not to follow it.
+     */
+    private static void sevenSessions() {
+        performWorkout(BARBELL_BENCH, 60d, 10);
+        for (int i = 0; i < 6; i++) {
+            aWeekLater();
+            performWorkout(BARBELL_BENCH, 40d, 10);
+        }
+    }
+
+    /** How many session rows the list is drawing. */
+    private static int rowCount() {
+        AtomicReference<Integer> count = new AtomicReference<>(-1);
+        onView(withId(R.id.session_rows)).check((view, error) ->
+                count.set(((android.view.ViewGroup) view).getChildCount()));
+        return count.get();
+    }
 
     /** The figure of the record row whose label is this string. */
     private static org.hamcrest.Matcher<android.view.View> valueOf(int labelId) {
