@@ -25,6 +25,7 @@ import io.github.thiagojosetj.gym.data.local.row.TrainedDayBoundsRow;
 import io.github.thiagojosetj.gym.domain.progress.ExerciseAppearance;
 import io.github.thiagojosetj.gym.domain.progress.ExerciseMuscleGroup;
 import io.github.thiagojosetj.gym.domain.progress.ExerciseProgress;
+import io.github.thiagojosetj.gym.domain.progress.PeriodSession;
 import io.github.thiagojosetj.gym.domain.progress.PeriodStatistics;
 import io.github.thiagojosetj.gym.domain.progress.ProgressSnapshot;
 import io.github.thiagojosetj.gym.domain.progress.TrainingPeriod;
@@ -81,7 +82,9 @@ public final class ProgressRepository {
 
     private ProgressSnapshot compute(List<String> sessionIds, String from, String to) {
         TrainedDayBoundsRow bounds = dao.findTrainedDayBounds();
-        return new ProgressSnapshot(statisticsOf(sessionIds, from, to),
+        List<PeriodSession> points = new ArrayList<>();
+        PeriodStatistics statistics = statisticsOf(sessionIds, from, to, points);
+        return new ProgressSnapshot(statistics, points,
                 toDate(bounds == null ? null : bounds.firstDay),
                 toDate(bounds == null ? null : bounds.lastDay));
     }
@@ -156,7 +159,14 @@ public final class ProgressRepository {
         return appearances.get(appearances.size() - 1).exercise().name();
     }
 
-    private PeriodStatistics statisticsOf(List<String> sessionIds, String from, String to) {
+    /**
+     * @param points filled with one entry per session, oldest first - the chart of PRG-01. Built
+     *               here rather than in the domain because the day a session was LIVED on is on
+     *               the row, and a chart labelled from the device's zone would move the past
+     *               every time the phone travels
+     */
+    private PeriodStatistics statisticsOf(List<String> sessionIds, String from, String to,
+                                          List<PeriodSession> points) {
         if (sessionIds == null || sessionIds.isEmpty()) {
             return PeriodStatistics.EMPTY;
         }
@@ -168,7 +178,9 @@ public final class ProgressRepository {
                 // longer a session, and the next emission will arrive without it anyway.
                 continue;
             }
-            sessions.add(SessionMapper.toSession(header, dao.findRows(id), null));
+            ActiveSession session = SessionMapper.toSession(header, dao.findRows(id), null);
+            sessions.add(session);
+            points.add(PeriodSession.of(header.localDate, session));
         }
         return PeriodStatistics.of(sessions, toGroups(dao.findMuscleGroupsBetween(from, to)));
     }

@@ -27,12 +27,14 @@ public final class ProgressViewModel extends ViewModel {
 
     /** Everything the screen draws, in one value. */
     public record State(TrainingPeriod period, ProgressSnapshot snapshot, boolean canGoBack,
-                        boolean canGoForward) {
+                        boolean canGoForward, PeriodMeasure measure) {
     }
 
     private final Clock clock;
     private final ZoneId zone;
     private final MutableLiveData<TrainingPeriod> period = new MutableLiveData<>();
+    private final MutableLiveData<PeriodMeasure> measure =
+            new MutableLiveData<>(PeriodMeasure.VOLUME);
     private final LiveData<State> state;
     private DayOfWeek firstDayOfWeek;
 
@@ -41,9 +43,11 @@ public final class ProgressViewModel extends ViewModel {
         this.zone = zone;
         this.firstDayOfWeek = DayOfWeek.SUNDAY;
         period.setValue(TrainingPeriod.weekOf(today(), firstDayOfWeek));
+        // The measure is part of the same state so the chart can never be drawing one thing
+        // while its caption names another.
         this.state = Transformations.switchMap(period, shown ->
-                Transformations.map(progress.observePeriod(shown),
-                        snapshot -> toState(shown, snapshot)));
+                Transformations.switchMap(progress.observePeriod(shown), snapshot ->
+                        Transformations.map(measure, drawn -> toState(shown, snapshot, drawn))));
     }
 
     public LiveData<State> state() {
@@ -96,14 +100,21 @@ public final class ProgressViewModel extends ViewModel {
         }
     }
 
-    private State toState(TrainingPeriod shown, ProgressSnapshot snapshot) {
+    /** Which measure the period's chart draws (PRG-01). Kept here so a rotation does not reset it. */
+    public void show(PeriodMeasure next) {
+        if (next != null && next != measure.getValue()) {
+            measure.setValue(next);
+        }
+    }
+
+    private State toState(TrainingPeriod shown, ProgressSnapshot snapshot, PeriodMeasure drawn) {
         // Bounded by the data and not by today: a phone whose clock ran ahead wrote a day in the
         // future, and stopping at this week would hide that session rather than show it.
         boolean back = snapshot.firstTrainedDay() != null
                 && !shown.startsOnOrBefore(snapshot.firstTrainedDay());
         boolean forward = snapshot.lastTrainedDay() != null
                 && !shown.endsOnOrAfter(snapshot.lastTrainedDay());
-        return new State(shown, snapshot, back, forward);
+        return new State(shown, snapshot, back, forward, drawn);
     }
 
     /** Where the person is, not where the clock was wired. See {@link Today}. */

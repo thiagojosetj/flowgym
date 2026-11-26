@@ -269,9 +269,9 @@ Falta o **período personalizado**, que a PRG-02 também pede (ver ROADMAP).
 - **"Últimas" significa últimas**, e a lista diz "Mostrando as últimas 5 de 7 sessões." quando
   esconde algo. Trocar a janela não lê o banco: ela recorta uma lista que já está na memória.
 
-**PRG-01 (gráficos por exercício) implementado (26/11/2026)**, na mesma tela, desenhado em
-`Canvas` sem biblioteca nenhuma — **ADR-0042**. Falta o gráfico **do treino** (dos totais do
-período, na aba Progresso), que a PRG-01 também pede.
+**PRG-01 implementado (26/11/2026)**, desenhado em `Canvas` sem biblioteca nenhuma — **ADR-0042**.
+Dois gráficos, a mesma `View`: um **por exercício** (nesta tela) e um **do treino** (na aba
+Progresso, sessão a sessão dentro do período escolhido).
 
 - **Uma medida por vez** — carga, volume ou repetições — escolhida por botão. Nunca dois eixos Y:
   o alinhamento entre duas escalas é arbitrário, e o gráfico inventaria uma correlação que não
@@ -291,6 +291,12 @@ período, na aba Progresso), que a PRG-01 também pede.
   gráfico começa já lendo a sessão mais nova — nunca em branco. O gráfico também **fala**: um
   `Canvas` é invisível para o leitor de tela, então ele descreve o que desenha.
 - **A janela da PRG-02 vale para o gráfico**, como vale para a lista.
+- **No gráfico do treino as medidas são outras: volume, séries e repetições — não carga.** Um
+  treino é vários exercícios, e o peso mais alto de um treino de agachamento e rosca é um fato
+  sobre o agachamento, não sobre o treino. Não existe "carga de uma sessão" honesta para plotar.
+  Os pontos saem da **mesma leitura** que os totais logo acima deles, então um ponto e um total
+  nunca são duas opiniões sobre as mesmas séries. E o período inteiro sem volume (uma semana só
+  de peso corporal) diz isso, em vez de desenhar uma reta no zero.
 
 ### 4.6 Rotinas, metas e notificações (Fase 6)
 - **ROU-01** Rotina semanal fixa (segunda → Push...).

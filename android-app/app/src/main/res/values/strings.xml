@@ -407,6 +407,20 @@
     <string name="progress_volume">Volume de carga: %s</string>
     <string name="progress_no_volume">Sem volume de carga neste período</string>
     <string name="progress_effective_time">Tempo efetivo: %s</string>
+    <string name="progress_chart_title">Gráfico do período</string>
+    <string name="progress_measure_volume">Volume</string>
+    <string name="progress_measure_sets">Séries</string>
+    <string name="progress_measure_reps">Reps</string>
+    <string name="progress_chart_volume">Volume de carga por treino</string>
+    <string name="progress_chart_sets">Séries por treino</string>
+    <string name="progress_chart_reps">Repetições por treino</string>
+    <string name="progress_chart_reading">%1$s · %2$s</string>
+    <string name="progress_chart_needs_two">Um gráfico precisa de pelo menos dois treinos no período. Com um só não há tendência para mostrar.</string>
+    <string name="progress_chart_no_volume">Nenhum treino deste período teve volume de carga (§9). Veja as séries e as repetições.</string>
+    <plurals name="progress_chart_spoken">
+        <item quantity="one">%1$s. %2$d treino, em %3$s. Valor %5$s.</item>
+        <item quantity="other">%1$s. %2$d treinos, de %3$s a %4$s. Do menor, %5$s, ao maior, %6$s.</item>
+    </plurals>
     <string name="progress_muscles_title">Séries por grupo muscular</string>
     <string name="progress_muscles_note">Aquecimento não entra. Uma série conta para todos os músculos do exercício, então os números abaixo não somam as séries feitas: cada um diz quanto aquele músculo recebeu.</string>
     <plurals name="progress_muscle_primary">

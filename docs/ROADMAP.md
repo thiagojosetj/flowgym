@@ -246,9 +246,10 @@ achados ao implementar: **salvar** um treino desagrupava tudo (o rascunho não c
     consulta que devolvesse sessões excluídas seria uma armadilha para o próximo a usá-la; (b) o
     `DISTINCT` da consulta de músculos é redução de linhas, não garantia de correção — quem garante
     é o domínio, que indexa por (exercício, grupo).
-  - **Gráficos não entraram nesta aba**: nem uma barra proporcional, que já é gráfico. A decisão
-    que faltava virou a **ADR-0042** (`Canvas`, sem biblioteca) e os gráficos por exercício já
-    existem; o gráfico **dos totais do período**, nesta aba, continua pendente.
+  - **O gráfico desta aba entrou depois**, com a ADR-0042 (`Canvas`, sem biblioteca): sessão a
+    sessão dentro do período, volume / séries / repetições. A lista de músculos continua sem
+    barra, e isso é sobre ela: duas contagens por músculo não dividem uma escala entre si nem
+    com o total de séries, então uma barra ali seria um comprimento que não representa nada.
 - ✅ **PRG-03 — tela de progresso por exercício**, pelo botão "Ver meu progresso" no detalhe do
   exercício: os recordes da §10 em cima, a lista sessão por sessão embaixo. **Sem esquema novo e
   sem dependência nova** — os recordes são derivados do histórico, como a §10 permite.
@@ -278,7 +279,9 @@ achados ao implementar: **salvar** um treino desagrupava tudo (o rascunho não c
     (as duas últimas no domínio e na tela).
   - ⬜ Falta o **período personalizado** que a PRG-02 também pede: precisa de seletor de datas, e
     é mais trabalho de interface do que de regra.
-- 🟡 **PRG-01 — gráficos**, por exercício: linha de carga, volume ou repetições por sessão,
+- ✅ **PRG-01 — gráficos**: um por exercício (carga, volume ou repetições por sessão) e um do
+  treino (volume, séries ou repetições por sessão do período, na aba Progresso). A mesma `View`
+  desenha os dois. Linha de carga, volume ou repetições por sessão,
   desenhada em `Canvas`. **Nenhuma dependência nova** — a decisão que estava pendente desde a
   PRG-04 virou a **ADR-0042**, com as alternativas reais (MPAndroidChart sem manutenção, Vico
   exigindo Compose, `WebView` com JS) e o porquê de cada uma não servir.
@@ -291,8 +294,13 @@ achados ao implementar: **salvar** um treino desagrupava tudo (o rascunho não c
     ignorando a janela, halo inventado para repetições, medida toda zerada desenhando reta no
     zero, a leitura não dizendo que é recorde, e os três insets de geometria removidos — **todas
     matam** teste.
-  - ⬜ Falta o **gráfico do treino** (totais do período, na aba Progresso), que a PRG-01 também
-    pede. Não entrou aqui para não misturar com a tela por exercício.
+  - No gráfico do treino as medidas são volume / séries / repetições: **não há "carga de uma
+    sessão"** honesta. Os pontos vêm da mesma leitura que os totais acima deles — para isso o
+    `local_date` entrou na projeção do cabeçalho, porque o domínio tem o relógio da sessão e não
+    o fuso dela, e rotular pelo fuso do aparelho moveria o passado quando o telefone viaja.
+    Mutação: um treino virando tendência, período sem volume desenhando reta no zero, séries e
+    reps trocadas, a fala com data abreviada (que fazia "28 set.." com dois pontos finais) e o
+    motivo não dito quando não dá para desenhar — **todas matam** teste.
   - ⬜ **Validar no aparelho**: o Robolectric mede texto a 1 px por caractere, então o PNG prova
     a geometria do desenho e **não** prova que os rótulos cabem com fonte real. Checar com fonte
     ampliada e um exercício de ~50 sessões.

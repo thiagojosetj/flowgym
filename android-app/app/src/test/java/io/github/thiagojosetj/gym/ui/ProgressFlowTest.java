@@ -2,9 +2,12 @@ package io.github.thiagojosetj.gym.ui;
 
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
+import static androidx.test.espresso.action.ViewActions.scrollTo;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.isEnabled;
+import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription;
+import static androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static androidx.test.espresso.matcher.ViewMatchers.hasSibling;
@@ -15,6 +18,7 @@ import static org.junit.Assert.assertTrue;
 
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.core.app.ApplicationProvider;
+import androidx.test.espresso.matcher.ViewMatchers.Visibility;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import org.junit.Test;
@@ -57,6 +61,7 @@ import io.github.thiagojosetj.gym.testutil.TestGymApplication;
 public class ProgressFlowTest {
 
     private static final String SUPINO = "Supino reto com barra";
+    private static final String PUSH_UPS = "Flexão de braços";
 
     @Test
     public void withNothingFinishedTheScreenSaysSoInsteadOfShowingZeroes() {
@@ -155,7 +160,10 @@ public class ProgressFlowTest {
 
             onView(withText("setembro 2026")).check(matches(isDisplayed()));
             onView(withText("2 treinos")).check(matches(isDisplayed()));
-            onView(withText("6 séries como principal")).check(matches(isDisplayed()));
+            // Scrolled to: the period's chart now sits between the totals and the muscle rows,
+            // so this row is below the fold. Where it sits on screen is not what is being tested.
+            onView(withText("6 séries como principal")).perform(scrollTo())
+                    .check(matches(isDisplayed()));
         }
     }
 
@@ -173,7 +181,83 @@ public class ProgressFlowTest {
         }
     }
 
+    @Test
+    public void thePeriodChartDrawsOneMeasureAtATime() {
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            performWorkout(40, 10);
+            aDayLater();
+            performWorkout(45, 8);
+            openProgress();
+
+            // There is no "load of a session": a workout is many exercises, and the heaviest
+            // weight in it is a fact about one of them. Volume, sets and repetitions are the
+            // three that mean something for a whole session.
+            onView(withId(R.id.chart_caption))
+                    .perform(scrollTo()).check(matches(withText("Volume de carga por treino")));
+
+            onView(withId(R.id.measure_sets)).perform(scrollTo(), click());
+            onView(withId(R.id.chart_caption)).check(matches(withText("Séries por treino")));
+
+            onView(withId(R.id.measure_reps)).perform(scrollTo(), click());
+            onView(withId(R.id.chart_caption)).check(matches(withText("Repetições por treino")));
+            // 3 sets of 8 reps on the newest day, read out without being touched.
+            onView(withId(R.id.chart_reading)).check(matches(withText("22 set. · 24")));
+        }
+    }
+
+    @Test
+    public void onePeriodWorkoutIsNotATrendAndTheChartFollowsThePeriod() {
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            performWorkout(40, 10);
+            aWeekLater();
+            performWorkout(40, 10);
+            openProgress();
+
+            // This week knows only the second session, so there is nothing to join up.
+            onView(withId(R.id.chart_card))
+                    .check(matches(withEffectiveVisibility(Visibility.GONE)));
+            onView(withId(R.id.chart_note)).perform(scrollTo()).check(matches(
+                    withText(R.string.progress_chart_needs_two)));
+
+            onView(withId(R.id.kind_month)).perform(click());
+
+            // The month holds both, and the chart follows the same selector the totals do.
+            onView(withId(R.id.chart_card)).perform(scrollTo())
+                    .check(matches(withEffectiveVisibility(Visibility.VISIBLE)));
+            onView(withId(R.id.chart)).check(matches(withContentDescription(
+                    "Volume de carga por treino. 2 treinos, de 21 de set. de 2026"
+                            + " a 28 de set. de 2026. Do menor, 1200 kg, ao maior, 1200 kg.")));
+        }
+    }
+
+    @Test
+    public void aPeriodOfOnlyBodyWeightWorkHasNoVolumeLine() {
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            performWorkout(PUSH_UPS, null, 12);
+            aDayLater();
+            performWorkout(PUSH_UPS, null, 15);
+            openProgress();
+
+            // Section 9 keeps body weight out of load volume, so a line at zero would be a
+            // measurement of nothing. The sets and the repetitions are real and keep their line.
+            onView(withId(R.id.chart_note)).perform(scrollTo()).check(matches(allOf(
+                    withEffectiveVisibility(Visibility.VISIBLE),
+                    withText(R.string.progress_chart_no_volume))));
+
+            onView(withId(R.id.measure_reps)).perform(scrollTo(), click());
+
+            onView(withId(R.id.chart_card))
+                    .check(matches(withEffectiveVisibility(Visibility.VISIBLE)));
+            onView(withId(R.id.chart_reading)).check(matches(withText("22 set. · 45")));
+        }
+    }
+
     // ------------------------------------------------------------------ helpers
+
+    private static void aDayLater() {
+        ((TestGymApplication) ApplicationProvider.getApplicationContext()).clock()
+                .advance(Duration.ofDays(1));
+    }
 
     private static void openProgress() {
         onView(withId(R.id.progressFragment)).perform(click());
@@ -189,13 +273,21 @@ public class ProgressFlowTest {
                 .advance(Duration.ofDays(7));
     }
 
-    /** A whole workout through the repositories: the point here is the screen, not the logging. */
     private static void performWorkout(double kilos, int reps) {
+        performWorkout(SUPINO, kilos, reps);
+    }
+
+    /**
+     * A whole workout through the repositories: the point here is the screen, not the logging.
+     *
+     * @param kilos the load to confirm every set with, or {@code null} for no load at all
+     */
+    private static void performWorkout(String exerciseName, Double kilos, int reps) {
         AppContainer app = container();
         TemplateDraft draft = TemplateDraft.newTemplate(app.ids);
-        draft.rename("Push A");
-        draft.addExercises(refsOf(app, SUPINO),
-                new TemplateDefaults(3, RepRange.exactly(10), 40, 90));
+        draft.rename("Push " + exerciseName);
+        draft.addExercises(refsOf(app, exerciseName),
+                new TemplateDefaults(3, RepRange.exactly(reps), 40, 90));
         AtomicReference<String> templateId = new AtomicReference<>();
         app.templates.save(draft, templateId::set, ProgressFlowTest::rethrow);
         assertNotNull("o treino devia ter sido criado", templateId.get());
@@ -207,10 +299,11 @@ public class ProgressFlowTest {
 
         AtomicReference<ActiveSession> session = new AtomicReference<>();
         app.activeSessions.loadSession(sessionId.get(), session::set, ProgressFlowTest::rethrow);
+        Weight weight = kilos == null ? null : Weight.of(kilos, WeightUnit.KILOGRAM);
         for (LoggedSet set : session.get().exercises().get(0).sets()) {
             AtomicReference<Boolean> done = new AtomicReference<>(false);
             app.activeSessions.confirmSet(sessionId.get(), set.id(),
-                    new SetValues(Weight.of(kilos, WeightUnit.KILOGRAM), reps, null, null, null),
+                    new SetValues(weight, reps, null, null, null),
                     () -> done.set(true), ProgressFlowTest::rethrow);
             assertTrue("a serie devia ter sido confirmada", done.get());
         }

@@ -143,7 +143,8 @@ public interface SessionDao {
      */
     String HEADER_SQL =
             "SELECT s.id AS id, s.template_id AS templateId, s.name AS name, s.notes AS notes,"
-                    + " s.status AS status, s.started_at AS startedAt, s.ended_at AS endedAt,"
+                    + " s.status AS status, s.local_date AS localDate,"
+                    + " s.started_at AS startedAt, s.ended_at AS endedAt,"
                     + " (SELECT COALESCE(SUM(p.ended_at - p.started_at), 0) FROM session_pause p"
                     + "     WHERE p.session_id = s.id AND p.ended_at IS NOT NULL) AS closedPausedMs,"
                     + " (SELECT p.started_at FROM session_pause p WHERE p.session_id = s.id"

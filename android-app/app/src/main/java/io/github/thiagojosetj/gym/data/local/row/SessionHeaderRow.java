@@ -31,6 +31,13 @@ public class SessionHeaderRow {
     @NonNull
     public SessionStatus status = SessionStatus.ACTIVE;
 
+    /**
+     * The calendar day the workout was LIVED on, which is not derivable from {@code startedAt}
+     * here: the zone it was performed in is stored on the session, not in this row. Read straight
+     * from the column so a chart or a list can label a day without guessing at a zone.
+     */
+    public String localDate = "";
+
     public long startedAt;
 
     @Nullable

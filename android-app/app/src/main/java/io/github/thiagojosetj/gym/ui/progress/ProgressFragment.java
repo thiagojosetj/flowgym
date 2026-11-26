@@ -21,6 +21,7 @@ import io.github.thiagojosetj.gym.R;
 import io.github.thiagojosetj.gym.databinding.FragmentProgressBinding;
 import io.github.thiagojosetj.gym.databinding.ItemProgressMuscleBinding;
 import io.github.thiagojosetj.gym.domain.progress.MuscleWorkload;
+import io.github.thiagojosetj.gym.domain.progress.PeriodSession;
 import io.github.thiagojosetj.gym.domain.progress.PeriodStatistics;
 import io.github.thiagojosetj.gym.domain.progress.ProgressSnapshot;
 import io.github.thiagojosetj.gym.domain.progress.TrainingPeriod;
@@ -72,6 +73,13 @@ public class ProgressFragment extends Fragment {
                     ? TrainingPeriod.Kind.MONTH
                     : TrainingPeriod.Kind.WEEK);
         });
+        binding.measureGroup.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+            if (applyingState || !isChecked) {
+                return;
+            }
+            viewModel.show(measureOf(checkedId));
+        });
+        binding.chart.setOnPointSelectedListener(this::readOut);
         binding.previousPeriod.setOnClickListener(v -> viewModel.step(-1));
         binding.nextPeriod.setOnClickListener(v -> viewModel.step(1));
 
@@ -100,14 +108,176 @@ public class ProgressFragment extends Fragment {
         // a zero, would be wrong twice over.
         binding.totalsCard.setVisibility(noHistory || emptyPeriod ? View.GONE : View.VISIBLE);
         binding.emptyPeriod.setVisibility(!noHistory && emptyPeriod ? View.VISIBLE : View.GONE);
+        binding.chartTitle.setVisibility(noHistory || emptyPeriod ? View.GONE : View.VISIBLE);
+        binding.measureGroup.setVisibility(noHistory || emptyPeriod ? View.GONE : View.VISIBLE);
         if (noHistory || emptyPeriod) {
             binding.musclesTitle.setVisibility(View.GONE);
             binding.musclesNote.setVisibility(View.GONE);
             binding.muscleRows.removeAllViews();
+            binding.chartCard.setVisibility(View.GONE);
+            binding.chartNote.setVisibility(View.GONE);
             return;
         }
         renderTotals(snapshot.statistics());
+        renderChart(state.measure(), snapshot.sessions());
         renderMuscles(snapshot.statistics());
+    }
+
+    /**
+     * The period's chart (PRG-01), or the sentence that replaces it.
+     *
+     * <p>Drawn from {@code snapshot.sessions()}, the very same read the totals above come from,
+     * so a point and a total can never be two opinions of the same sets. Three measures and not
+     * four: there is no honest "load of a session" when a session is many exercises.
+     */
+    private void renderChart(PeriodMeasure measure, List<PeriodSession> sessions) {
+        applyingState = true;
+        binding.measureGroup.check(idOf(measure));
+        applyingState = false;
+
+        String blocked = whyNoChart(measure, sessions);
+        binding.chartCard.setVisibility(blocked == null ? View.VISIBLE : View.GONE);
+        binding.chartNote.setVisibility(blocked == null ? View.GONE : View.VISIBLE);
+        if (blocked != null) {
+            binding.chartNote.setText(blocked);
+            return;
+        }
+        List<SessionChartView.Point> plotted = new ArrayList<>(sessions.size());
+        for (PeriodSession session : sessions) {
+            // No halo: a period has no record of its own, and inventing one would be the chart
+            // making a claim the spec never defined.
+            plotted.add(new SessionChartView.Point(valueOf(measure, session),
+                    dayOf(session.localDate()), false));
+        }
+        binding.chartCaption.setText(captionOf(measure));
+        binding.chart.setPoints(plotted, value -> measure == PeriodMeasure.VOLUME
+                ? loadText(value)
+                : String.valueOf(value));
+        binding.chart.setContentDescription(spokenChart(measure, sessions));
+        readOut(binding.chart.selectedIndex());
+    }
+
+    /** The line under the chart: what the selected workout actually was, as text. */
+    private void readOut(int index) {
+        ProgressViewModel.State state = viewModel.state().getValue();
+        if (state == null || index < 0 || index >= state.snapshot().sessions().size()) {
+            return;
+        }
+        PeriodSession session = state.snapshot().sessions().get(index);
+        PeriodMeasure measure = state.measure();
+        binding.chartReading.setText(getString(R.string.progress_chart_reading,
+                dayOf(session.localDate()), textOf(measure, session)));
+    }
+
+    @Nullable
+    private String whyNoChart(PeriodMeasure measure, List<PeriodSession> sessions) {
+        if (sessions.size() < 2) {
+            return getString(R.string.progress_chart_needs_two);
+        }
+        if (measure != PeriodMeasure.VOLUME) {
+            return null;
+        }
+        for (PeriodSession session : sessions) {
+            if (session.volumeGrams() > 0L) {
+                return null;
+            }
+        }
+        // A flat line at zero would be a measurement. Section 9 keeps body weight and timed work
+        // out of load volume, and a week of only those has none.
+        return getString(R.string.progress_chart_no_volume);
+    }
+
+    private static long valueOf(PeriodMeasure measure, PeriodSession session) {
+        switch (measure) {
+            case SETS:
+                return session.performedSets();
+            case REPS:
+                return session.totalReps();
+            default:
+                return session.volumeGrams();
+        }
+    }
+
+    private String textOf(PeriodMeasure measure, PeriodSession session) {
+        return measure == PeriodMeasure.VOLUME
+                ? loadText(session.volumeGrams())
+                : String.valueOf(valueOf(measure, session));
+    }
+
+    private String captionOf(PeriodMeasure measure) {
+        switch (measure) {
+            case SETS:
+                return getString(R.string.progress_chart_sets);
+            case REPS:
+                return getString(R.string.progress_chart_reps);
+            default:
+                return getString(R.string.progress_chart_volume);
+        }
+    }
+
+    /** A canvas says nothing to a screen reader, so the chart states what it draws. */
+    private String spokenChart(PeriodMeasure measure, List<PeriodSession> sessions) {
+        long min = valueOf(measure, sessions.get(0));
+        long max = min;
+        for (PeriodSession session : sessions) {
+            min = Math.min(min, valueOf(measure, session));
+            max = Math.max(max, valueOf(measure, session));
+        }
+        return getResources().getQuantityString(R.plurals.progress_chart_spoken, sessions.size(),
+                captionOf(measure), sessions.size(), spokenDayOf(sessions.get(0).localDate()),
+                spokenDayOf(sessions.get(sessions.size() - 1).localDate()),
+                measure == PeriodMeasure.VOLUME ? loadText(min) : String.valueOf(min),
+                measure == PeriodMeasure.VOLUME ? loadText(max) : String.valueOf(max));
+    }
+
+    private static int idOf(PeriodMeasure measure) {
+        switch (measure) {
+            case SETS:
+                return R.id.measure_sets;
+            case REPS:
+                return R.id.measure_reps;
+            default:
+                return R.id.measure_volume;
+        }
+    }
+
+    private static PeriodMeasure measureOf(int buttonId) {
+        if (buttonId == R.id.measure_sets) {
+            return PeriodMeasure.SETS;
+        }
+        if (buttonId == R.id.measure_reps) {
+            return PeriodMeasure.REPS;
+        }
+        return PeriodMeasure.VOLUME;
+    }
+
+    /**
+     * The day as it was lived, short, for an axis label; {@code local_date} already carries the
+     * session's own zone, so there is no zone to apply and nothing to move when the phone travels.
+     */
+    private String dayOf(String isoDate) {
+        return formatted(isoDate, DateTimeFormatter.ofPattern("d MMM", locale()));
+    }
+
+    /**
+     * The same day, written out, for the chart's spoken description.
+     *
+     * <p>Not the short form: in Portuguese it abbreviates to "28 set.", and a sentence that
+     * continues after it reads "28 set.. Do menor" - two full stops, because the month already
+     * brought one. Spoken text is where that is least excusable.
+     */
+    private String spokenDayOf(String isoDate) {
+        return formatted(isoDate, DateTimeFormatter
+                .ofLocalizedDate(java.time.format.FormatStyle.MEDIUM).withLocale(locale()));
+    }
+
+    /** A day that cannot be parsed is shown as stored rather than hidden. */
+    private String formatted(String isoDate, DateTimeFormatter formatter) {
+        try {
+            return formatter.format(java.time.LocalDate.parse(isoDate));
+        } catch (java.time.format.DateTimeParseException e) {
+            return isoDate;
+        }
     }
 
     private void renderTotals(PeriodStatistics statistics) {

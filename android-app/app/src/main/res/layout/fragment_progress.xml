@@ -152,6 +152,96 @@
             android:visibility="gone"
             tools:visibility="visible" />
 
+        <!--
+            The period's chart (PRG-01, "do treino"). Below the totals and scoped by the same
+            week-or-month selector above them: one control, everything under it follows.
+        -->
+        <TextView
+            android:id="@+id/chart_title"
+            style="@style/Widget.Gym.SectionTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/progress_chart_title" />
+
+        <com.google.android.material.button.MaterialButtonToggleGroup
+            android:id="@+id/measure_group"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:selectionRequired="true"
+            app:singleSelection="true">
+
+            <Button
+                android:id="@+id/measure_volume"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/touch_target_min"
+                android:layout_weight="1"
+                android:text="@string/progress_measure_volume" />
+
+            <Button
+                android:id="@+id/measure_sets"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/touch_target_min"
+                android:layout_weight="1"
+                android:text="@string/progress_measure_sets" />
+
+            <Button
+                android:id="@+id/measure_reps"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/touch_target_min"
+                android:layout_weight="1"
+                android:text="@string/progress_measure_reps" />
+        </com.google.android.material.button.MaterialButtonToggleGroup>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/chart_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_s"
+            app:cardBackgroundColor="?attr/colorSurfaceContainerLow">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/space_m">
+
+                <TextView
+                    android:id="@+id/chart_caption"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?attr/textAppearanceTitleSmall"
+                    tools:text="Volume de carga por treino" />
+
+                <io.github.thiagojosetj.gym.ui.progress.SessionChartView
+                    android:id="@+id/chart"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_s" />
+
+                <TextView
+                    android:id="@+id/chart_reading"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_xs"
+                    android:textAppearance="?attr/textAppearanceBodyMedium"
+                    tools:text="23 set. · 1200 kg" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:id="@+id/chart_note"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_s"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:visibility="gone"
+            tools:text="Um gráfico precisa de pelo menos dois treinos no período."
+            tools:visibility="visible" />
+
         <TextView
             android:id="@+id/muscles_title"
             android:layout_width="match_parent"
