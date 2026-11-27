@@ -406,12 +406,23 @@ Levantadas pela revisão de 22/09/2026 e **não corrigidas às cegas**, porque d
   em silêncio. O preço é uma manutenção pequena e recorrente — quando o CI reclamar, suba a versão
   e rode o portão.
 
-- **Plurais em pt sem a categoria `many`.** O arquivo `values/strings.xml` é pt-BR mas não declara
-  `tools:locale`, porque declarar faz o lint exigir um item `many` em **todos** os ~23 `<plurals>`
-  (a regra do CLDR para pt pede, para valores como 1.000.000). Sem declarar, o lint corrige a
-  ortografia deste arquivo como se fosse inglês e acusa palavras portuguesas de serem erros
-  ("eles" → "eels"), o que hoje é contornado reescrevendo a frase. O conserto de verdade é
-  **adicionar `many` aos plurais e então declarar o locale**, em um passo só.
+- ✅ **Plurais em pt com a categoria `many`, e `tools:locale` declarado** (27/11/2026). Os dois
+  andavam juntos: declarar o locale faz o lint exigir `many` em **todos** os `<plurals>`, e não
+  declarar fazia o lint corrigir a ortografia do arquivo como se fosse inglês ("eles" → "eels"),
+  o que vinha sendo contornado reescrevendo a frase. Agora os 29 plurais têm `many` e o arquivo
+  declara `pt-rBR`.
+  - A exigência é **gramática, não burocracia**: em português, múltiplo exato de um milhão pede
+    "de" — "1.000.000 **de** séries". Onde o numeral não quantifica um substantivo logo depois
+    ("Dessas, %d foram de aquecimento"), a forma `many` é igual à de `other` de propósito, e o
+    comentário no topo do arquivo pede para não "consertarem" isso.
+  - **Declarar o locale acendeu uma regra nova e ela achou defeito de verdade** (`ImpliedQuantity`,
+    2 achados): em pt a categoria `one` do CLDR cobre **0 e 1**, e duas strings na forma `one` não
+    traziam o número. Uma delas cravava o algarismo no texto — "1 etapa de drop-set também será
+    resolvida." — então, recebendo zero, o app **afirmaria "1"**. Os chamadores filtram o zero
+    hoje, mas a string não pode depender disso. As duas agora carregam `%d`; "Ver a série" virou
+    "Ver 1 série".
+  - Mutação: a forma `one` voltando a cravar o "1", o rótulo perdendo o número, e a forma `many`
+    perdendo o "de" — **todas matam** teste (`PortuguesePluralsTest`).
 
 ## Próxima etapa recomendada
 **Rodar as Fases 3 e 4 no aparelho** (`./gradlew :app:connectedDebugAndroidTest` + uso real no

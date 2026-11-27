@@ -150,8 +150,6 @@ consegue responder.
 
 ### 4.3 Coisas que não precisam de aparelho nem de banco novo
 
-- **Plurais em pt sem `many`** → adicionar `many` nos ~23 `<plurals>` e **então** declarar
-  `tools:locale="pt"`, num passo só. Detalhe no ROADMAP.
 - **Fase 1**: ilustração do movimento por exercício (os 55 prompts já estão em
   `docs/EXERCISE_ART.md`), ampliar o catálogo, exercícios personalizados.
 - **Fase 2**: escolher a técnica do grupo (SS/BI/TRI/GS existem no modelo e seguem sem uso),

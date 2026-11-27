@@ -259,11 +259,15 @@ versão do Java.
 
 ### 8.4 Localização
 
-- `tools:locale="pt"` **não está declarado de propósito**: declarar hoje acende 23 achados de
-  `MissingQuantity`, porque os plurais ainda não têm a categoria `many` do CLDR. A correção de
-  verdade (adicionar `many` em todos) está no roadmap.
-- O CLDR do português põe **zero no singular**: "0 série" é errado duas vezes. Prefira não dizer o
-  papel que não aconteceu a dizê-lo com zero.
+- `tools:locale="pt-rBR"` **está declarado**, e por isso o lint exige a categoria `many` do CLDR
+  em **todos** os `<plurals>`. Ao acrescentar um plural novo, acrescente as três formas. A `many`
+  do português é a forma com "de" — "1.000.000 **de** séries" —, exceto quando o numeral não
+  quantifica um substantivo logo depois; aí ela é igual à de `other`, de propósito.
+- O CLDR do português põe **zero no singular** (a categoria `one` cobre 0 e 1). Duas consequências:
+  "0 série" é errado duas vezes, então prefira não dizer o papel que não aconteceu a dizê-lo com
+  zero; e **toda forma `one` tem de trazer o número** (`%d`). Uma forma `one` com o algarismo
+  escrito à mão afirma uma quantidade que ninguém passou — é o que o lint chama de
+  `ImpliedQuantity`, e já havia duas aqui.
 - Mês abreviado em pt já termina em ponto ("set."), então frase que continua depois dele fica com
   dois pontos finais. Em texto falado isso é pior.
 

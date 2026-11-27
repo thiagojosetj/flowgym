@@ -2,14 +2,19 @@
 <!--
     Default language: pt-BR (ADR-0020). Other languages go in values-xx.
 
-    No tools:locale here, and that is a known compromise. Declaring it is the documented way to
-    stop lint spellchecking this file as English (it reports "eles" as a misspelling of "eels"),
-    but with the language declared lint then requires a "many" quantity in EVERY plurals resource,
-    which pt's CLDR rules do ask for and none of them has - see docs/ROADMAP.md. Until that is
-    done, the file stays undeclared and Portuguese words that look like English typos are worded
-    around.
+    tools:locale is declared, so lint reads this file as Portuguese instead of spellchecking it as
+    English (it used to report "eles" as a misspelling of "eels", and sentences were reworded
+    around it). Declaring it is also what makes lint require a "many" quantity in EVERY plurals
+    resource below, and that requirement is real: pt's CLDR rules put exact multiples of a million
+    in their own category, because the numeral takes "de" - "1.000.000 DE séries". Every plural
+    here has one.
+
+    Where the numeral does not quantify a noun right after it ("Dessas, %d foram de aquecimento"),
+    there is no "de" to add and the "many" form is the same text as "other". That is correct, not
+    a copy-paste: do not "fix" it.
 -->
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:locale="pt-rBR">
     <!-- Provisional product name (ADR-0026). This is the ONLY place the brand appears in the app. -->
     <string name="app_name" translatable="false">FlowGym</string>
 
@@ -41,6 +46,7 @@
     <string name="home_templates_title">Meus treinos</string>
     <plurals name="home_templates_count">
         <item quantity="one">%d treino criado</item>
+        <item quantity="many">%d de treinos criados</item>
         <item quantity="other">%d treinos criados</item>
     </plurals>
     <string name="home_templates_empty">Você ainda não criou nenhum treino.</string>
@@ -56,10 +62,12 @@
     <string name="templates_empty_body">Crie treinos como \"Push A\" ou \"Pernas\" e reutilize sempre que for treinar.</string>
     <plurals name="template_exercise_count">
         <item quantity="one">%d exercício</item>
+        <item quantity="many">%d de exercícios</item>
         <item quantity="other">%d exercícios</item>
     </plurals>
     <plurals name="template_set_count">
         <item quantity="one">%d série</item>
+        <item quantity="many">%d de séries</item>
         <item quantity="other">%d séries</item>
     </plurals>
     <string name="template_summary_line">%1$s · %2$s</string>
@@ -88,6 +96,7 @@
     <string name="library_clear_filters">Limpar filtros</string>
     <plurals name="library_result_count">
         <item quantity="one">%d exercício</item>
+        <item quantity="many">%d de exercícios</item>
         <item quantity="other">%d exercícios</item>
     </plurals>
     <string name="library_empty">Nenhum exercício encontrado com esses filtros.</string>
@@ -96,6 +105,7 @@
     <string name="library_select_hint">Toque para selecionar. A ordem de seleção será a ordem no treino.</string>
     <plurals name="library_add_selected">
         <item quantity="one">Adicionar %d exercício</item>
+        <item quantity="many">Adicionar %d de exercícios</item>
         <item quantity="other">Adicionar %d exercícios</item>
     </plurals>
     <string name="library_open_details">Ver detalhes de %s</string>
@@ -136,12 +146,14 @@
     <string name="editor_error_name_blank">Dê um nome ao treino</string>
     <plurals name="editor_error_name_too_long">
         <item quantity="one">Use no máximo %d caractere</item>
+        <item quantity="many">Use no máximo %d de caracteres</item>
         <item quantity="other">Use no máximo %d caracteres</item>
     </plurals>
     <string name="editor_error_text_too_long">Texto longo demais</string>
     <string name="editor_error_no_exercises">Adicione pelo menos um exercício</string>
     <plurals name="editor_error_too_many">
         <item quantity="one">Máximo de %d exercício por treino</item>
+        <item quantity="many">Máximo de %d de exercícios por treino</item>
         <item quantity="other">Máximo de %d exercícios por treino</item>
     </plurals>
     <string name="editor_error_save">Não foi possível salvar. Tente novamente.</string>
@@ -163,6 +175,7 @@
     <string name="editor_group_confirm">Agrupar</string>
     <plurals name="editor_group_error_too_small">
         <item quantity="one">Um grupo precisa de pelo menos %d exercício</item>
+        <item quantity="many">Um grupo precisa de pelo menos %d de exercícios</item>
         <item quantity="other">Um grupo precisa de pelo menos %d exercícios</item>
     </plurals>
     <string name="editor_group_error_unsaved">Salve o treino antes de agrupar exercícios que você acabou de adicionar.</string>
@@ -175,6 +188,7 @@
     <!-- Plan summary (template exercise card) -->
     <plurals name="plan_sets">
         <item quantity="one">%d série</item>
+        <item quantity="many">%d de séries</item>
         <item quantity="other">%d séries</item>
     </plurals>
     <string name="plan_sets_reps">%1$s × %2$s reps</string>
@@ -252,6 +266,7 @@
     <string name="session_finish">Finalizar</string>
     <plurals name="session_progress">
         <item quantity="one">%1$d de %2$d série</item>
+        <item quantity="many">%1$d de %2$d de séries</item>
         <item quantity="other">%1$d de %2$d séries</item>
     </plurals>
     <string name="session_set_number">%d</string>
@@ -305,24 +320,29 @@
     <string name="finish_nothing_recorded">Nenhuma série foi registrada. Você pode voltar e registrar, ou descartar o treino.</string>
     <plurals name="finish_will_complete">
         <item quantity="one">%d série preenchida será marcada como feita.</item>
+        <item quantity="many">%d de séries preenchidas serão marcadas como feitas.</item>
         <item quantity="other">%d séries preenchidas serão marcadas como feitas.</item>
     </plurals>
     <plurals name="finish_will_skip_partial">
         <item quantity="one">%d série está preenchida pela metade e ficará como não feita (os valores continuam salvos).</item>
+        <item quantity="many">%d de séries estão preenchidas pela metade e ficarão como não feitas (os valores continuam salvos).</item>
         <item quantity="other">%d séries estão preenchidas pela metade e ficarão como não feitas (os valores continuam salvos).</item>
     </plurals>
     <!-- The drops of a drop-set. Counted apart from the sets, because a drop-set is one set
          taken past failure (ADR-0037) and folding the drops into the set count would say "3". -->
     <plurals name="finish_segments_resolved">
-        <item quantity="one">1 etapa de drop-set também será resolvida.</item>
+        <item quantity="one">%d etapa de drop-set também será resolvida.</item>
+        <item quantity="many">%d de etapas de drop-set também serão resolvidas.</item>
         <item quantity="other">%d etapas de drop-set também serão resolvidas.</item>
     </plurals>
     <plurals name="finish_will_skip_empty">
         <item quantity="one">%d série vazia ficará como não feita.</item>
+        <item quantity="many">%d de séries vazias ficarão como não feitas.</item>
         <item quantity="other">%d séries vazias ficarão como não feitas.</item>
     </plurals>
     <plurals name="finish_already_done">
         <item quantity="one">%d série registrada entra no histórico.</item>
+        <item quantity="many">%d de séries registradas entram no histórico.</item>
         <item quantity="other">%d séries registradas entram no histórico.</item>
     </plurals>
     <string name="finish_confirm">Finalizar</string>
@@ -337,6 +357,7 @@
     <string name="summary_volume">Volume: %s</string>
     <plurals name="summary_outside_volume">
         <item quantity="one">%d série não incluída no volume</item>
+        <item quantity="many">%d de séries não incluídas no volume</item>
         <item quantity="other">%d séries não incluídas no volume</item>
     </plurals>
     <string name="summary_rating_question">Como foi o treino?</string>
@@ -356,6 +377,7 @@
     <string name="calendar_next_month">Próximo mês</string>
     <plurals name="calendar_trained_days">
         <item quantity="one">%d dia treinado neste mês</item>
+        <item quantity="many">%d de dias treinados neste mês</item>
         <item quantity="other">%d dias treinados neste mês</item>
     </plurals>
     <string name="calendar_day_trained">%s · treinou</string>
@@ -399,11 +421,13 @@
     <string name="progress_range">%1$s – %2$s</string>
     <plurals name="progress_sessions">
         <item quantity="one">%d treino</item>
+        <item quantity="many">%d de treinos</item>
         <item quantity="other">%d treinos</item>
     </plurals>
     <string name="progress_sets">Séries feitas: %1$d · repetições: %2$d</string>
     <plurals name="progress_warm_ups">
         <item quantity="one">Dessas, %d foi de aquecimento</item>
+        <item quantity="many">Dessas, %d foram de aquecimento</item>
         <item quantity="other">Dessas, %d foram de aquecimento</item>
     </plurals>
     <string name="progress_volume">Volume de carga: %s</string>
@@ -421,16 +445,19 @@
     <string name="progress_chart_no_volume">Nenhum treino deste período teve volume de carga (§9). Veja as séries e as repetições.</string>
     <plurals name="progress_chart_spoken">
         <item quantity="one">%1$s. %2$d treino, em %3$s. Valor %5$s.</item>
+        <item quantity="many">%1$s. %2$d de treinos, de %3$s a %4$s. Do menor, %5$s, ao maior, %6$s.</item>
         <item quantity="other">%1$s. %2$d treinos, de %3$s a %4$s. Do menor, %5$s, ao maior, %6$s.</item>
     </plurals>
     <string name="progress_muscles_title">Séries por grupo muscular</string>
     <string name="progress_muscles_note">Aquecimento não entra. Uma série conta para todos os músculos do exercício, então os números abaixo não somam as séries feitas: cada um diz quanto aquele músculo recebeu.</string>
     <plurals name="progress_muscle_primary">
         <item quantity="one">%d série como principal</item>
+        <item quantity="many">%d de séries como principal</item>
         <item quantity="other">%d séries como principal</item>
     </plurals>
     <plurals name="progress_muscle_secondary">
         <item quantity="one">%d série como auxiliar</item>
+        <item quantity="many">%d de séries como auxiliar</item>
         <item quantity="other">%d séries como auxiliar</item>
     </plurals>
     <!-- The counts are composed in code: only the roles that happened are said at all. -->
@@ -444,8 +471,9 @@
     <string name="history_comparison_title">Comparação com a sessão anterior</string>
     <string name="history_comparison_by_exercise">Exercício por exercício</string>
     <plurals name="history_comparison_show_sets">
-        <item quantity="one">Ver a série</item>
-        <item quantity="other">Ver as %d séries</item>
+        <item quantity="one">Ver %d série</item>
+        <item quantity="many">Ver %d de séries</item>
+        <item quantity="other">Ver %d séries</item>
     </plurals>
     <string name="history_comparison_hide_sets">Ocultar as séries</string>
     <string name="history_comparison_added">Só nesta sessão: %s</string>
@@ -500,6 +528,7 @@
     <string name="exercise_progress_empty_body">Quando ele entrar num treino finalizado, esta tela passa a mostrar sessão por sessão e os seus recordes.</string>
     <plurals name="exercise_progress_sessions">
         <item quantity="one">%d sessão</item>
+        <item quantity="many">%d de sessões</item>
         <item quantity="other">%d sessões</item>
     </plurals>
     <string name="exercise_progress_span">%1$s · de %2$s a %3$s</string>
@@ -518,10 +547,12 @@
     <string name="exercise_progress_reps_title">Mais repetições por carga</string>
     <plurals name="exercise_progress_reps">
         <item quantity="one">%d repetição</item>
+        <item quantity="many">%d de repetições</item>
         <item quantity="other">%d repetições</item>
     </plurals>
     <plurals name="exercise_progress_more_loads">
         <item quantity="one">E mais %d carga, fora desta lista.</item>
+        <item quantity="many">E mais %d de cargas, fora desta lista.</item>
         <item quantity="other">E mais %d cargas, fora desta lista.</item>
     </plurals>
 
@@ -544,6 +575,7 @@
     <!-- A canvas is invisible to a screen reader, so the chart says out loud what it draws. -->
     <plurals name="exercise_progress_chart_spoken">
         <item quantity="one">%1$s. %2$d sessão, em %3$s. Valor %5$s.</item>
+        <item quantity="many">%1$s. %2$d de sessões, de %3$s a %4$s. Do menor, %5$s, ao maior, %6$s.</item>
         <item quantity="other">%1$s. %2$d sessões, de %3$s a %4$s. Do menor, %5$s, ao maior, %6$s.</item>
     </plurals>
     <string name="exercise_progress_sessions_title">Sessão por sessão</string>
@@ -551,6 +583,7 @@
     <string name="exercise_progress_window_all">Tudo</string>
     <plurals name="exercise_progress_window_last">
         <item quantity="one">Última %d sessão</item>
+        <item quantity="many">Últimas %d de sessões</item>
         <item quantity="other">Últimas %d sessões</item>
     </plurals>
     <string name="exercise_progress_window_all_spoken">Todas as sessões</string>
@@ -562,6 +595,7 @@
     -->
     <plurals name="exercise_progress_showing">
         <item quantity="one">Mostrando %1$d de %2$d sessão.</item>
+        <item quantity="many">Mostrando as últimas %1$d de %2$d de sessões.</item>
         <item quantity="other">Mostrando as últimas %1$d de %2$d sessões.</item>
     </plurals>
     <string name="exercise_progress_point_sets">Séries: %1$d · reps: %2$d</string>

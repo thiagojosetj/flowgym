@@ -138,7 +138,10 @@ public class HistoryComparisonFlowTest {
             onView(withId(R.id.button_comparison_sets)).perform(click());
 
             onView(withId(R.id.comparison_set_number)).check(doesNotExist());
-            onView(withId(R.id.button_comparison_sets)).check(matches(withText("Ver a série")));
+            // O rótulo passou a dizer quantas séries são mesmo quando é uma: em português a
+            // categoria "one" do CLDR cobre 0 e 1, e uma forma sem o número afirma uma
+            // quantidade que ninguém passou.
+            onView(withId(R.id.button_comparison_sets)).check(matches(withText("Ver 1 série")));
         }
     }
 
