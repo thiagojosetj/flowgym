@@ -32,6 +32,7 @@ import io.github.thiagojosetj.gym.data.local.dao.TechniqueDao;
 import io.github.thiagojosetj.gym.data.local.entity.TrainingTechniqueEntity;
 import io.github.thiagojosetj.gym.data.repository.TechniqueRepository;
 import io.github.thiagojosetj.gym.domain.library.ExerciseFilter;
+import io.github.thiagojosetj.gym.domain.technique.TrainingTechnique;
 import io.github.thiagojosetj.gym.domain.library.ExerciseSummary;
 import io.github.thiagojosetj.gym.domain.model.RepRange;
 import io.github.thiagojosetj.gym.domain.model.SideMode;
@@ -194,7 +195,7 @@ public class TemplateEditorViewModelTest {
             assertNull("nothing is grouped yet", item.group());
         }
 
-        vm.createGroup(Arrays.asList(before.get(0).id(), before.get(1).id()), 75);
+        vm.createGroup(Arrays.asList(before.get(0).id(), before.get(1).id()), null, 75);
 
         assertEquals(TemplateEditorViewModel.EditorEvent.GROUPED, lastEvent(vm));
         List<TemplateExerciseItem> items = state(vm).exercises();
@@ -237,11 +238,11 @@ public class TemplateEditorViewModelTest {
         String templateId = savedTemplate("Full body", SUPINO, CRUCIFIXO, TRICEPS, ROSCA);
         TemplateEditorViewModel vm = newViewModel(templateId);
         List<TemplateExerciseItem> items = state(vm).exercises();
-        vm.createGroup(Arrays.asList(items.get(2).id(), items.get(3).id()), 60);
+        vm.createGroup(Arrays.asList(items.get(2).id(), items.get(3).id()), null, 60);
         assertEquals("A1", state(vm).exercises().get(2).group().code());
 
         // A group made over EARLIER exercises takes A, and the one that was A becomes B...
-        vm.createGroup(Arrays.asList(items.get(0).id(), items.get(1).id()), 60);
+        vm.createGroup(Arrays.asList(items.get(0).id(), items.get(1).id()), null, 60);
         assertEquals(Arrays.asList("A1", "A2", "B1", "B2"), labelsOf(state(vm).exercises()));
 
         // ...and removing A promotes B: two groups never share a letter.
@@ -255,7 +256,7 @@ public class TemplateEditorViewModelTest {
         TemplateEditorViewModel vm = newViewModel(templateId);
         String only = state(vm).exercises().get(0).id();
 
-        vm.createGroup(Collections.singletonList(only), 90);
+        vm.createGroup(Collections.singletonList(only), null, 90);
 
         assertEquals(TemplateEditorViewModel.EditorEvent.GROUP_TOO_SMALL, lastEvent(vm));
         assertTrue("nothing was written", loadGroups(templateId).isEmpty());
@@ -268,7 +269,7 @@ public class TemplateEditorViewModelTest {
         TemplateEditorViewModel vm = newViewModel(templateId);
         String only = state(vm).exercises().get(0).id();
 
-        vm.createGroup(Arrays.asList(only, only), 90);
+        vm.createGroup(Arrays.asList(only, only), null, 90);
 
         assertEquals(TemplateEditorViewModel.EditorEvent.GROUP_TOO_SMALL, lastEvent(vm));
         assertTrue(loadGroups(templateId).isEmpty());
@@ -281,7 +282,7 @@ public class TemplateEditorViewModelTest {
         List<TemplateExerciseItem> items = state(vm).exercises();
 
         // The longest rest there is plus one: only the repository knows the limit.
-        vm.createGroup(Arrays.asList(items.get(0).id(), items.get(1).id()), 3601);
+        vm.createGroup(Arrays.asList(items.get(0).id(), items.get(1).id()), null, 3601);
 
         assertEquals(TemplateEditorViewModel.EditorEvent.GROUP_FAILED, lastEvent(vm));
         assertTrue(loadGroups(templateId).isEmpty());
@@ -329,7 +330,7 @@ public class TemplateEditorViewModelTest {
         assertTrue(vm.isSaved(items.get(0).id()));
         assertFalse("it only exists in this draft", vm.isSaved(items.get(2).id()));
 
-        vm.createGroup(Arrays.asList(items.get(0).id(), items.get(2).id()), 90);
+        vm.createGroup(Arrays.asList(items.get(0).id(), items.get(2).id()), null, 90);
 
         assertEquals(TemplateEditorViewModel.EditorEvent.GROUP_NEEDS_SAVE, lastEvent(vm));
         assertTrue(loadGroups(templateId).isEmpty());
@@ -337,7 +338,7 @@ public class TemplateEditorViewModelTest {
         // Once the template is saved the same exercise is in the database, and the group works.
         vm.save();
         assertTrue(vm.isSaved(items.get(2).id()));
-        vm.createGroup(Arrays.asList(items.get(0).id(), items.get(2).id()), 90);
+        vm.createGroup(Arrays.asList(items.get(0).id(), items.get(2).id()), null, 90);
         assertEquals(TemplateEditorViewModel.EditorEvent.GROUPED, lastEvent(vm));
         assertEquals(Arrays.asList("A1", null, "A2"), labelsOf(state(vm).exercises()));
     }
@@ -349,7 +350,7 @@ public class TemplateEditorViewModelTest {
         List<TemplateExerciseItem> items = state(vm).exercises();
         assertFalse(vm.isSaved(items.get(0).id()));
 
-        vm.createGroup(Arrays.asList(items.get(0).id(), items.get(1).id()), 90);
+        vm.createGroup(Arrays.asList(items.get(0).id(), items.get(1).id()), null, 90);
 
         assertEquals(TemplateEditorViewModel.EditorEvent.GROUP_NEEDS_SAVE, lastEvent(vm));
         assertNull(state(vm).exercises().get(0).group());
@@ -365,7 +366,7 @@ public class TemplateEditorViewModelTest {
         assertEquals(Arrays.asList(CRUCIFIXO, TRICEPS, ROSCA),
                 namesOf(vm.groupCandidates(items.get(0).id())));
 
-        vm.createGroup(Arrays.asList(items.get(0).id(), items.get(1).id()), 90);
+        vm.createGroup(Arrays.asList(items.get(0).id(), items.get(1).id()), null, 90);
 
         // The two that are taken are no candidates for the third, and it is not its own.
         assertEquals(Collections.singletonList(ROSCA),
@@ -379,6 +380,92 @@ public class TemplateEditorViewModelTest {
         app.settings.setDefaultRestSeconds(120);
 
         assertEquals(120, newViewModel(null).defaultGroupRestSeconds());
+    }
+
+    @Test
+    public void onlyTheMethodsOfAGroupAreOffered() throws Exception {
+        TemplateEditorViewModel vm = newViewModel(savedTemplate("Push A", SUPINO, CRUCIFIXO));
+
+        List<String> codes = new ArrayList<>();
+        for (TrainingTechnique technique : vm.groupTechniques()) {
+            codes.add(technique.code());
+        }
+
+        // Supersérie, bi-set, tri-set e giant set. Drop-set e aquecimento são de SÉRIE e não
+        // podem aparecer aqui: oferecê-los seria o app dizendo que um grupo pode ser um drop-set.
+        assertEquals(Arrays.asList("SS", "BI", "TRI", "GS"), codes);
+    }
+
+    @Test
+    public void umGrupoGuardaOMetodoComQueFoiCriadoEMostraEmTodosOsCards() throws Exception {
+        String templateId = savedTemplate("Push A", SUPINO, CRUCIFIXO, TRICEPS);
+        TemplateEditorViewModel vm = newViewModel(templateId);
+        List<TemplateExerciseItem> before = state(vm).exercises();
+        String superserie = groupTechniqueId(vm, "SS");
+
+        vm.createGroup(Arrays.asList(before.get(0).id(), before.get(1).id()), superserie, 75);
+
+        List<TemplateExerciseItem> items = state(vm).exercises();
+        // O método é do GRUPO, então os dois cards o dizem: cada card tem de informar do que faz
+        // parte sem obrigar a rolar até o outro.
+        assertEquals("SS", items.get(0).group().technique().code());
+        assertEquals("Supersérie", items.get(0).group().technique().name());
+        assertEquals("SS", items.get(1).group().technique().code());
+        assertNull("quem está fora do grupo não ganha método", items.get(2).group());
+        // E está no banco, não só na tela.
+        assertEquals(superserie, loadGroups(templateId).get(before.get(0).id()).techniqueId());
+    }
+
+    @Test
+    public void editarUmGrupoTrocaMetodoEDescansoSemMexerEmQuemEstaDentro() throws Exception {
+        String templateId = savedTemplate("Push A", SUPINO, CRUCIFIXO, TRICEPS);
+        TemplateEditorViewModel vm = newViewModel(templateId);
+        groupTheFirstTwo(vm, 75);
+        String groupId = state(vm).exercises().get(0).group().groupId();
+        List<String> antes = namesOf(state(vm).exercises());
+
+        vm.updateGroup(groupId, groupTechniqueId(vm, "BI"), 45);
+
+        assertEquals(TemplateEditorViewModel.EditorEvent.GROUP_UPDATED, lastEvent(vm));
+        List<TemplateExerciseItem> items = state(vm).exercises();
+        assertEquals("BI", items.get(0).group().technique().code());
+        assertEquals(45, items.get(0).group().restAfterRoundSeconds());
+        assertEquals("o descanso é da rodada, então vale para os dois",
+                45, items.get(1).group().restAfterRoundSeconds());
+        // O que esta folha NÃO decide: quem está no grupo, a letra e a ordem dos cards.
+        assertEquals(Arrays.asList("A1", "A2", null), labelsOf(items));
+        assertEquals(antes, namesOf(items));
+        assertEquals(groupId, items.get(1).group().groupId());
+        assertEquals(45, loadGroups(templateId).get(items.get(0).id()).restAfterRoundSeconds());
+    }
+
+    @Test
+    public void tirarOMetodoDeixaUmAgrupamentoSimplesEOGrupoContinuaDePe() throws Exception {
+        String templateId = savedTemplate("Push A", SUPINO, CRUCIFIXO);
+        TemplateEditorViewModel vm = newViewModel(templateId);
+        List<TemplateExerciseItem> before = state(vm).exercises();
+        vm.createGroup(Arrays.asList(before.get(0).id(), before.get(1).id()),
+                groupTechniqueId(vm, "TRI"), 60);
+        String groupId = state(vm).exercises().get(0).group().groupId();
+
+        vm.updateGroup(groupId, null, 60);
+
+        List<TemplateExerciseItem> items = state(vm).exercises();
+        assertNull("sem método, mas ainda um grupo", items.get(0).group().technique());
+        assertNull(items.get(0).group().techniqueId());
+        assertEquals("A1", items.get(0).group().code());
+        assertEquals("A2", items.get(1).group().code());
+        assertNull(loadGroups(templateId).get(items.get(0).id()).techniqueId());
+    }
+
+    /** O id da técnica de grupo com este código, como o seletor da folha a entrega. */
+    private static String groupTechniqueId(TemplateEditorViewModel vm, String code) {
+        for (TrainingTechnique technique : vm.groupTechniques()) {
+            if (technique.code().equals(code)) {
+                return technique.id();
+            }
+        }
+        throw new AssertionError("Sem técnica de grupo " + code);
     }
 
     // ------------------------------------------------------------------ helpers
@@ -404,7 +491,7 @@ public class TemplateEditorViewModelTest {
 
     private void groupTheFirstTwo(TemplateEditorViewModel vm, int restSeconds) throws Exception {
         List<TemplateExerciseItem> items = state(vm).exercises();
-        vm.createGroup(Arrays.asList(items.get(0).id(), items.get(1).id()), restSeconds);
+        vm.createGroup(Arrays.asList(items.get(0).id(), items.get(1).id()), null, restSeconds);
         assertEquals(TemplateEditorViewModel.EditorEvent.GROUPED, lastEvent(vm));
     }
 

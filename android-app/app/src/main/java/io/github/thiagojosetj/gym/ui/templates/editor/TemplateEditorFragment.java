@@ -125,6 +125,7 @@ public class TemplateEditorFragment extends Fragment implements EditorExerciseAd
                         snackbar(getString(R.string.template_operation_failed));
                 case GROUPED -> snackbar(getString(R.string.editor_grouped));
                 case UNGROUPED -> snackbar(getString(R.string.editor_ungrouped));
+                case GROUP_UPDATED -> snackbar(getString(R.string.editor_group_updated));
                 case GROUP_TOO_SMALL ->
                         snackbar(GroupExercisesSheet.tooSmallMessage(getResources()));
                 case GROUP_NEEDS_SAVE -> snackbar(getString(R.string.editor_group_error_unsaved));
@@ -254,6 +255,7 @@ public class TemplateEditorFragment extends Fragment implements EditorExerciseAd
         popup.inflate(R.menu.menu_template_exercise);
         // Grouping and ungrouping are one slot: an exercise is either in a group or it is not.
         popup.getMenu().findItem(R.id.action_group).setVisible(item.group() == null);
+        popup.getMenu().findItem(R.id.action_group_settings).setVisible(item.group() != null);
         popup.getMenu().findItem(R.id.action_ungroup).setVisible(item.group() != null);
         popup.getMenu().findItem(R.id.action_move_up).setEnabled(position > 0);
         popup.getMenu().findItem(R.id.action_move_down).setEnabled(position < exerciseAdapter.size() - 1);
@@ -263,6 +265,8 @@ public class TemplateEditorFragment extends Fragment implements EditorExerciseAd
                 onEdit(item);
             } else if (id == R.id.action_group) {
                 onGroupRequested(item);
+            } else if (id == R.id.action_group_settings) {
+                onGroupSettingsRequested(item);
             } else if (id == R.id.action_ungroup) {
                 viewModel.removeGroup(item.group().groupId());
             } else if (id == R.id.action_move_up) {
@@ -291,6 +295,15 @@ public class TemplateEditorFragment extends Fragment implements EditorExerciseAd
             snackbar(GroupExercisesSheet.tooSmallMessage(getResources()));
         } else if (getChildFragmentManager().findFragmentByTag(GROUP_SHEET_TAG) == null) {
             GroupExercisesSheet.newInstance(item.id())
+                    .show(getChildFragmentManager(), GROUP_SHEET_TAG);
+        }
+    }
+
+    /** Opens the group's own sheet: its method and its rest, not who is in it. */
+    private void onGroupSettingsRequested(TemplateExerciseItem item) {
+        if (item.group() != null
+                && getChildFragmentManager().findFragmentByTag(GROUP_SHEET_TAG) == null) {
+            GroupExercisesSheet.forGroup(item.group().groupId())
                     .show(getChildFragmentManager(), GROUP_SHEET_TAG);
         }
     }

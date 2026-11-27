@@ -24,6 +24,8 @@ import io.github.thiagojosetj.gym.data.repository.TemplateRepository;
 import io.github.thiagojosetj.gym.domain.template.ExerciseGroup;
 import io.github.thiagojosetj.gym.domain.template.ExercisePlanUpdate;
 import io.github.thiagojosetj.gym.domain.technique.TechniqueCatalog;
+import io.github.thiagojosetj.gym.domain.technique.TechniqueScope;
+import io.github.thiagojosetj.gym.domain.technique.TrainingTechnique;
 import io.github.thiagojosetj.gym.domain.template.ExerciseRef;
 import io.github.thiagojosetj.gym.domain.template.TemplateDefaults;
 import io.github.thiagojosetj.gym.domain.template.TemplateDraft;
@@ -53,6 +55,8 @@ public final class TemplateEditorViewModel extends ViewModel {
         GROUPED,
         /** A group is gone, also at once, and its exercises are still in the template. */
         UNGROUPED,
+        /** A group's technique or rest changed. Who is in it and its letter did not move. */
+        GROUP_UPDATED,
         /** Fewer than {@link TemplateRules#MIN_GROUP_SIZE} different exercises were picked. */
         GROUP_TOO_SMALL,
         /** An exercise to group exists only in this draft, and a group is made in the database. */
@@ -256,7 +260,8 @@ public final class TemplateEditorViewModel extends ViewModel {
      *
      * @param restAfterRoundSeconds rest that starts when the whole round is over, 0 for none
      */
-    public void createGroup(List<String> templateExerciseIds, int restAfterRoundSeconds) {
+    public void createGroup(List<String> templateExerciseIds, @Nullable String techniqueId,
+                            int restAfterRoundSeconds) {
         if (!editable()) {
             return;
         }
@@ -269,9 +274,51 @@ public final class TemplateEditorViewModel extends ViewModel {
             events.setValue(new Event<>(EditorEvent.GROUP_NEEDS_SAVE));
             return;
         }
-        templates.createGroup(draft.id(), members, null, restAfterRoundSeconds,
+        templates.createGroup(draft.id(), members, techniqueId, restAfterRoundSeconds,
                 groupId -> reloadGroups(EditorEvent.GROUPED),
                 error -> groupFailed("create", error));
+    }
+
+    /**
+     * Changes a group's technique and the rest after each round. Written at once, like making the
+     * group was (ADR-0038): there is no draft of a group to save later.
+     *
+     * <p>Who is in the group and its letter are not touched here. Moving an exercise in or out is
+     * ungrouping and grouping again, which is a different decision and says so on screen.
+     */
+    public void updateGroup(String groupId, @Nullable String techniqueId,
+                            int restAfterRoundSeconds) {
+        if (!editable()) {
+            return;
+        }
+        templates.updateGroup(draft.id(), groupId, techniqueId, restAfterRoundSeconds,
+                () -> reloadGroups(EditorEvent.GROUP_UPDATED),
+                error -> groupFailed("update", error));
+    }
+
+    /** The group an exercise card belongs to, so a sheet can open showing what it is today. */
+    @Nullable
+    public TemplateExerciseItem.GroupMark groupOf(String groupId) {
+        for (TemplateExerciseItem item : items) {
+            if (item.group() != null && item.group().groupId().equals(groupId)) {
+                return item.group();
+            }
+        }
+        return null;
+    }
+
+    /** The group's method as a badge, from the catalog, exactly as a set's badge is resolved. */
+    @Nullable
+    private TemplateExerciseItem.Badge groupBadge(@Nullable String techniqueId) {
+        TrainingTechnique technique = currentCatalog().byId(techniqueId);
+        return technique == null
+                ? null
+                : new TemplateExerciseItem.Badge(technique.code(), technique.name());
+    }
+
+    /** The methods a GROUP can use: superset, bi-set, tri-set, giant set (PRODUCT_SPEC 6.3). */
+    public List<TrainingTechnique> groupTechniques() {
+        return currentCatalog().ofScope(TechniqueScope.GROUP);
     }
 
     /** Ungroups: the group goes and its exercises stay in the template. Written now, as well. */
@@ -379,7 +426,8 @@ public final class TemplateEditorViewModel extends ViewModel {
                 TemplateExerciseItem.GroupMark mark = group == null ? null
                         : new TemplateExerciseItem.GroupMark(group.id(), group.label(),
                                 drawn.merge(group.id(), 1, Integer::sum),
-                                group.restAfterRoundSeconds());
+                                group.restAfterRoundSeconds(), group.techniqueId(),
+                                groupBadge(group.techniqueId()));
                 rebuilt.add(TemplateExerciseItem.from(e, currentCatalog(), mark));
             }
             items = Collections.unmodifiableList(rebuilt);

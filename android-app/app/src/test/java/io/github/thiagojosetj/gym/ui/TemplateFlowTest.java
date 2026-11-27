@@ -28,6 +28,7 @@ import android.os.Looper;
 import android.view.View;
 
 import androidx.test.core.app.ActivityScenario;
+import androidx.test.espresso.Espresso;
 import androidx.test.espresso.contrib.RecyclerViewActions;
 import androidx.test.espresso.matcher.ViewMatchers.Visibility;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -485,6 +486,93 @@ public class TemplateFlowTest {
     }
 
     /** The exercise's overflow menu, then "Agrupar com…". */
+    @Test
+    public void escolherOMetodoNaCriacaoPoeOSeloEmTodosOsCardsDoGrupo() {
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            createTemplate("Push A", SUPINO, CRUCIFIXO);
+            onView(withText("Push A")).perform(click());
+
+            openGroupSheetOf(SUPINO);
+            onView(withText(CRUCIFIXO)).inRoot(isDialog()).perform(click());
+            // O botão começa dizendo que não há método, e não em branco.
+            onView(withId(R.id.button_group_technique)).inRoot(isDialog())
+                    .check(matches(withText(R.string.editor_group_technique_none)));
+            onView(withId(R.id.button_group_technique)).inRoot(isDialog())
+                    .perform(scrollTo(), click());
+            onView(allOf(withId(R.id.name), withText("Supersérie"))).inRoot(isDialog())
+                    .perform(click());
+            // Nome por extenso no botão, não a sigla: aqui há largura para ensinar.
+            onView(withId(R.id.button_group_technique)).inRoot(isDialog())
+                    .check(matches(withText("Supersérie")));
+            onView(withId(R.id.button_group_confirm)).inRoot(isDialog())
+                    .perform(scrollTo(), click());
+
+            // O método é do GRUPO, então os dois cards o mostram, e o leitor de tela ouve o nome
+            // e de qual grupo ele é — nunca só "SS".
+            onView(badgesOf("A1 " + SUPINO)).check(matches(withText("SS")));
+            onView(badgesOf("A2 " + CRUCIFIXO)).check(matches(allOf(
+                    withText("SS"), withContentDescription("Supersérie, método do grupo A"))));
+        }
+    }
+
+    @Test
+    public void editarUmGrupoTrocaOMetodoEODescansoSemDesfazerOGrupo() {
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            createTemplate("Push A", SUPINO, CRUCIFIXO, TRICEPS);
+            onView(withText("Push A")).perform(click());
+            // Criado JÁ com método: é o caso em que abrir a edição em branco apagaria a
+            // escolha de quem só queria mudar o descanso.
+            openGroupSheetOf(SUPINO);
+            onView(withText(CRUCIFIXO)).inRoot(isDialog()).perform(click());
+            onView(withId(R.id.button_group_technique)).inRoot(isDialog())
+                    .perform(scrollTo(), click());
+            onView(allOf(withId(R.id.name), withText("Supersérie"))).inRoot(isDialog())
+                    .perform(click());
+            onView(withId(R.id.button_group_confirm)).inRoot(isDialog())
+                    .perform(scrollTo(), click());
+
+            // A entrada só existe para quem está num grupo: o terceiro exercício, que ficou de
+            // fora, segue sendo convidado a formar um, e não a editar o dos outros.
+            onView(withId(R.id.list)).perform(RecyclerViewActions.scrollToPosition(3));
+            onView(withContentDescription("Opções de " + TRICEPS)).perform(click());
+            onView(withText(R.string.editor_group_edit)).check(doesNotExist());
+            onView(withText(R.string.editor_group_with)).check(matches(isDisplayed()));
+            Espresso.pressBack();
+
+            onView(withContentDescription("Opções de " + SUPINO)).perform(click());
+            onView(withText(R.string.editor_group_with)).check(doesNotExist());
+            onView(withText(R.string.editor_group_edit)).perform(click());
+
+            // Abre mostrando o que o grupo é HOJE, não em branco, e o botão diz o que vai
+            // fazer: "Salvar grupo", não "Agrupar" — o grupo já existe.
+            onView(withId(R.id.group_rest_input)).inRoot(isDialog()).check(matches(withText("90")));
+            onView(withId(R.id.button_group_technique)).inRoot(isDialog())
+                    .check(matches(withText("Supersérie")));
+            onView(withId(R.id.button_group_confirm)).inRoot(isDialog())
+                    .check(matches(withText(R.string.editor_group_edit_confirm)));
+            onView(withId(R.id.button_group_technique)).inRoot(isDialog())
+                    .perform(scrollTo(), click());
+            onView(allOf(withId(R.id.name), withText("Bi-set"))).inRoot(isDialog()).perform(click());
+            onView(withId(R.id.group_rest_input)).inRoot(isDialog()).perform(replaceText("45"));
+            onView(withId(R.id.button_group_confirm)).inRoot(isDialog())
+                    .perform(scrollTo(), click());
+
+            onView(badgesOf("A1 " + SUPINO)).check(matches(withText("BI")));
+            onView(restLineOf("A1 " + SUPINO))
+                    .check(matches(withText("descanso 45 s depois da rodada")));
+            onView(restLineOf("A2 " + CRUCIFIXO))
+                    .check(matches(withText("descanso 45 s depois da rodada")));
+            // O grupo continua o mesmo grupo: as letras não se mexeram e ninguém saiu.
+            onView(withText("A1 " + SUPINO)).check(matches(isDisplayed()));
+            onView(withText("A2 " + CRUCIFIXO)).check(matches(isDisplayed()));
+        }
+    }
+
+    /** A linha de selos do card cujo título é exatamente este. */
+    private static Matcher<View> badgesOf(String cardTitle) {
+        return allOf(withId(R.id.badges), hasSibling(withText(cardTitle)));
+    }
+
     private static void openGroupSheetOf(String exerciseName) {
         onView(withContentDescription("Opções de " + exerciseName)).perform(click());
         onView(withText(R.string.editor_group_with)).perform(click());

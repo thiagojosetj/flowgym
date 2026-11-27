@@ -173,6 +173,18 @@
     <string name="editor_group_rest_helper">Começa quando todos os exercícios do grupo terminam a série. 0 = sem descanso automático.</string>
     <string name="editor_group_saved_now">O grupo é gravado na hora, sem esperar o botão Salvar do treino.</string>
     <string name="editor_group_confirm">Agrupar</string>
+    <string name="editor_group_technique">Método do grupo</string>
+    <string name="editor_group_technique_none">Nenhum (só agrupados)</string>
+    <string name="editor_group_technique_title">Método do grupo</string>
+    <string name="editor_group_technique_explain">O que é este método</string>
+    <string name="editor_group_edit">Editar grupo…</string>
+    <!-- %s é a letra do grupo, derivada pela camada de dados: "Editar grupo A". -->
+    <string name="editor_group_edit_title">Editar grupo %s</string>
+    <string name="editor_group_edit_intro">Muda o método e o descanso. Quem está no grupo e a letra não mudam: para tirar ou pôr alguém, desagrupe e agrupe de novo.</string>
+    <string name="editor_group_edit_confirm">Salvar grupo</string>
+    <string name="editor_group_updated">Grupo atualizado</string>
+    <!-- Lido pelo leitor de tela no lugar da sigla: "Supersérie, método do grupo A". -->
+    <string name="editor_group_technique_spoken">%1$s, método do grupo %2$s</string>
     <plurals name="editor_group_error_too_small">
         <item quantity="one">Um grupo precisa de pelo menos %d exercício</item>
         <item quantity="many">Um grupo precisa de pelo menos %d de exercícios</item>

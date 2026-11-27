@@ -49,11 +49,25 @@ Legenda: ✅ concluído · 🟡 em andamento/parcial · ⬜ não iniciado.
 - ✅ Técnicas avançadas como dados (12 métodos), escolha por série com badge e ⓘ explicando o método.
 - ✅ Configurações da conta: descanso padrão (90 s de fábrica, editável), som e vibração do descanso.
 - ✅ Banco na versão 2 com migration explícita e testada.
-- 🟡 Grupos de exercícios (supersérie, bi-set, tri-set, giant set): **banco v4, dados e editor
-  prontos**. Agrupar e desagrupar pelo menu do exercício, rótulo A1/A2 derivado (nunca digitado),
-  descanso por rodada. Falta escolher a **técnica** do grupo (SS/BI/TRI/GS seguem sem uso) e editar
-  descanso/técnica depois de criado (`updateGroup` existe, sem interface). Grupo é gravado na hora,
-  fora do rascunho do editor — ADR-0038.
+- ✅ Grupos de exercícios (supersérie, bi-set, tri-set, giant set): banco v4, dados e editor.
+  Agrupar e desagrupar pelo menu do exercício, rótulo A1/A2 derivado (nunca digitado), descanso por
+  rodada. Grupo é gravado na hora, fora do rascunho do editor — ADR-0038.
+  - ✅ **Método do grupo** (27/11/2026): os quatro de escopo GROUP do catálogo — SS, BI, TRI, GS —
+    deixaram de ser dados sem uso. Escolhidos na mesma folha que cria o grupo, com o nome por
+    extenso e o ⓘ que explica o método. O selo aparece em **todos** os cards do grupo, porque é
+    fato do grupo e cada card tem de dizer do que faz parte.
+  - ✅ **Editar um grupo depois de criado** (27/11/2026): "Editar grupo…" no menu do card abre a
+    mesma folha, já preenchida com o que o grupo é hoje, e muda **método e descanso**. Quem está
+    no grupo e a letra **não** se mexem: tirar ou pôr alguém é desagrupar e agrupar de novo, o que
+    muda a letra, e a folha diz isso em vez de oferecer caixas que religariam tudo em silêncio.
+    O `updateGroup` do repositório já existia e já tinha teste; faltava só a interface.
+  - Mutação: oferecer técnicas de **série** ao grupo, descartar o método escolhido na criação,
+    ignorar o descanso digitado na edição, o selo não aparecer no card, "Editar grupo…" aparecer
+    para quem não está em grupo, a folha de edição abrir **sem** o método atual, e o botão de
+    confirmar não trocar de rótulo — **todas matam** teste. As duas últimas sobreviveram primeiro:
+    o teste criava o grupo sem método, então abrir a edição em branco dava no mesmo. Agora ele
+    cria **com** método, que é o caso em que abrir em branco apagaria a escolha de quem só queria
+    mudar o descanso.
 - ⬜ Técnicas de escopo exercício (pirâmides).
 - ⬜ Arquivar/desarquivar.
 

@@ -7,6 +7,7 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.StringRes;
 import androidx.appcompat.app.AlertDialog;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -34,7 +35,21 @@ public final class TechniqueDialogs {
     private TechniqueDialogs() {
     }
 
+    /** The picker titled for a set, which is what most callers want. */
     public static AlertDialog showPicker(Context context, List<TrainingTechnique> options,
+                                         @Nullable String selectedId, OnPicked callback) {
+        return showPicker(context, R.string.technique_picker_title, options, selectedId, callback);
+    }
+
+    /**
+     * The same picker under another title.
+     *
+     * <p>The title was hardcoded to "Técnica da série" while sets were the only thing that had
+     * one. A group picks a method too, and calling it a set's technique there would be the dialog
+     * naming the wrong thing.
+     */
+    public static AlertDialog showPicker(Context context, @StringRes int titleRes,
+                                  List<TrainingTechnique> options,
                                   @Nullable String selectedId, OnPicked callback) {
         LayoutInflater inflater = LayoutInflater.from(context);
         LinearLayout list = new LinearLayout(context);
@@ -43,7 +58,7 @@ public final class TechniqueDialogs {
         scroll.addView(list);
 
         AlertDialog dialog = new MaterialAlertDialogBuilder(context)
-                .setTitle(R.string.technique_picker_title)
+                .setTitle(titleRes)
                 .setView(scroll)
                 .setNegativeButton(R.string.action_cancel, null)
                 .create();

@@ -61,7 +61,14 @@ public record TemplateExerciseItem(
      * @param restAfterRoundSeconds the rest that belongs to the round, which is the rest a grouped
      *                              exercise really gets: its own is not used while in a group
      */
-    public record GroupMark(String groupId, String label, int number, int restAfterRoundSeconds) {
+    /**
+     * @param techniqueId what the edit sheet opens with; null when the group is just a grouping
+     * @param technique   the method to show, resolved from the catalog like a set's badge is. Null
+     *                    when there is none, and also when the catalog no longer has it - the same
+     *                    thing a set badge does, so a retired method disappears from both
+     */
+    public record GroupMark(String groupId, String label, int number, int restAfterRoundSeconds,
+                            @Nullable String techniqueId, @Nullable Badge technique) {
 
         /** "A1", "A2": what is written before the name. */
         public String code() {

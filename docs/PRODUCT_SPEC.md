@@ -183,6 +183,23 @@ volume com honestidade exige aplicar as regras do §9 série a série, ou seja, 
 para desenhar uma tela. O volume fica na tela da sessão, calculado pelo mesmo código que o calculou
 quando o treino foi finalizado.
 
+**Método e edição do grupo implementados (27/11/2026).** Um grupo pode declarar o que ele é —
+**supersérie, bi-set, tri-set ou giant set** —, escolhido na folha que o cria e trocável depois por
+"Editar grupo…" no menu do card.
+
+- **O método é do grupo, então aparece em todos os cards dele.** Repetido de propósito: cada card
+  precisa dizer do que faz parte sem obrigar a rolar até o outro. O leitor de tela ouve o nome e a
+  letra ("Supersérie, método do grupo A"), nunca só a sigla.
+- **Editar não mexe em quem está dentro nem na letra.** Tirar ou pôr alguém é desagrupar e agrupar
+  de novo — e isso muda a letra, porque ela é derivada. Oferecer caixas de seleção na mesma folha
+  faria o app religar o treino em silêncio, então a folha explica em vez de oferecer.
+- **Só métodos de escopo GROUP são oferecidos.** Drop-set e aquecimento são de série; mostrá-los
+  ali seria o app afirmar que um grupo pode ser um drop-set.
+- **Sem método continua sendo um grupo**: tirar o método deixa um agrupamento simples, com a letra
+  e o descanso de rodada intactos.
+- Como criar, **editar grava na hora** e não espera o "Salvar" do treino (ADR-0038), e a folha
+  avisa isso antes de confirmar.
+
 ### 4.5 Progresso (Fase 5)
 - **PRG-01** Gráficos de carga, volume e repetições por exercício e do treino.
 - **PRG-02** Filtros: últimas 5, 10, 30 sessões, período personalizado, todo o histórico.
