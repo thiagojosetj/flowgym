@@ -20,6 +20,8 @@ aqui é o estado das coisas.
 | **Último ADR** | **ADR-0042** (gráficos em `Canvas`) |
 | **Bloqueio principal** | a migração v3 → v4 **nunca foi rodada em aparelho com dados reais** |
 | **Quem desenvolve** | outra IA, a partir de [`PROMPT_PARA_A_PROXIMA_IA.md`](PROMPT_PARA_A_PROXIMA_IA.md). O Claude **revisa** (`CLAUDE.md`) |
+| **Como é organizado** | um **Coordenador** fala com o dono e despacha os especialistas — [`COORDENACAO.md`](COORDENACAO.md) |
+| **Onde o chat anterior parou** | [`ESTADO.md`](ESTADO.md). Leia **sempre** ao assumir um chat novo |
 
 > ⚠️ **Nada neste projeto foi validado em aparelho.** Tudo foi provado em JVM/Robolectric. A lista
 > do que falta está em [`ROADMAP.md`](ROADMAP.md), seção "Pendências conhecidas".

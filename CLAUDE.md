@@ -62,6 +62,11 @@ Nesse papel:
    versionado é **incidente**, não achado: avise o dono antes de qualquer outra coisa.
 8. **Severidade em cada achado**, e a razão: bug que o diff introduziu, bug que já existia, ou
    melhoria. Sem isso o dono não sabe o que é urgente.
+9. **Confira o [`docs/ESTADO.md`](docs/ESTADO.md) contra o repositório.** O bastão entre chats é
+   parte da entrega (`AGENTS.md` §14): um `ESTADO.md` que diz "nada em andamento" com trabalho não
+   commitado, que traz números de portão que não se reproduzem, ou que omite uma decisão tomada na
+   conversa, é achado — e dos graves, porque ele faz o chat seguinte trabalhar com confiança sobre
+   informação falsa.
 
 ### O que o relatório de revisão tem de trazer
 

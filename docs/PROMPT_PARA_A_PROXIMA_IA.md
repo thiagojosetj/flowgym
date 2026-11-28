@@ -22,11 +22,16 @@ Leia, nesta ordem, **inteiros**:
 1. **`AGENTS.md`** — o contrato. Vale para qualquer IA. Se ele conflitar com o que você acha que é
    boa prática, **ele ganha**; se você acha que ele está errado, a saída é escrever um ADR, não
    ignorá-lo.
-2. **`docs/HANDOVER.md`** — onde o projeto parou, como montar o ambiente, o mapa do código, as
-   armadilhas já pagas e por onde começar.
-3. **`docs/PRODUCT_SPEC.md`** — o que o app faz e, principalmente, **o que ele se recusa a
+2. **`docs/ESTADO.md`** — onde o **chat anterior** parou. É o bastão, e é a primeira coisa a ler
+   depois do contrato. Se você vai parar o trabalho ou trocar de chat, **atualize-o e commite-o
+   junto com o código** (`AGENTS.md` §14).
+3. **`docs/COORDENACAO.md`** — como o trabalho é dividido, o que todo especialista tem de devolver,
+   e quando trocar de chat.
+4. **`docs/HANDOVER.md`** — como montar o ambiente, o mapa do código, as armadilhas já pagas e por
+   onde começar.
+5. **`docs/PRODUCT_SPEC.md`** — o que o app faz e, principalmente, **o que ele se recusa a
    afirmar**.
-4. **`docs/ARCHITECTURE.md`**, **`docs/DATABASE.md`**, **`docs/DECISIONS.md`** (os ADRs, 42 deles)
+6. **`docs/ARCHITECTURE.md`**, **`docs/DATABASE.md`**, **`docs/DECISIONS.md`** (os ADRs, 42 deles)
    e **`docs/ROADMAP.md`** (o que está feito, o que falta, e o que falta **validar em aparelho**).
 
 Repositório: `https://github.com/thiagojosetj/flowgym` · branch de trabalho:

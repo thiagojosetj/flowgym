@@ -43,6 +43,10 @@ O prompt que a IA responsável pelo desenvolvimento recebeu está em
 [`docs/PROMPT_PARA_A_PROXIMA_IA.md`](docs/PROMPT_PARA_A_PROXIMA_IA.md). Ele não repete as regras
 daqui: aponta para elas. Se você é essa IA, ele é o resumo do que você se comprometeu a cumprir.
 
+E se você acabou de assumir um chat novo, o lugar onde o chat anterior parou é
+[`docs/ESTADO.md`](docs/ESTADO.md) — leia-o depois deste arquivo e antes de qualquer outra coisa
+(§14).
+
 `README.md` é a vitrine do projeto para humanos; não é especificação.
 
 ---
@@ -364,3 +368,30 @@ do teste é.
 O dono do repositório está **aprendendo Java e Android**. Explique as decisões de engenharia de
 forma **pedagógica**: o que você escolheu, o que descartou, e por quê — em português, sem jargão
 gratuito. Uma entrega que funciona e que ele não entende é meia entrega.
+
+---
+
+## 14. Como o trabalho é organizado (coordenador + troca de chat)
+
+O dono fala com **um** agente, o **Coordenador**; é ele que divide o trabalho entre os
+especialistas, confere o que voltou e responde. O como está em
+[`docs/COORDENACAO.md`](docs/COORDENACAO.md), e o que o dono cola em cada chat novo está em
+[`docs/PROMPT_COORDENADOR.md`](docs/PROMPT_COORDENADOR.md).
+
+Duas regras deste modo que valem como qualquer outra deste arquivo:
+
+- **Relatório de agente é alegação, não prova.** Quem vai commitar **roda o portão** (§3) e tenta
+  ao menos uma mutação (§7) na regra central da entrega. Delegar sem verificar transforma o
+  coordenador num repassador de alegações, e aí o portão e a mutação deixam de existir sem ninguém
+  perceber.
+- **Trocar de chat é normal e esperado**, não acidente — contexto longo fica caro, lento e começa a
+  esquecer o começo. O bastão é [`docs/ESTADO.md`](docs/ESTADO.md), que se atualiza **em todo ponto
+  de parada** e entra no commit junto com o código. Nunca troque de chat com trabalho não
+  commitado: o chat novo herdaria uma árvore suja que não entende.
+
+O teste de que o bastão está bom: **um agente que nunca viu a conversa consegue continuar só com
+este arquivo e o `ESTADO.md`?** Se a resposta depende de algo que só está na conversa, aquilo ainda
+não foi escrito — escreva antes de trocar, e se for decisão estrutural, escreva um ADR (§9).
+
+Um `ESTADO.md` desatualizado é **pior** que nenhum: ele faz o chat seguinte trabalhar com confiança
+sobre informação falsa.
