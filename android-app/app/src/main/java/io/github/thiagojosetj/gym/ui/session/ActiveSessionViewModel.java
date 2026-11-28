@@ -18,7 +18,9 @@ import java.util.Set;
 
 import io.github.thiagojosetj.gym.core.Event;
 import io.github.thiagojosetj.gym.data.repository.ActiveSessionRepository;
+import io.github.thiagojosetj.gym.data.repository.HistoryRepository;
 import io.github.thiagojosetj.gym.data.repository.TechniqueRepository;
+import io.github.thiagojosetj.gym.domain.model.SideMode;
 import io.github.thiagojosetj.gym.domain.model.Weight;
 import io.github.thiagojosetj.gym.domain.model.WeightUnit;
 import io.github.thiagojosetj.gym.domain.session.ActiveSession;
@@ -38,12 +40,18 @@ import io.github.thiagojosetj.gym.ui.common.NumberInput;
 public final class ActiveSessionViewModel extends ViewModel {
 
     /** One-shot outcomes for the screen. */
-    public enum SessionEvent { FINISHED, DISCARDED, ACTION_FAILED, FINISH_FAILED }
+    public enum SessionEvent {
+        FINISHED, DISCARDED, ACTION_FAILED, FINISH_FAILED,
+        /** A per-side set was confirmed with one side blank: half a result is not a result. */
+        PER_SIDE_INCOMPLETE
+    }
 
     /** Units are kg for now; lb support is planned (docs/ROADMAP.md). */
     private static final WeightUnit UNIT = WeightUnit.KILOGRAM;
 
     private final ActiveSessionRepository sessions;
+    /** Rating is a write on a FINISHED session, which is this repository's side of the line. */
+    private final HistoryRepository history;
     private final Clock clock;
     private final String sessionId;
     private final SessionRowBuilder rowBuilder;
@@ -65,8 +73,10 @@ public final class ActiveSessionViewModel extends ViewModel {
     private boolean summaryShown;
 
     public ActiveSessionViewModel(ActiveSessionRepository sessions, TechniqueRepository techniqueRepository,
-                                  Clock clock, Resources resources, String sessionId) {
+                                  HistoryRepository history, Clock clock, Resources resources,
+                                  String sessionId) {
         this.sessions = sessions;
+        this.history = history;
         this.clock = clock;
         this.sessionId = sessionId;
         this.rowBuilder = new SessionRowBuilder(resources, UNIT);
@@ -139,6 +149,14 @@ public final class ActiveSessionViewModel extends ViewModel {
         drafts.put(setId, draftOf(setId).withReps(text));
     }
 
+    public void onRepsLeftTyped(String setId, String text) {
+        drafts.put(setId, draftOf(setId).withRepsLeft(text));
+    }
+
+    public void onRepsRightTyped(String setId, String text) {
+        drafts.put(setId, draftOf(setId).withRepsRight(text));
+    }
+
     /** Called when a field loses focus and when the screen stops: keeps typing across a restart. */
     public void flushDraft(String setId) {
         SetDraft draft = drafts.get(setId);
@@ -151,11 +169,12 @@ public final class ActiveSessionViewModel extends ViewModel {
         if (current == null) {
             return;
         }
-        SessionExercise exercise = current.exerciseOfSet(setId);
-        LoggedSet set = current.setById(setId);
-        if (exercise == null || set == null || set.isCompleted()) {
+        Located row = locate(current, setId);
+        if (row == null || row.set().isCompleted()) {
             return;
         }
+        SessionExercise exercise = row.exercise();
+        LoggedSet set = row.set();
         SetValues parsed = parse(exercise, set, draft);
         if (parsed != null) {
             sessions.saveTypedValues(setId, parsed);
@@ -179,14 +198,34 @@ public final class ActiveSessionViewModel extends ViewModel {
         if (current == null) {
             return;
         }
-        SessionExercise exercise = current.exerciseOfSet(setId);
-        LoggedSet set = current.setById(setId);
-        if (exercise == null || set == null) {
+        Located row = locate(current, setId);
+        if (row == null) {
             return;
         }
+        SessionExercise exercise = row.exercise();
+        LoggedSet set = row.set();
         SetValues typed = parse(exercise, set, drafts.get(setId));
         if (typed == null) {
             events.setValue(new Event<>(SessionEvent.ACTION_FAILED));
+            return;
+        }
+        // Checked on what the user actually entered, BEFORE any suggestion is adopted. Checking it
+        // afterwards is useless: withSuggestion has already filled the blank side by then, so the
+        // guard could only ever fire when there happened to be nothing to adopt - which made the
+        // same visible state (E typed, D blank) complete or refuse depending on whether the draft
+        // had been flushed to the database yet. Found by a test written against the documented
+        // behaviour, which the code did not have.
+        //
+        // Half entered is refused, because per-side exists precisely for sides that DIFFER: filling
+        // D from the plan when the user typed E records a number they did not perform, and
+        // FinishReview would call that same set "partial" (PRODUCT_SPEC section 8).
+        //
+        // Neither side entered is allowed through to the suggestion, which then fills both. That is
+        // the same "I did what was planned" the single combined field already means when it is
+        // confirmed empty, so the two modes stay consistent with each other.
+        if (exercise.sideMode() == SideMode.PER_SIDE && exercise.isUnilateral()
+                && (typed.repsLeft() == null) != (typed.repsRight() == null)) {
+            events.setValue(new Event<>(SessionEvent.PER_SIDE_INCOMPLETE));
             return;
         }
         SetValues values = withSuggestion(typed, set.suggestion(), exercise);
@@ -204,7 +243,32 @@ public final class ActiveSessionViewModel extends ViewModel {
 
     public void removeSet(String sessionExerciseId, String setId) {
         drafts.remove(setId);
+        // Its drops go with it (the foreign key cascades), and so does whatever was typed into them.
+        ActiveSession current = session.getValue();
+        Located row = current == null ? null : locate(current, setId);
+        if (row != null) {
+            for (LoggedSet segment : row.set().segments()) {
+                drafts.remove(segment.id());
+            }
+        }
         sessions.removeSet(sessionId, sessionExerciseId, setId, this::noop, this::onActionFailed);
+    }
+
+    /**
+     * Adds a drop to a set: a child row that belongs to it, not another set (PRODUCT_SPEC 9.1).
+     * Takes the id of the SET, and the drop goes after the ones it already has.
+     */
+    public void addSegment(String setId) {
+        sessions.addSegment(sessionId, setId, this::noop, this::onActionFailed);
+    }
+
+    /**
+     * Removes one drop by its OWN id. Passing its set's id here would ask for a different, much
+     * larger delete, and the repository refuses it. The set and its other drops stay.
+     */
+    public void removeSegment(String segmentId) {
+        drafts.remove(segmentId);
+        sessions.removeSegment(sessionId, segmentId, this::noop, this::onActionFailed);
     }
 
     public void setTechnique(String setId, @Nullable String techniqueId) {
@@ -243,6 +307,21 @@ public final class ActiveSessionViewModel extends ViewModel {
         }, error -> events.setValue(new Event<>(SessionEvent.FINISH_FAILED)));
     }
 
+    /**
+     * Records how the session felt, as soon as the number is tapped.
+     *
+     * <p>Written per tap rather than held until the dialog is closed: the summary dialog also
+     * closes on back, and a rating waiting in memory would be lost without a word (ADR-0031).
+     * Failures are silent on purpose - the workout is already saved, and an error toast over a
+     * summary would suggest something worse went wrong than an optional number not sticking.
+     */
+    public void rate(@Nullable Integer rating) {
+        if (summary == null) {
+            return; // nothing finished to rate
+        }
+        history.rate(sessionId, rating, saved -> { }, error -> { });
+    }
+
     public void discard() {
         sessions.discard(sessionId, () -> events.setValue(new Event<>(SessionEvent.DISCARDED)),
                 error -> events.setValue(new Event<>(SessionEvent.FINISH_FAILED)));
@@ -262,6 +341,33 @@ public final class ActiveSessionViewModel extends ViewModel {
         localChanges.setValue(value == null ? 1 : value + 1);
     }
 
+    /** A row that holds values - a set OR one of its drops - and the exercise it belongs to. */
+    private record Located(SessionExercise exercise, LoggedSet set) {
+    }
+
+    /**
+     * Finds a set or a drop by id. {@link ActiveSession#setById} and {@code exerciseOfSet} only
+     * look at SETS, and a drop is nested inside its set, so asked for a drop they answer null. Every
+     * write that starts from them would then return without a word: the drop's typed numbers would
+     * never reach the database and its check button would do nothing, with no error to point at.
+     */
+    @Nullable
+    private static Located locate(ActiveSession current, String rowId) {
+        for (SessionExercise exercise : current.exercises()) {
+            for (LoggedSet set : exercise.sets()) {
+                if (set.id().equals(rowId)) {
+                    return new Located(exercise, set);
+                }
+                for (LoggedSet segment : set.segments()) {
+                    if (segment.id().equals(rowId)) {
+                        return new Located(exercise, segment);
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
     private SetDraft draftOf(String setId) {
         SetDraft draft = drafts.get(setId);
         return draft == null ? SetDraft.EMPTY : draft;
@@ -271,8 +377,12 @@ public final class ActiveSessionViewModel extends ViewModel {
     @Nullable
     private SetValues parse(SessionExercise exercise, LoggedSet set, @Nullable SetDraft draft) {
         boolean timed = exercise.trackingType().usesDuration() && !exercise.trackingType().usesReps();
+        boolean perSide = !timed && exercise.isUnilateral()
+                && exercise.sideMode() == SideMode.PER_SIDE;
         Weight weight = set.values().weight();
         Integer reps = set.values().reps();
+        Integer repsLeft = set.values().repsLeft();
+        Integer repsRight = set.values().repsRight();
         Integer duration = set.values().durationSeconds();
         if (draft != null) {
             try {
@@ -290,12 +400,30 @@ public final class ActiveSessionViewModel extends ViewModel {
                         reps = value;
                     }
                 }
+                if (draft.repsLeftText() != null) {
+                    repsLeft = NumberInput.parseWholeNumber(draft.repsLeftText());
+                }
+                if (draft.repsRightText() != null) {
+                    repsRight = NumberInput.parseWholeNumber(draft.repsRightText());
+                }
             } catch (IllegalArgumentException e) {
                 return null;
             }
         }
-        return new SetValues(weight, timed ? null : reps, set.values().repsLeft(),
-                set.values().repsRight(), timed ? duration : set.values().durationSeconds());
+        // The two shapes are mutually exclusive going forward: a per-side set must not also keep a
+        // combined `reps`, because SessionExercise.totalRepsOf takes the per-side branch whenever a
+        // side is present, so the combined number would silently stop counting.
+        //
+        // The other direction only PRESERVES. A non-per-side set keeps whatever sides are already
+        // stored instead of having them overwritten with null - normally they are null anyway, and
+        // if they are not, they are somebody's recorded repetitions. Nothing gets discarded here
+        // just because this screen did not expect to find it (PRODUCT_SPEC section 8).
+        return new SetValues(
+                weight,
+                timed || perSide ? null : reps,
+                perSide ? repsLeft : set.values().repsLeft(),
+                perSide ? repsRight : set.values().repsRight(),
+                timed ? duration : set.values().durationSeconds());
     }
 
     /**
@@ -314,6 +442,8 @@ public final class ActiveSessionViewModel extends ViewModel {
     /** Empty fields adopt the suggestion the user was looking at when they confirmed the set. */
     private static SetValues withSuggestion(SetValues typed, SetValues suggestion, SessionExercise exercise) {
         boolean timed = exercise.trackingType().usesDuration() && !exercise.trackingType().usesReps();
+        boolean perSide = !timed && exercise.isUnilateral()
+                && exercise.sideMode() == SideMode.PER_SIDE;
         Weight weight = typed.weight() != null ? typed.weight() : suggestion.weight();
         Integer reps = typed.reps() != null ? typed.reps() : suggestion.reps();
         Integer duration = typed.durationSeconds() != null
@@ -321,10 +451,24 @@ public final class ActiveSessionViewModel extends ViewModel {
                 : suggestion.durationSeconds();
         return new SetValues(
                 exercise.trackingType().usesWeight() ? weight : null,
-                timed ? null : reps,
-                typed.repsLeft(),
-                typed.repsRight(),
+                timed || perSide ? null : reps,
+                perSide ? sideOrSuggestion(typed.repsLeft(), suggestion.repsLeft(), suggestion) : null,
+                perSide ? sideOrSuggestion(typed.repsRight(), suggestion.repsRight(), suggestion) : null,
                 timed ? duration : null);
+    }
+
+    /**
+     * One side's repetitions: what was typed, else that side of the suggestion, else the combined
+     * suggestion - on a unilateral exercise "10 reps" has always meant 10 per side
+     * (PRODUCT_SPEC 6.4), so offering it for each side repeats a number the user is looking at
+     * rather than inventing one.
+     */
+    private static Integer sideOrSuggestion(Integer typed, Integer suggestedSide,
+                                            SetValues suggestion) {
+        if (typed != null) {
+            return typed;
+        }
+        return suggestedSide != null ? suggestedSide : suggestion.reps();
     }
 
     private void onActionFailed(Throwable error) {

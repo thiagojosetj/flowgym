@@ -15,8 +15,10 @@ android {
         applicationId = "io.github.thiagojosetj.flowgym"
         minSdk = 28
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1.0"
+        // Bumped with each batch of work that can land on a phone, so a sideloaded build can be
+        // told apart from the one already installed: Settings shows both the name and the code.
+        versionCode = 2
+        versionName = "0.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -29,6 +31,29 @@ android {
         }
     }
 
+    // Signing for the release build, taken from the environment and never from a file in the
+    // repository (the repository is public). Unset environment = unsigned release, which is exactly
+    // what this build did before and what a fork or a contributor without the key still gets; only
+    // the install on a phone needs a signature, not the gate.
+    //
+    // The DEBUG build is deliberately left on the SDK's own debug key. Signing it here with a
+    // different key would make a locally installed debug build and a downloaded one reject each
+    // other - same applicationId, different signature - and the only way out of that is to
+    // uninstall, which deletes the training history.
+    val releaseKeystore = System.getenv("FLOWGYM_KEYSTORE_FILE")
+    val hasReleaseKey = !releaseKeystore.isNullOrBlank() && file(releaseKeystore).exists()
+
+    signingConfigs {
+        if (hasReleaseKey) {
+            create("release") {
+                storeFile = file(releaseKeystore!!)
+                storePassword = System.getenv("FLOWGYM_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("FLOWGYM_KEY_ALIAS")
+                keyPassword = System.getenv("FLOWGYM_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             // Debug and release builds can be installed side by side.
@@ -36,6 +61,9 @@ android {
             versionNameSuffix = "-debug"
         }
         release {
+            if (hasReleaseKey) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

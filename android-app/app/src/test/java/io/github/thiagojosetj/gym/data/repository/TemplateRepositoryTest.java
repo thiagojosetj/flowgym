@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 import android.database.Cursor;
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
+import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import org.junit.After;
@@ -43,6 +44,7 @@ import io.github.thiagojosetj.gym.domain.template.TemplateRules;
 import io.github.thiagojosetj.gym.domain.template.TemplateSummary;
 import io.github.thiagojosetj.gym.domain.util.IdGenerator;
 import io.github.thiagojosetj.gym.testutil.LiveDataTestUtil;
+import io.github.thiagojosetj.gym.testutil.MutableClock;
 import io.github.thiagojosetj.gym.testutil.TestContainers;
 
 /** The first vertical slice at the data level: library → template → save → reopen. */
@@ -55,11 +57,14 @@ public class TemplateRepositoryTest {
     private AppDatabase database;
     private AppContainer container;
     private TemplateRepository templates;
+    /** Movable, so "archived a minute later" is a real ordering and not two identical timestamps. */
+    private MutableClock clock;
 
     @Before
     public void setUp() {
         database = TestContainers.inMemoryDatabase();
-        container = TestContainers.create(database);
+        clock = MutableClock.at("2026-09-21T12:00:00Z");
+        container = TestContainers.create(ApplicationProvider.getApplicationContext(), database, clock);
         container.start();
         templates = container.templates;
     }
@@ -229,6 +234,125 @@ public class TemplateRepositoryTest {
         assertTrue(error.get() instanceof TemplateRepository.TemplateNotFoundException);
     }
 
+    // ------------------------------------------------------------------ arquivar (PRODUCT_SPEC 5.6)
+
+    @Test
+    public void archivedTemplateLeavesTheActiveListAndEntersTheArchivedOne() throws Exception {
+        String id = save(newPushTemplate());
+
+        archive(id, true);
+
+        assertTrue(LiveDataTestUtil.getOrAwaitValue(templates.observeTemplates()).isEmpty());
+        List<TemplateSummary> archived = LiveDataTestUtil.getOrAwaitValue(templates.observeArchived());
+        assertEquals(1, archived.size());
+        assertEquals("Push A", archived.get(0).name());
+        // The card says the same thing in both lists: archiving is not editing.
+        assertEquals(2, archived.get(0).exerciseCount());
+        assertEquals(6, archived.get(0).setCount());
+        assertEquals(Integer.valueOf(0), LiveDataTestUtil.getOrAwaitValue(templates.observeTemplateCount()));
+        assertEquals(Integer.valueOf(1), LiveDataTestUtil.getOrAwaitValue(templates.observeArchivedCount()));
+    }
+
+    @Test
+    public void unarchivingBringsTheTemplateBackWholeAndClearsTheTimestamp() throws Exception {
+        String id = save(newPushTemplate());
+        archive(id, true);
+
+        archive(id, false);
+
+        assertTrue(LiveDataTestUtil.getOrAwaitValue(templates.observeArchived()).isEmpty());
+        List<TemplateSummary> active = LiveDataTestUtil.getOrAwaitValue(templates.observeTemplates());
+        assertEquals(1, active.size());
+        assertEquals(0, count("SELECT COUNT(*) FROM workout_template WHERE archived_at IS NOT NULL"));
+        // Nothing was lost on the way out and back: the plan reopens exactly as it was.
+        TemplateDraft reopened = load(id);
+        assertEquals(2, reopened.exercises().size());
+        assertEquals(3, reopened.exercises().get(0).setCount());
+    }
+
+    @Test
+    public void archivedTemplateStillOpensInTheEditor() throws Exception {
+        // Unarchiving is only safe if the aggregate survived being put away. Reading it directly
+        // proves the archived row keeps its exercises and sets, not just its name.
+        String id = save(newPushTemplate());
+        archive(id, true);
+
+        TemplateDraft draft = load(id);
+
+        assertEquals("Push A", draft.name());
+        assertEquals(2, draft.exercises().size());
+        assertEquals(2, count("SELECT COUNT(*) FROM template_exercise"));
+        assertEquals(6, count("SELECT COUNT(*) FROM template_set"));
+    }
+
+    @Test
+    public void deletedTemplateIsInNeitherList() throws Exception {
+        // Deleted is not archived: a soft-deleted row has archived_at NULL, so an archived list
+        // that only asked "archived_at IS NOT NULL" would be right by accident. Archive first, so
+        // the row carries both timestamps and only the delete filter can keep it out.
+        String id = save(newPushTemplate());
+        archive(id, true);
+        boolean[] deleted = {false};
+        templates.delete(id, () -> deleted[0] = true, e -> { throw new AssertionError(e); });
+
+        assertTrue(deleted[0]);
+        assertTrue(LiveDataTestUtil.getOrAwaitValue(templates.observeTemplates()).isEmpty());
+        assertTrue(LiveDataTestUtil.getOrAwaitValue(templates.observeArchived()).isEmpty());
+        assertEquals(Integer.valueOf(0), LiveDataTestUtil.getOrAwaitValue(templates.observeArchivedCount()));
+    }
+
+    @Test
+    public void archivingADeletedTemplateChangesNothing() throws Exception {
+        String id = save(newPushTemplate());
+        templates.delete(id, () -> { }, e -> { throw new AssertionError(e); });
+
+        archive(id, true);
+
+        assertEquals(0, count("SELECT COUNT(*) FROM workout_template WHERE archived_at IS NOT NULL"));
+    }
+
+    @Test
+    public void mostRecentlyArchivedComesFirst() throws Exception {
+        String first = save(newPushTemplate());
+        TemplateDraft second = newPushTemplate();
+        second.rename("Pull A");
+        String secondId = save(second);
+
+        archive(first, true);
+        clock.advanceMinutes(1);
+        archive(secondId, true);
+
+        List<TemplateSummary> archived = LiveDataTestUtil.getOrAwaitValue(templates.observeArchived());
+        assertEquals(Arrays.asList("Pull A", "Push A"), Arrays.asList(
+                archived.get(0).name(), archived.get(1).name()));
+    }
+
+    @Test
+    public void archivingMarksTheRowForSync() throws Exception {
+        String id = save(newPushTemplate());
+        database.getOpenHelper().getWritableDatabase().execSQL(
+                "UPDATE workout_template SET sync_status = 'SYNCED' WHERE id = '" + id + "'");
+
+        archive(id, true);
+
+        assertEquals("PENDING", string("SELECT sync_status FROM workout_template WHERE id = '" + id + "'"));
+    }
+
+    @Test
+    public void deletingTwiceKeepsTheFirstTombstone() throws Exception {
+        // Found by mutation while testing archiving: dropping "deleted_at IS NULL" from the delete
+        // broke no test. A second delete would move the tombstone, which is a lie about when the
+        // template left - and for sync, a row that keeps looking newly deleted.
+        String id = save(newPushTemplate());
+        templates.delete(id, () -> { }, e -> { throw new AssertionError(e); });
+        String first = string("SELECT deleted_at FROM workout_template WHERE id = '" + id + "'");
+
+        clock.advanceMinutes(5);
+        templates.delete(id, () -> { }, e -> { throw new AssertionError(e); });
+
+        assertEquals(first, string("SELECT deleted_at FROM workout_template WHERE id = '" + id + "'"));
+    }
+
     @Test
     public void newTemplatesAreOwnedByTheLocalUserAndPendingSync() throws Exception {
         String id = save(newPushTemplate());
@@ -264,6 +388,12 @@ public class TemplateRepositoryTest {
         templates.save(draft, saved::set, e -> { throw new AssertionError(e); });
         assertNotNull(saved.get());
         return saved.get();
+    }
+
+    private void archive(String id, boolean archived) {
+        boolean[] done = {false};
+        templates.setArchived(id, archived, () -> done[0] = true, e -> { throw new AssertionError(e); });
+        assertTrue("setArchived never reported done", done[0]);
     }
 
     private TemplateDraft load(String id) {

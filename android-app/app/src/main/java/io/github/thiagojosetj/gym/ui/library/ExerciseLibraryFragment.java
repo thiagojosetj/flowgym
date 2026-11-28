@@ -63,7 +63,13 @@ public class ExerciseLibraryFragment extends Fragment implements ExerciseAdapter
 
     /** Chip view id → muscle id (null = "all"). Rebuilt with the chips. */
     private final Map<Integer, String> groupChipIds = new HashMap<>();
-    private final Map<Integer, String> subgroupChipIds = new HashMap<>();
+
+    /** The parts of the chosen group, shown as pictures instead of names. */
+    private MuscleFilterAdapter subgroupAdapter;
+
+    /** The group whose parts the row currently holds, so it is rebuilt only when that changes. */
+    @Nullable
+    private String subgroupsBuiltFor;
     private List<MuscleGroup> groups = new ArrayList<>();
     private List<Equipment> equipment = new ArrayList<>();
     /** True while chips are updated from the ViewModel, so listeners don't echo changes back. */
@@ -137,11 +143,8 @@ public class ExerciseLibraryFragment extends Fragment implements ExerciseAdapter
                 viewModel.selectGroup(groupChipIds.get(checkedIds.get(0)));
             }
         });
-        binding.subgroupChips.setOnCheckedStateChangeListener((group, checkedIds) -> {
-            if (!syncingChips && !checkedIds.isEmpty()) {
-                viewModel.selectSubgroup(subgroupChipIds.get(checkedIds.get(0)));
-            }
-        });
+        subgroupAdapter = new MuscleFilterAdapter(viewModel::selectSubgroup);
+        binding.subgroupList.setAdapter(subgroupAdapter);
         binding.chipEquipment.setOnClickListener(v -> showEquipmentDialog());
         binding.chipRole.setOnClickListener(v -> showRoleDialog());
         binding.buttonClearFilters.setOnClickListener(v -> viewModel.clearStructuredFilters());
@@ -158,14 +161,17 @@ public class ExerciseLibraryFragment extends Fragment implements ExerciseAdapter
         syncingChips = false;
     }
 
-    private void buildSubgroupChips(MuscleGroup group) {
-        binding.subgroupChips.removeAllViews();
-        subgroupChipIds.clear();
-        addChip(binding.subgroupChips, subgroupChipIds, getString(R.string.library_filter_whole_group), null);
+    private void buildSubgroupRow(MuscleGroup group, @Nullable String selectedId) {
+        List<MuscleFilterAdapter.Option> options = new ArrayList<>();
+        // The whole group comes first and shows everything its parts show, so "all of the chest"
+        // is a picture too and not an unlabelled escape hatch.
+        options.add(new MuscleFilterAdapter.Option(null, group.group().code(),
+                getString(R.string.library_filter_whole_group)));
         for (MuscleNode node : group.subgroups()) {
-            addChip(binding.subgroupChips, subgroupChipIds, node.name(), node.id());
+            options.add(new MuscleFilterAdapter.Option(node.id(), node.code(), node.name()));
         }
-        binding.subgroupChips.setTag(group.group().id());
+        subgroupAdapter.submit(options, selectedId);
+        subgroupsBuiltFor = group.group().id();
     }
 
     private void addChip(ChipGroup parent, Map<Integer, String> ids, String text, @Nullable String muscleId) {
@@ -186,12 +192,13 @@ public class ExerciseLibraryFragment extends Fragment implements ExerciseAdapter
 
         MuscleGroup selectedGroup = findGroup(filter.muscleGroupId());
         boolean showSubgroups = selectedGroup != null && !selectedGroup.subgroups().isEmpty();
-        binding.subgroupScroll.setVisibility(showSubgroups ? View.VISIBLE : View.GONE);
+        binding.subgroupList.setVisibility(showSubgroups ? View.VISIBLE : View.GONE);
         if (showSubgroups) {
-            if (!selectedGroup.group().id().equals(binding.subgroupChips.getTag())) {
-                buildSubgroupChips(selectedGroup);
+            if (!selectedGroup.group().id().equals(subgroupsBuiltFor)) {
+                buildSubgroupRow(selectedGroup, filter.muscleSubgroupId());
+            } else {
+                subgroupAdapter.select(filter.muscleSubgroupId());
             }
-            checkChipFor(binding.subgroupChips, subgroupChipIds, filter.muscleSubgroupId());
         }
         syncingChips = false;
 

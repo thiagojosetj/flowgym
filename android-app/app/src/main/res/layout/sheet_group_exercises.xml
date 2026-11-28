@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="@dimen/space_l"
+        android:paddingTop="@dimen/space_s"
+        android:paddingBottom="@dimen/space_l">
+
+        <TextView
+            android:id="@+id/group_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:accessibilityHeading="true"
+            android:text="@string/editor_group_with"
+            android:textAppearance="?attr/textAppearanceTitleLarge" />
+
+        <TextView
+            android:id="@+id/group_intro"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_xs"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            tools:text="Supino reto entra no grupo. Marque pelo menos mais um exercício." />
+
+        <!-- One checkbox per exercise that is in no group (item_group_candidate.xml). -->
+        <LinearLayout
+            android:id="@+id/group_candidates"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_s"
+            android:orientation="vertical" />
+
+        <TextView
+            android:id="@+id/group_error"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:accessibilityLiveRegion="polite"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textColor="?attr/colorError"
+            android:visibility="gone"
+            tools:text="Um grupo precisa de pelo menos 2 exercícios"
+            tools:visibility="visible" />
+
+        <!--
+            O método do grupo (supersérie, bi-set, tri-set, giant set). Botão com o nome por
+            extenso, e não a sigla: aqui há largura, e "SS" não ensina nada a quem está montando
+            o treino pela primeira vez. O ⓘ ao lado abre a explicação do método.
+        -->
+        <TextView
+            android:id="@+id/group_technique_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_m"
+            android:text="@string/editor_group_technique"
+            android:textAppearance="?attr/textAppearanceLabelLarge"
+            android:textColor="?attr/colorOnSurfaceVariant" />
+
+        <LinearLayout
+            android:id="@+id/group_technique_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:baselineAligned="false"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/button_group_technique"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/touch_target_min"
+                android:layout_weight="1"
+                android:gravity="start|center_vertical"
+                tools:text="Supersérie" />
+
+            <!--
+                A descrição boa ("O que é Supersérie") depende do método escolhido e é posta em
+                código, no mesmo lugar que torna o botão visível. Esta aqui é reserva: existe
+                para o lint não precisar ser silenciado e para o botão nunca ficar mudo.
+            -->
+            <ImageButton
+                android:id="@+id/button_group_technique_info"
+                android:layout_width="@dimen/touch_target_min"
+                android:layout_height="@dimen/touch_target_min"
+                android:layout_marginStart="@dimen/space_xs"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/editor_group_technique_explain"
+                android:src="@drawable/ic_info"
+                android:visibility="gone"
+                app:tint="?attr/colorOnSurfaceVariant"
+                tools:visibility="visible" />
+        </LinearLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/group_rest_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_m"
+            android:hint="@string/editor_group_rest"
+            app:helperText="@string/editor_group_rest_helper"
+            app:helperTextEnabled="true">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/group_rest_input"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:importantForAutofill="no"
+                android:inputType="number"
+                android:maxLength="4" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Saying it beforehand: Salvar, in the toolbar, has nothing to do with the group. -->
+        <TextView
+            android:id="@+id/group_saved_note"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_s"
+            android:text="@string/editor_group_saved_now"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textColor="?attr/colorOnSurfaceVariant" />
+
+        <!-- Material 3 dialog actions, as in the plan sheet: text button + filled primary. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_l"
+            android:gravity="end"
+            android:orientation="horizontal"
+            tools:ignore="ButtonStyle">
+
+            <Button
+                android:id="@+id/button_group_cancel"
+                style="?attr/borderlessButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="@dimen/space_s"
+                android:text="@string/action_cancel" />
+
+            <Button
+                android:id="@+id/button_group_confirm"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/editor_group_confirm" />
+        </LinearLayout>
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

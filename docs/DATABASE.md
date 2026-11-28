@@ -204,6 +204,86 @@ por **ordinal entre as séries de trabalho**, calculado em Java (`WorkingSetPair
 da API 28 não tem funções de janela — e porque dado derivado se corrige com um release, enquanto uma
 coluna exigiria migration (ADR-0033).
 
+### Leituras do histórico (Fase 4) — **sem mudança de esquema**
+
+A Fase 4 não criou nem alterou nenhuma tabela: o banco continua na **versão 3**. Tudo o que o
+histórico mostra já estava gravado desde a v3 — inclusive `local_date`, `time_zone` e `rating`, que
+existiam sem ninguém ler. O que entrou foram consultas novas em `SessionDao`:
+
+| Consulta | O que responde |
+|---|---|
+| `observeCompletedSessions()` / `findCompletedSessions()` | a lista, uma linha por sessão, com as pausas já somadas e os exercícios e séries feitas já contados em SQL |
+| `findPreviousSessionOfTemplate(templateId, startedAt)` | a sessão anterior **do mesmo template**, para a comparação do §11 |
+
+Três detalhes que não são opcionais:
+
+- **`status = 'COMPLETED'` é explícito.** Uma sessão descartada também tem `ended_at`: "terminou" não
+  é "aconteceu". Filtrar por `ended_at IS NOT NULL` traria o lixo de volta.
+- **`parent_set_id IS NULL` na contagem de séries.** Hoje não existe nenhuma linha filha, mas os
+  segmentos de drop-set/rest-pause vão ser exatamente isso — sem o filtro, o dia em que aquela tela
+  entrar todas as sessões passadas passam a contar séries a mais, silenciosamente.
+- **As pausas são somadas de `session_pause`, não lidas de `total_paused_ms`**, que é só cache (§2).
+
+O **volume** continua fora do SQL, e de propósito: as regras do PRODUCT_SPEC §9 (carga por implemento
+multiplicada, reps por lado somadas, peso corporal e séries por tempo fora) vivem em `SessionVolume`,
+no `:domain`. Reimplementá-las em SQL daria à lista e à tela da sessão duas chances de discordar — e
+a "N séries não incluídas no volume" tem de significar a mesma coisa nos dois lugares.
+
+#### Invariante: `counts_as_working_set` **nunca muda** para um `technique_id` já publicado
+
+Levantado na revisão adversarial de 28/09/2026 (ADR-0028) e **confirmado**: se uma série é aquecimento
+não está gravado em `set_log`. A consulta faz `LEFT JOIN training_technique` e lê
+`counts_as_working_set` **na hora da leitura**, então virar esse booleano numa técnica já existente
+reescreveria o volume e a linha "N séries não incluídas no volume" de sessões **passadas**.
+
+É dívida de modelagem **anterior** à Fase 4 (a coluna e o JOIN existem desde a v2/v3; o histórico só
+foi a primeira tela onde isso ficaria visível) e **não é alcançável hoje**: `TechniqueDao` é somente
+leitura, o único escritor é o `CatalogSeeder`, e ele só roda quando uma **nova versão do app** sobe o
+`BUNDLED_VERSION`. Ou seja, só um release deliberado dispara isso.
+
+**Regra, então:** mudar se um método conta como série de trabalho exige um **`technique_id` novo**,
+nunca virar o booleano de um id já publicado. Uma técnica aposentada continua correta sozinha —
+`deactivateSystemTechniques` só marca `is_active = 0` e o JOIN não filtra por isso, então sessões
+antigas continuam lendo a definição que valia no dia.
+
+Se um dia isso precisar ser **estruturalmente impossível** em vez de acordado: snapshot de
+`counts_as_working_set` em `set_log`, o que é migration v4 + `4.json` + teste de migration. Não é
+urgente e não bloqueou a Fase 4.
+
+**Índices:** nenhum foi criado. `workout_session` tem índice em `owner_user_id`, e a ordenação por
+`started_at` e a busca por `template_id` são varredura em cima disso. No volume de dados de uma pessoa
+(centenas de sessões) isso não se mede; quando medir, um índice é uma migration v5 com teste, não um
+ajuste solto.
+
+## 2b. Esquema — versão 4 (grupos de exercícios)
+
+Primeira mudança de esquema desde a v3. Só **cria**: duas tabelas novas e duas colunas anuláveis.
+Nenhuma linha existente é reescrita, e um exercício sem grupo lê `group_id IS NULL` — que é o que
+todo template e toda sessão gravados antes desta migration já têm.
+
+### `template_exercise_group` (v4)
+`id` TEXT PK · `template_id` FK CASCADE · `label` TEXT NOT NULL ("A", "B" → A1, A2) ·
+`technique_id` FK → `training_technique` (NULL = agrupamento sem técnica) ·
+`rest_after_round_s` INTEGER NOT NULL · `position` INTEGER NOT NULL.
+Índices: `template_id`, `technique_id`.
+
+### `session_exercise_group` (v4)
+Mesma forma, ligada a `workout_session` (CASCADE), **mais `technique_code`**: o snapshot do badge.
+
+O código é **gravado, não lido por JOIN**, e isso é de propósito. A revisão adversarial de
+28/09/2026 achou exatamente essa exposição em `training_technique.counts_as_working_set`, que hoje
+sobrevive só como invariante documentada porque snapshotar depois custaria outra migration. Aqui a
+tabela é nova, então a coluna é de graça — e uma sessão passada continua mostrando o badge que
+mostrava no dia.
+
+### Colunas novas
+`template_exercise.group_id` e `session_exercise.group_id`, ambas TEXT NULL com índice e
+**`ON DELETE SET NULL`**. SET NULL e não CASCADE: desagrupar é uma edição normal, e CASCADE ali
+apagaria o exercício junto com o grupo — perder o treino do usuário para corrigir um rótulo.
+
+O descanso fica no **grupo**, não em cada exercício: numa supersérie A1/A2 ele começa quando a
+**rodada** termina (PRODUCT_SPEC §6.3), então pertence à rodada, não a um exercício dela.
+
 ## 3. Tabelas planejadas (próximas migrations)
 
 ### Fase 1 — mídia
@@ -212,8 +292,8 @@ coluna exigiria migration (ADR-0033).
 `duration_ms`, `license`, `attribution`, `sort_order`.
 
 ### Fase 2 — grupos de exercícios (o que falta)
-- `template_exercise_group`: `id`, `template_id`, `label` (A, B…), `technique_id`, `rest_after_round_s`.
-- Novas colunas: `template_exercise.group_id`, `.technique_id` (esquema de séries, ex.: pirâmide),
+- ✅ `template_exercise_group` e `template_exercise.group_id` entraram na **v4** (ver §2b).
+- Ainda faltam: `template_exercise.technique_id` (esquema de séries, ex.: pirâmide),
   `.technique_params`; `template_set.technique_params`.
 
 ### Fase 3 — o que ficou de fora da v3 (migrations futuras)

@@ -5,16 +5,41 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/list"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:clipToPadding="false"
-        android:paddingHorizontal="@dimen/screen_margin"
-        android:paddingTop="@dimen/space_s"
-        android:paddingBottom="@dimen/fab_clearance"
-        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-        tools:listitem="@layout/item_template" />
+        android:orientation="vertical">
+
+        <!--
+            A barra só aparece na lista de arquivados. Sem ela as duas listas são visualmente
+            iguais e o usuário não tem como saber qual está vendo - o título da toolbar é o do
+            destino de navegação ("Treinos") nas duas.
+        -->
+        <TextView
+            android:id="@+id/archived_banner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/colorSurfaceVariant"
+            android:paddingHorizontal="@dimen/screen_margin"
+            android:paddingVertical="@dimen/space_s"
+            android:text="@string/templates_archived_banner"
+            android:textAppearance="?attr/textAppearanceLabelMedium"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/list"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:paddingHorizontal="@dimen/screen_margin"
+            android:paddingTop="@dimen/space_s"
+            android:paddingBottom="@dimen/fab_clearance"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            tools:listitem="@layout/item_template" />
+    </LinearLayout>
 
     <LinearLayout
         android:id="@+id/empty_state"
@@ -28,6 +53,7 @@
         tools:visibility="visible">
 
         <ImageView
+            android:id="@+id/empty_icon"
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:importantForAccessibility="no"
@@ -35,6 +61,7 @@
             app:tint="?attr/colorPrimary" />
 
         <TextView
+            android:id="@+id/empty_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/space_m"
@@ -42,6 +69,7 @@
             android:textAppearance="?attr/textAppearanceTitleMedium" />
 
         <TextView
+            android:id="@+id/empty_body"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/space_xs"

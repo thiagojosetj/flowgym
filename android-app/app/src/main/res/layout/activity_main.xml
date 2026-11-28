@@ -31,9 +31,19 @@
         app:defaultNavHost="true"
         app:navGraph="@navigation/nav_graph" />
 
+    <!--
+        labelVisibilityMode is explicit on purpose. The default is "auto", which Material reads as
+        "label only the selected tab once there are MORE THAN THREE items"
+        (NavigationBarMenuView.isShifting: mode == AUTO ? childCount > 3 : ...). Adding the fourth
+        tab therefore silently took the labels off Início, Treinos and Exercícios - three screens
+        this change never meant to touch, and nothing in the test suite would have noticed.
+        "labeled" restores exactly the previous behaviour, and pins it so the fifth tab cannot
+        repeat the trick.
+    -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_nav"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        app:labelVisibilityMode="labeled"
         app:menu="@menu/bottom_nav" />
 </LinearLayout>

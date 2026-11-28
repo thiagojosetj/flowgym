@@ -122,6 +122,26 @@ Regras:
   corridas (ex.: dois toques rápidos em "salvar").
 - Resultados de escritas voltam à UI por `LiveData`/callback na main thread.
 - `allowMainThreadQueries` **nunca** é usado em produção.
+- **Observar é para dado que muda.** Uma tela montada a partir de **duas ou mais** consultas
+  observadas renderiza com o que responder primeiro — foi assim que três bugs da Fase 3 passaram
+  pelos testes, que usam executores síncronos e por isso nunca têm uma consulta chegando "depois".
+  Regra prática, e o que o histórico faz (ADR-0036):
+  - dado **imutável** (uma sessão concluída) → leitura **única** em `runOnDisk`, que devolve tudo
+    pronto; não há segunda emissão para esperar nem estado intermediário para desenhar;
+  - dado **que muda** (a lista de sessões) → `LiveData`, mas **uma** consulta e um `map`, nunca
+    fontes combinadas. Se combinar for inevitável, o teste que prova o comportamento não pode ser
+    o que usa executor síncrono.
+- **Quando a tela precisa de duas coisas do mesmo dado, mapeie as duas da mesma `LiveData`.** O
+  calendário do histórico (HIS-02) precisa da lista de sessões *e* do conjunto de dias treinados.
+  Uma segunda consulta (`SELECT DISTINCT local_date`) seria mais barata de ler e colocaria as duas
+  em corrida. Em vez disso o `HistoryRepository` guarda **uma** `LiveData` em campo e
+  `observeTrainedDates()` é um `map` dela: as duas descem na mesma emissão, e a grade não tem como
+  afirmar um dia que as linhas abaixo não têm. **Isso é estrutura, não teste** — com executores
+  síncronos, duas consultas também pareceriam consistentes.
+- Um `MediatorLiveData` com várias fontes **não** é a mesma coisa que combinar consultas, desde que
+  só uma das fontes venha do banco. O ViewModel do histórico junta a consulta com o mês mostrado, o
+  dia selecionado e o primeiro dia da semana: as outras três são estado de UI, escritas na main
+  thread, sem nada para chegar "depois".
 
 ### 5.3 Estado de UI e eventos
 - Estado contínuo (lista, filtros, formulário): `LiveData<Estado>`.
@@ -200,7 +220,9 @@ rotinas sempre que o cronograma muda.
 - Uma `RecyclerView` com `ListAdapter` + `DiffUtil`, sem `NestedScrollView` com listas dentro.
 - Itens estáveis (IDs = UUID) → animações e atualizações parciais; editar o peso de uma série
   atualiza **um item**, não a lista inteira.
-- Escritas por série debounced (~300 ms) no executor de disco; a UI nunca espera o disco.
+- Escritas por série no executor de disco; a UI nunca espera o disco. **Não há debounce**: cada
+  gesto é gravado na hora, e o que está sendo digitado é gravado ao sair do campo e ao fechar a
+  tela (ADR-0031). A linha anterior aqui falava de um debounce de ~300 ms que o código não tem.
 - Cronômetros redesenham só os `TextView`s de tempo (1×/s), não a lista.
 - Observações de banco sem loops: a UI não escreve em resposta direta à própria emissão do LiveData.
 

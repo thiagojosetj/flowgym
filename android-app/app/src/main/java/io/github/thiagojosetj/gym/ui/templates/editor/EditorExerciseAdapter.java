@@ -122,13 +122,21 @@ final class EditorExerciseAdapter extends RecyclerView.Adapter<EditorExerciseAda
 
         void bind(TemplateExerciseItem item) {
             Resources res = binding.getRoot().getResources();
-            binding.name.setText(item.name());
+            bindName(item, res);
             binding.muscle.setText(item.primaryMuscleName());
             binding.muscle.setVisibility(item.primaryMuscleName() == null ? View.GONE : View.VISIBLE);
             binding.plan.setText(formatter.planLine(item));
             binding.rest.setText(formatter.restLine(item));
-            List<String> codes = new ArrayList<>(item.badges().size());
-            List<String> names = new ArrayList<>(item.badges().size());
+            List<String> codes = new ArrayList<>(item.badges().size() + 1);
+            List<String> names = new ArrayList<>(item.badges().size() + 1);
+            // The group's method comes first: it is a fact about the whole group, and it reads
+            // with the "A1" the name already carries. Repeated on every member card on purpose -
+            // each card has to say what it is part of without the reader scrolling to find out.
+            if (item.group() != null && item.group().technique() != null) {
+                codes.add(item.group().technique().code());
+                names.add(res.getString(R.string.editor_group_technique_spoken,
+                        item.group().technique().name(), item.group().label()));
+            }
             for (TemplateExerciseItem.Badge badge : item.badges()) {
                 codes.add(badge.code());
                 names.add(badge.name());
@@ -150,6 +158,22 @@ final class EditorExerciseAdapter extends RecyclerView.Adapter<EditorExerciseAda
                 }
             });
             bindAccessibilityActions(item, res);
+        }
+
+        /** "A1 Supino reto" for an exercise in a group (PRODUCT_SPEC 6.3), its name otherwise. */
+        private void bindName(TemplateExerciseItem item, Resources res) {
+            TemplateExerciseItem.GroupMark group = item.group();
+            if (group == null) {
+                binding.name.setText(item.name());
+                binding.name.setContentDescription(null); // a recycled card may have had one
+                return;
+            }
+            binding.name.setText(res.getString(R.string.editor_group_exercise_name,
+                    group.label(), group.number(), item.name()));
+            // A screen reader would otherwise spell "A1" out as a code, like it would "AQ".
+            binding.name.setContentDescription(res.getString(
+                    R.string.editor_group_exercise_description, group.label(), group.number(),
+                    item.name()));
         }
 
         /**

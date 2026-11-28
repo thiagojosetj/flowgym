@@ -40,6 +40,11 @@ public final class MutableClock extends Clock {
         advance(Duration.ofMinutes(minutes));
     }
 
+    /** For a test that needs two sessions to land on different days. */
+    public void advanceDays(long days) {
+        advance(Duration.ofDays(days));
+    }
+
     /** For the "user moved the device clock backwards" case. */
     public void set(Instant instant) {
         now = instant;

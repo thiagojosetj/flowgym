@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     One set being performed: number (or warm-up badge), what was planned and what happened last time,
-    the two fields, and the button that confirms it. Suggestions are hints on empty fields, never text,
-    so a suggestion can never be mistaken for a result (PRODUCT_SPEC 6.5).
+    the two fields, the button that confirms it and the one that adds a drop to it. Suggestions are
+    hints on empty fields, never text, so a suggestion can never be mistaken for a result
+    (PRODUCT_SPEC 6.5).
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -72,6 +73,24 @@
             android:paddingHorizontal="@dimen/space_s"
             android:textAppearance="?attr/textAppearanceLabelMedium"
             tools:text="AQ" />
+
+        <!--
+            Adds a drop (PRODUCT_SPEC 9.1) to THIS set, and it lives on the header row rather than
+            on a row of its own: a third row made every set ~48dp taller, which is not free - it is
+            fewer sets on screen during a workout, and it broke the row matchers the flow tests use.
+            It is on every set on purpose: which techniques can be taken past failure is a fact
+            about the technique catalog (PRODUCT_SPEC 2.8), and a list of codes here would be a
+            second copy of it that goes stale. It stays after the set is confirmed, because whether
+            a drop is needed is only known once the set is over.
+        -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/button_add_segment"
+            style="@style/Widget.Material3.Button.IconButton"
+            android:layout_width="@dimen/touch_target_min"
+            android:layout_height="@dimen/touch_target_min"
+            app:icon="@drawable/ic_add"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp" />
     </LinearLayout>
 
     <LinearLayout
@@ -111,6 +130,53 @@
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/reps_input"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:imeOptions="actionDone"
+                android:inputType="number"
+                android:maxLength="4"
+                android:minHeight="@dimen/touch_target_min" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!--
+            Per-side logging (PRODUCT_SPEC 6.4). These replace the single reps field for a
+            unilateral exercise set to "por lado": both sides are recorded as they happened
+            (E 10 / D 9) instead of being averaged into one number nobody performed.
+        -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/reps_left_layout"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.Dense"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/space_s"
+            android:layout_weight="1"
+            android:hint="@string/session_reps_left_hint"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/reps_left_input"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:imeOptions="actionNext"
+                android:inputType="number"
+                android:maxLength="4"
+                android:minHeight="@dimen/touch_target_min" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/reps_right_layout"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.Dense"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/space_s"
+            android:layout_weight="1"
+            android:hint="@string/session_reps_right_hint"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/reps_right_input"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:imeOptions="actionDone"

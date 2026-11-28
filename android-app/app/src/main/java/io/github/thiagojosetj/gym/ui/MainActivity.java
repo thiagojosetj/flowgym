@@ -39,7 +39,8 @@ public class MainActivity extends AppCompatActivity implements TabNavigator {
 
     /** Destinations reachable from the bottom navigation (no "up" arrow, bottom bar visible). */
     private static final Set<Integer> TOP_LEVEL = new HashSet<>(Arrays.asList(
-            R.id.homeFragment, R.id.templateListFragment, R.id.exerciseLibraryFragment));
+            R.id.homeFragment, R.id.templateListFragment, R.id.exerciseLibraryFragment,
+            R.id.historyListFragment));
 
     private ActivityMainBinding binding;
     private NavController navController;

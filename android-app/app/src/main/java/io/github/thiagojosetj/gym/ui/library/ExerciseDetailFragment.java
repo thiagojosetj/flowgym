@@ -23,6 +23,8 @@ import io.github.thiagojosetj.gym.domain.library.ExerciseDetail;
 import io.github.thiagojosetj.gym.domain.library.MuscleLink;
 import io.github.thiagojosetj.gym.domain.model.LoadBasis;
 import io.github.thiagojosetj.gym.domain.model.Laterality;
+import io.github.thiagojosetj.gym.ui.common.SafeNavigation;
+import io.github.thiagojosetj.gym.ui.progress.ExerciseProgressFragment;
 import io.github.thiagojosetj.gym.ui.common.ViewModelFactories;
 
 /** Exercise detail (PRODUCT_SPEC LIB-04): primary muscle highlighted, secondaries smaller. */
@@ -53,6 +55,10 @@ public class ExerciseDetailFragment extends Fragment {
         ExerciseDetailViewModel viewModel = new ViewModelProvider(this, ViewModelFactories.of(
                 ExerciseDetailViewModel.class, () -> new ExerciseDetailViewModel(app.exercises, exerciseId)))
                 .get(ExerciseDetailViewModel.class);
+
+        binding.openProgress.setOnClickListener(v -> SafeNavigation.navigate(this,
+                R.id.action_detail_to_exercise_progress,
+                ExerciseProgressFragment.args(exerciseId)));
 
         viewModel.state().observe(getViewLifecycleOwner(), state -> {
             if (state.loading()) {

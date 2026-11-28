@@ -16,7 +16,8 @@ import io.github.thiagojosetj.gym.domain.model.TrackingType;
  * before anything happens, so the user can go back and fix a set instead.
  */
 public record FinishReview(int alreadyCompleted, List<PendingSet> readyToComplete,
-                           List<PendingSet> partiallyFilled, List<PendingSet> empty) {
+                           List<PendingSet> partiallyFilled, List<PendingSet> empty,
+                           List<String> segmentIdsToComplete, List<String> segmentIdsToSkip) {
 
     /**
      * One set that finishing would have to decide about.
@@ -27,15 +28,30 @@ public record FinishReview(int alreadyCompleted, List<PendingSet> readyToComplet
     public record PendingSet(String setId, String exerciseName, int setNumber) {
     }
 
-    /** One set as it is right now, with what its exercise requires to consider it performed. */
+    /**
+     * One set as it is right now, with what its exercise requires to consider it performed.
+     *
+     * @param isSegment true for a drop of a drop-set. It is resolved like any other row, but it is
+     *                  never counted as a set of its own: a drop-set is ONE set taken past failure
+     *                  (ADR-0037), and counting the drops would make "1 serie" read as "3".
+     */
     public record SetUnderReview(String setId, String exerciseName, int setNumber, SetStatus status,
-                                 SetValues values, TrackingType trackingType, SideMode sideMode) {
+                                 SetValues values, TrackingType trackingType, SideMode sideMode,
+                                 boolean isSegment) {
     }
 
     public FinishReview {
         readyToComplete = copy(readyToComplete);
         partiallyFilled = copy(partiallyFilled);
         empty = copy(empty);
+        segmentIdsToComplete = copyIds(segmentIdsToComplete);
+        segmentIdsToSkip = copyIds(segmentIdsToSkip);
+    }
+
+    private static List<String> copyIds(List<String> ids) {
+        return ids == null
+                ? Collections.emptyList()
+                : Collections.unmodifiableList(new ArrayList<>(ids));
     }
 
     private static List<PendingSet> copy(List<PendingSet> sets) {
@@ -49,31 +65,55 @@ public record FinishReview(int alreadyCompleted, List<PendingSet> readyToComplet
         List<PendingSet> ready = new ArrayList<>();
         List<PendingSet> partial = new ArrayList<>();
         List<PendingSet> empty = new ArrayList<>();
+        List<String> segmentsToComplete = new ArrayList<>();
+        List<String> segmentsToSkip = new ArrayList<>();
         if (sets != null) {
             for (SetUnderReview set : sets) {
                 if (set.status() == SetStatus.COMPLETED) {
-                    completed++;
+                    if (!set.isSegment()) {
+                        completed++;
+                    }
                     continue;
                 }
                 if (set.status() == SetStatus.SKIPPED) {
                     continue; // already decided by the user
                 }
+                boolean filled = !set.values().isEmpty();
+                boolean usable = filled && set.values().isComplete(set.trackingType(), set.sideMode());
+                if (set.isSegment()) {
+                    // A drop follows the same rule as a set - recorded when it has what it needs,
+                    // skipped otherwise - but it is resolved, never left PENDING inside a session
+                    // that is over. Leaving it was the bug: the reps happened, counted for
+                    // nothing, and the user was never told (found in review, 03/10/2026).
+                    (usable ? segmentsToComplete : segmentsToSkip).add(set.setId());
+                    continue;
+                }
                 PendingSet pending = new PendingSet(set.setId(), set.exerciseName(), set.setNumber());
-                if (set.values().isEmpty()) {
+                if (!filled) {
                     empty.add(pending);
-                } else if (set.values().isComplete(set.trackingType(), set.sideMode())) {
+                } else if (usable) {
                     ready.add(pending);
                 } else {
                     partial.add(pending);
                 }
             }
         }
-        return new FinishReview(completed, ready, partial, empty);
+        return new FinishReview(completed, ready, partial, empty, segmentsToComplete,
+                segmentsToSkip);
     }
 
     /** True when finishing would change something the user has not explicitly decided. */
     public boolean needsConfirmation() {
-        return !readyToComplete.isEmpty() || !partiallyFilled.isEmpty() || !empty.isEmpty();
+        return !readyToComplete.isEmpty() || !partiallyFilled.isEmpty() || !empty.isEmpty()
+                || affectedSegments() > 0;
+    }
+
+    /**
+     * Drops that finishing has to decide about. Counted apart from the sets, so the dialog can say
+     * how many without turning one drop-set into three sets.
+     */
+    public int affectedSegments() {
+        return segmentIdsToComplete.size() + segmentIdsToSkip.size();
     }
 
     /** Finishing now would record a session with no performed set at all. */
@@ -85,16 +125,22 @@ public record FinishReview(int alreadyCompleted, List<PendingSet> readyToComplet
         return readyToComplete.size() + partiallyFilled.size() + empty.size();
     }
 
-    /** Sets that finishing marks as performed, because they have everything they need. */
+    /** Rows that finishing marks as performed, because they have everything they need. */
     public List<String> setIdsToComplete() {
-        return ids(readyToComplete);
+        List<String> result = new ArrayList<>(readyToComplete.size()
+                + segmentIdsToComplete.size());
+        result.addAll(ids(readyToComplete));
+        result.addAll(segmentIdsToComplete);
+        return Collections.unmodifiableList(result);
     }
 
     /** Sets that finishing marks as skipped: empty, or filled in only halfway. */
     public List<String> setIdsToSkip() {
-        List<String> result = new ArrayList<>(partiallyFilled.size() + empty.size());
+        List<String> result = new ArrayList<>(partiallyFilled.size() + empty.size()
+                + segmentIdsToSkip.size());
         result.addAll(ids(partiallyFilled));
         result.addAll(ids(empty));
+        result.addAll(segmentIdsToSkip);
         return Collections.unmodifiableList(result);
     }
 

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Header of one exercise of a finished session: snapshot name, sets done, and load volume. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="@dimen/screen_margin"
+    android:paddingTop="@dimen/space_l"
+    android:paddingBottom="@dimen/space_xs">
+
+    <TextView
+        android:id="@+id/name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:accessibilityHeading="true"
+        android:textAppearance="?attr/textAppearanceTitleMedium"
+        tools:text="Supino reto com barra" />
+
+    <TextView
+        android:id="@+id/sets"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        tools:text="3 de 4 séries" />
+
+    <TextView
+        android:id="@+id/volume"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        tools:text="Volume: 1200 kg" />
+</LinearLayout>

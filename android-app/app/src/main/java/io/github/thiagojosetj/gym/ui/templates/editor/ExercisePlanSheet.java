@@ -203,6 +203,11 @@ public class ExercisePlanSheet extends BottomSheetDialogFragment {
         binding.loadHint.setText(loadHint);
         binding.loadHint.setVisibility(loadHint == null ? View.GONE : View.VISIBLE);
 
+        if (item.group() != null) {
+            // Its own rest is not used while it is in a group: say whose rest applies.
+            binding.restLayout.setHelperText(getString(R.string.plan_sheet_rest_grouped));
+        }
+
         binding.sideLabel.setVisibility(item.unilateral() ? View.VISIBLE : View.GONE);
         binding.sideToggle.setVisibility(item.unilateral() ? View.VISIBLE : View.GONE);
 

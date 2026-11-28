@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One square of the month grid. Sized by the touch target, not by the text. -->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/calendar_day"
+    android:layout_width="@dimen/touch_target_min"
+    android:layout_height="@dimen/touch_target_min"
+    android:background="@drawable/bg_calendar_day"
+    android:gravity="center"
+    android:textAppearance="?attr/textAppearanceBodyMedium" />

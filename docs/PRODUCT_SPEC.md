@@ -60,7 +60,11 @@ Os IDs abaixo são usados no ROADMAP, nos commits e nos testes. Estado atualizad
 - **LIB-02** Busca rápida por nome e apelidos, tolerante a maiúsculas/minúsculas, acentos e trechos
   do nome ("supino", "SUPINO", "súpino" e "pino" encontram "Supino reto com barra").
 - **LIB-03** Filtros combináveis: grupo, subgrupo, equipamento e papel do músculo
-  (principal / secundário / ambos).
+  (principal / secundário / ambos). O **subgrupo é escolhido por imagem**: ao selecionar um grupo,
+  aparece uma linha com uma silhueta por parte, com aquela parte acesa, e o nome embaixo. A
+  primeira opção é o **grupo inteiro**, que acende tudo o que suas partes acendem. O motivo é o
+  próprio problema: "vasto medial" e "semitendinoso" são nomes que quem está começando não conhece,
+  e uma lista só de nomes torna o filtro inútil justamente para quem mais precisaria dele.
 - **LIB-04** Detalhe: descrição, instruções, dicas, erros comuns, observações, equipamentos, músculo
   principal em destaque e secundários em seção menor.
 - **LIB-05** Mídia: ≥ 2 imagens (posição inicial/final) quando disponível; animação curta opcional
@@ -68,7 +72,7 @@ Os IDs abaixo são usados no ROADMAP, nos commits e nos testes. Estado atualizad
 - **LIB-06** (futuro) Exercícios personalizados do usuário (o modelo já suporta: `owner_user_id`).
 
 ### 4.2 Treinos / templates (Fase 2)
-- **TPL-01** Criar, editar, duplicar, arquivar e excluir treinos (exclusão lógica; histórico preservado).
+- **TPL-01** Criar, editar, duplicar, arquivar e excluir treinos (exclusão lógica; histórico preservado). Arquivar: §6.3.1.
 - **TPL-02** Adicionar exercícios pela biblioteca (seleção múltipla). Padrão ao adicionar: **3 séries × 12 repetições**, descanso padrão do app (90 s).
 - **TPL-03** Por exercício: séries planejadas (reps fixas ou faixa 8–10, carga opcional), descanso,
   observações permanentes ("Banco no terceiro encaixe").
@@ -87,7 +91,8 @@ Os IDs abaixo são usados no ROADMAP, nos commits e nos testes. Estado atualizad
 - **ACT-08** Recuperação: "Você possui um treino em andamento. [CONTINUAR]".
 - **ACT-09** Finalizar: validar séries parcialmente preenchidas (nunca descartar silenciosamente) e mostrar resumo.
 
-**Implementado (27/09/2026):** ACT-01, ACT-02, ACT-04 (exceto registro por lado e segmentos), ACT-05,
+**Implementado (27/09/2026, registro por lado em 28/09):** ACT-01, ACT-02, ACT-04 (exceto
+segmentos de drop-set), ACT-05,
 ACT-06, ACT-07, ACT-08 e ACT-09. O pré-preenchimento (ACT-03) existe e vem da sessão anterior, mas
 ainda **não é configurável**; uma faixa planejada (8–10) de propósito **não** pré-preenche as
 repetições — escolher 8 pelo usuário seria inventar um resultado. Falta validar em aparelho a
@@ -99,12 +104,228 @@ notificação, o serviço em primeiro plano e o alerta com a tela apagada.
 - **HIS-03** Sessão antiga em detalhe, a partir dos snapshots (nunca do template atual).
 - **HIS-04** Tabela de comparação Exercício | Anterior | Atual | Variação (↑ ↓ =), expansível série a série.
 
+- **HIS-06** **Avaliação 1–5** no resumo que aparece ao finalizar: "Como foi o treino?". É
+  **opcional**, e tocar no número escolhido de novo tira a avaliação — ausência de nota não é
+  nota zero. Grava **a cada toque**, não ao fechar: o diálogo também fecha no botão voltar, e
+  uma nota esperando na memória sumiria sem avisar (ADR-0031). Nota fora de 1–5 é recusada em
+  vez de gravada.
+  - **Avaliar depois** pela tela da sessão: o mesmo controle de 1 a 5 aparece no detalhe de
+    qualquer sessão concluída, já marcado com a nota guardada, e aceita mudar ou tirar. Ninguém
+    avalia todo treino na hora em que ele acaba — o diálogo do fim é dispensado na saída da
+    academia com a mesma frequência com que é respondido.
+  - Se a gravação **falhar**, a tela volta para a nota que está no banco e avisa. Uma estrela
+    acesa que não existe no banco é o app afirmando algo que não é verdade.
+  - **Observação em texto** da sessão, no mesmo card: campo livre ("Como foi, o que doeu, o que
+    mudar da próxima vez…"). Grava quando o campo **perde o foco** e quando a **tela pausa** —
+    nunca a cada tecla, que seria uma transação por caractere num texto que não é resultado de
+    nada. O que ainda está sendo digitado quando o processo morre se perde, que é exatamente a
+    regra que a ADR-0031 já dá para texto em digitação (e a §6.5 para valores não confirmados de
+    uma série). Texto em branco é **nenhuma** observação, gravado como `NULL`: "apaguei a minha"
+    e "nunca escrevi" têm de continuar sendo a mesma coisa. Abrir e sair da tela sem mudar nada
+    **não grava** — visitar não é editar, e gravar marcaria a linha para sincronizar à toa.
+- **HIS-05** **Excluir uma sessão do histórico**, pelo menu da linha, com confirmação que nomeia
+  a sessão. Ela sai da lista e deixa de contar nos números; o treino que a gerou continua em
+  Treinos. Exclusão é **soft** (`deleted_at`), para poder ser sincronizada. Não fere a
+  imutabilidade: a sessão sai inteira, nada que ela registrou é reescrito (ADR-0041).
+  Uma sessão excluída **deixa de ser o "anterior"** de qualquer outra: o ponteiro é congelado no
+  início (ADR-0033), mas se ele ainda **conta** é perguntado em cada leitura. Quem disse que aquele
+  treino não aconteceu não deve ver o app sugerindo uma carga tirada dele.
+- **HIS-02** **Calendário do mês** acima da lista: cada dia com pelo menos uma sessão concluída
+  aparece marcado, e tocar nele deixa na lista só as sessões daquele dia. Tocar no mesmo dia de
+  novo, ou em "Ver todas", mostra o histórico inteiro — o gesto que filtra é o que desfiltra, e o
+  filtro não tem como ficar preso. Tocar num dia **sem** treino responde "Nenhuma sessão neste
+  dia" em vez de deixar a tela vazia, que se lê como defeito.
+  - O dia é o `local_date` gravado pela sessão, **nunca** derivado de `started_at`: um treino às
+    23:30 em São Paulo é daquele dia mesmo depois que o telefone muda de fuso (§11).
+  - As setas param onde o treino para — do mês da sessão mais antiga ao da mais recente, incluindo
+    sempre o mês atual. O limite é a **última sessão**, não hoje: um aparelho com o relógio
+    adiantado grava um dia no futuro, e parar em hoje esconderia essa sessão em vez de mostrá-la.
+  - Mudar de mês limpa o filtro de dia: as linhas não podem continuar mostrando um dia que a grade
+    acima não tem mais.
+  - A grade e a lista saem da **mesma** emissão (a mesma LiveData, mapeada), não de duas consultas.
+    É estrutural, não testável aqui: os testes rodam com executores síncronos, onde duas consultas
+    também pareceriam consistentes.
+
+- **HIS-04 (parte por exercício)** Abaixo dos totais, **exercício por exercício**: volume, séries e
+  repetições de cada um ao lado do mesmo exercício da sessão anterior, e um botão que abre a
+  comparação **série a série**.
+  - Os exercícios se emparelham pelo **exercício em si**, e pela *n*-ésima vez que ele aparece
+    quando o treino o repete — nunca pela posição, porque reordenar um treino não muda o que cada
+    exercício é.
+  - Três listas, não uma: o que estava nas duas sessões é comparado; o que **só** está nesta é
+    nomeado ("Só nesta sessão: …") em vez de comparado com zero, que anunciaria como ganho o
+    simples fato de ser novo; o que estava **só na anterior** também é nomeado — trabalho que a
+    pessoa deixou de fazer é exatamente o que ela iria querer saber.
+  - As séries se emparelham por ordem **entre as séries válidas** (§11): um aquecimento a mais hoje
+    não desloca todas as linhas. Aquecimento não é comparado — não é resultado.
+  - Cada lado é lido com o **snapshot da própria sessão**. O mesmo exercício pode ter sido
+    registrado com halteres antes e com barra agora: 20 kg por halter e 20 kg na barra não são a
+    mesma medida, e a linha de antes continua dizendo "/halter".
+  - Série **não feita** conta como zero: o trabalho não foi feito, e isso é uma medição. Série que
+    **não existe** do outro lado não gera variação nenhuma — o traço já diz o que houve.
+  - Exercício **sem carga** (peso corporal, por tempo) não mostra linha de volume: "= igual" ali
+    leria como "a mesma quantidade de carga", quando carga não é o que se mediu.
+
+**Implementado (28/09/2026):** HIS-01 (menos recordes e medalhas, que dependem das Fases 5 e 7),
+HIS-03 e a comparação de sessão do HIS-04. **HIS-02 (calendário) foi feito em 05/10/2026, e a
+comparação por exercício do HIS-04 em 05/10/2026.**
+
+A comparação do resumo é com a **sessão anterior do mesmo template**; a comparação série a série
+continua sendo a do ponteiro congelado no início da sessão (a última sessão concluída que tem aquele
+exercício, de qualquer treino — ADR-0033). São perguntas diferentes e ficam separadas de propósito.
+
+O percentual só aparece quando o valor anterior é **maior que zero**: `MetricChange.hasPercent()`
+responde isso e `MetricChange.percent()` **lança exceção** se ninguém perguntou. Uma tela que
+esquecer quebra um teste, em vez de imprimir um número que o usuário acreditaria.
+
+A lista **não mostra volume de carga**, e isso é decisão de produto, não esquecimento: calcular
+volume com honestidade exige aplicar as regras do §9 série a série, ou seja, ler o histórico inteiro
+para desenhar uma tela. O volume fica na tela da sessão, calculado pelo mesmo código que o calculou
+quando o treino foi finalizado.
+
+**Método e edição do grupo implementados (27/11/2026).** Um grupo pode declarar o que ele é —
+**supersérie, bi-set, tri-set ou giant set** —, escolhido na folha que o cria e trocável depois por
+"Editar grupo…" no menu do card.
+
+- **O método é do grupo, então aparece em todos os cards dele.** Repetido de propósito: cada card
+  precisa dizer do que faz parte sem obrigar a rolar até o outro. O leitor de tela ouve o nome e a
+  letra ("Supersérie, método do grupo A"), nunca só a sigla.
+- **Editar não mexe em quem está dentro nem na letra.** Tirar ou pôr alguém é desagrupar e agrupar
+  de novo — e isso muda a letra, porque ela é derivada. Oferecer caixas de seleção na mesma folha
+  faria o app religar o treino em silêncio, então a folha explica em vez de oferecer.
+- **Só métodos de escopo GROUP são oferecidos.** Drop-set e aquecimento são de série; mostrá-los
+  ali seria o app afirmar que um grupo pode ser um drop-set.
+- **Sem método continua sendo um grupo**: tirar o método deixa um agrupamento simples, com a letra
+  e o descanso de rodada intactos.
+- Como criar, **editar grava na hora** e não espera o "Salvar" do treino (ADR-0038), e a folha
+  avisa isso antes de confirmar.
+
 ### 4.5 Progresso (Fase 5)
 - **PRG-01** Gráficos de carga, volume e repetições por exercício e do treino.
 - **PRG-02** Filtros: últimas 5, 10, 30 sessões, período personalizado, todo o histórico.
 - **PRG-03** Tela de progresso por exercício (histórico, maior carga, volume, PRs, gráfico).
 - **PRG-04** Estatísticas semanais/mensais e por grupamento muscular.
 - **PRG-05** Registro de peso corporal e gráfico (antecipado da Fase 11 — ver ROADMAP).
+
+**PRG-04 implementado (07/10/2026)** na aba **Progresso**: uma semana ou um mês por vez, com setas
+que param onde o treino para.
+
+- **Totais do período:** treinos, séries feitas, repetições, volume de carga e tempo efetivo. Tudo
+  calculado pelo mesmo `SessionVolume` que a tela de finalização usa — e, como lá, o período diz
+  quantas séries **não** entraram no volume (§9).
+- **Séries por grupo muscular**, e **dois números, nunca um**: quantas o grupo recebeu como
+  **principal** e quantas como **auxiliar**. Não há peso honesto para um músculo auxiliar — somar
+  com peso 1 afirmaria que o tríceps trabalhou tanto quanto o peito no supino, e com peso ½ seria
+  um número que o app inventou. Os dois aparecem lado a lado e quem lê decide.
+  - Papel que **não aconteceu não é dito**: um músculo sem trabalho auxiliar não fala de trabalho
+    auxiliar (além de que a regra do CLDR para pt põe zero no singular, e "0 série" estaria errado
+    duas vezes).
+  - **Sem volume em kg por músculo.** Os 400 kg de um supino não são "400 kg de peito + 400 kg de
+    tríceps", e não existe divisão honesta. Séries por músculo por semana é o número que o treino
+    usa de verdade, e é um que este app consegue afirmar sem adivinhar.
+  - **Aquecimento fora** (§6.2), e o total de séries diz quantas eram de aquecimento, para os dois
+    números fecharem. Os números por músculo **não somam** as séries feitas e não podem: uma série
+    de supino conta para o peito *e* para o tríceps. É "quanto cada músculo recebeu", não uma
+    divisão das séries em pilhas.
+  - **Drop-set conta como UMA série** (ADR-0037), senão a figura de séries por semana — que é
+    exatamente a que as pessoas usam para ajustar o treino — inflaria.
+  - O grupo é o **grupo**, não o subgrupo: um exercício que cita latíssimo e romboides fez **uma**
+    série de costas. Quando o mesmo grupo aparece com papéis diferentes no mesmo exercício, o papel
+    **principal** vence — senão a mesma série cairia nas duas colunas da mesma linha.
+  - O mapa muscular é lido da **biblioteca de hoje**, não do snapshot da sessão: classificação não é
+    medição, e corrigir o catálogo deve poder corrigir as semanas passadas também.
+- **Período vazio** entre dois com treino diz "Nenhum treino neste período" em vez de uma coluna de
+  zeros; **sem histórico nenhum** é outra coisa e tem o seu próprio estado.
+- O dia é sempre o `local_date` **vivido**, e "hoje" é o dia **onde a pessoa está** — não o dia do
+  relógio, que é UTC (ver `ui/common/Today`).
+
+**PRG-03 implementado (26/11/2026)**, alcançado pelo botão **"Ver meu progresso"** no detalhe do
+exercício. Um exercício por vez, do primeiro dia ao último.
+
+- **Recordes derivados, sem tabela.** §10 diz que um PR sempre pode ser recalculado do histórico, e
+  é o que acontece: não há `personal_record` e não há nada para manter em sincronia. O que uma
+  tabela acrescentaria é o **histórico de recordes** — cada PR já batido, guardado como linha — e
+  essa é a única pergunta que esta tela não responde. Ela responde quais são os recordes **hoje** e
+  em que dia cada um foi feito.
+- **A carga é dita na base em que foi registrada** (§6.4): "20 kg/halter" e "20 kg" são o mesmo
+  número e trabalhos diferentes. Por isso a base viaja com o recorde e com cada sessão — ela é do
+  snapshot daquela sessão, e o mesmo movimento pode ser halteres num mês e barra no outro. Os
+  recordes de **volume** carregam "sem base" e é verdade: volume é soma de carga **efetiva**, já
+  dobrada onde a §9 manda dobrar.
+- **"Mais reps com a carga X" é chaveado por (gramas, base)**, não por gramas. Juntar os dois faria
+  a tela publicar as repetições de uma sessão sob o peso de outra.
+- **Empate não é recorde** e a **primeira vez diz que é a primeira vez** ("primeira vez" ao lado do
+  número), para a tela não parabenizar ninguém por ter aparecido.
+- **Nada sai em silêncio.** A lista de cargas mostra cinco e **conta em voz alta** quantas ficaram
+  fora. Um exercício **sem carga** diz que não tem recorde de carga nem de volume, em vez de
+  imprimir "0 kg" três vezes — zero seria uma medição.
+- **O selo "Recorde"** marca só as sessões que detêm um dos três recordes de destaque. Os
+  detentores de "mais reps naquela carga" ficam fora de propósito: existe um por carga distinta,
+  então quase toda sessão teria selo e o selo deixaria de significar algo. A palavra carrega o
+  sentido e a cor só reforça.
+- **Uma leitura só.** O histórico é imutável (ADR-0036): nada muda embaixo da tela, então não há
+  segunda emissão para esperar nem estado meio pronto para desenhar. "Nunca fiz este exercício" e
+  "não consegui ler o banco" são estados **diferentes** — mostrar o primeiro quando foi o segundo
+  seria o app inventando uma resposta.
+- **Um exercício que sai da biblioteca mantém o nome na tela**: o histórico é imutável e nada sai
+  dele, então o título cai para o nome do último snapshot. Só o título — todo número continua
+  vindo do snapshot da sua própria sessão.
+
+**PRG-02 implementado (26/11/2026)**, em duas partes: **últimas 5 / 10 / 30 / Tudo** na tela por
+exercício, e o **período personalizado** na aba Progresso, ao lado de Semana e Mês.
+
+- **A janela fica embaixo dos recordes, e isso é a regra desenhada.** Ela delimita a lista (e o
+  gráfico da PRG-01) e **nunca** os recordes: "seu melhor nas últimas cinco sessões" não é um
+  recorde, e recalcular os três por janela seria publicar uma afirmação diferente sob a mesma
+  palavra. A legenda dos recordes diz "independente do filtro abaixo".
+- **A tela abre em "Tudo".** Abrir já filtrando seria responder uma pergunta que ninguém fez, e a
+  contagem do que ficou de fora só é honesta depois que alguém escolheu deixar de fora.
+- **Janela que não esconde nada é oferecida morta** (desabilitada e esmaecida): com sete sessões,
+  "últimas 10" mostra exatamente o que "Tudo" mostra. Mesma regra das setas do calendário — um
+  controle que parece vivo e não faz nada é lido como defeito.
+- **"Últimas" significa últimas**, e a lista diz "Mostrando as últimas 5 de 7 sessões." quando
+  esconde algo. Trocar a janela não lê o banco: ela recorta uma lista que já está na memória.
+- **O período personalizado** (botão "Período") abre o seletor de intervalo do Material, já
+  preenchido com o que está na tela. Ele é o único tipo de período que **não dá para deduzir** do
+  dia mostrado — precisa de duas datas —, então o botão não troca nada sozinho: pergunta, e só
+  muda se vierem datas. Cancelar devolve o botão ao período que está de fato na tela.
+  - **Duas datas ao contrário são o mesmo intervalo** (quem escolhe o dia 20 e depois o 10 quis os
+    dias entre eles).
+  - **As setas andam o tamanho do próprio intervalo**: seis dias para trás de um intervalo de seis
+    dias. Andar uma semana responderia sobre um período que ninguém pediu.
+  - **O seletor do Material fala em milissegundos UTC**, sempre, qualquer que seja o fuso do
+    aparelho. Ler isso com o fuso do telefone transforma 20 de outubro em 19 para quem está a
+    oeste de Greenwich — quase todo o Brasil. A conversão mora num lugar só (`ui/common/PickedDays`)
+    e tem teste, porque este app já entregou um bug exatamente dessa forma.
+
+**PRG-01 implementado (26/11/2026)**, desenhado em `Canvas` sem biblioteca nenhuma — **ADR-0042**.
+Dois gráficos, a mesma `View`: um **por exercício** (nesta tela) e um **do treino** (na aba
+Progresso, sessão a sessão dentro do período escolhido).
+
+- **Uma medida por vez** — carga, volume ou repetições — escolhida por botão. Nunca dois eixos Y:
+  o alinhamento entre duas escalas é arbitrário, e o gráfico inventaria uma correlação que não
+  está no dado. Com uma série só não há legenda, então o **título do gráfico diz o que está
+  desenhado**, inclusive a base ("Maior carga por sessão, por halter").
+- **Uma cor só, e o recorde marcado por halo** — forma, não cor. Saiu de medição: a `colorPrimary`
+  e a `colorTertiary` deste app, como duas fatias de gráfico, **reprovam** no piso de visão normal
+  (ADR-0042).
+- **Quando não há linha honesta, há uma frase.** Uma sessão não é tendência. Um exercício de peso
+  corporal não tem volume de carga (§9). E um exercício registrado em **bases diferentes** — por
+  halter numa época, total noutra, o que acontece se o catálogo for corrigido — não tem linha de
+  carga: 20 kg por halter e uma barra de 20 kg são o mesmo número e o dobro do trabalho. Volume e
+  repetições seguem comparáveis e seguem desenhados.
+- **Repetições não têm halo**: a §10 não define recorde de repetições *por sessão* (o dela é por
+  carga), e desenhar um seria inventar um recorde.
+- **Toque no lugar de hover**, com a coluna inteira como alvo, e a linha de texto embaixo do
+  gráfico começa já lendo a sessão mais nova — nunca em branco. O gráfico também **fala**: um
+  `Canvas` é invisível para o leitor de tela, então ele descreve o que desenha.
+- **A janela da PRG-02 vale para o gráfico**, como vale para a lista.
+- **No gráfico do treino as medidas são outras: volume, séries e repetições — não carga.** Um
+  treino é vários exercícios, e o peso mais alto de um treino de agachamento e rosca é um fato
+  sobre o agachamento, não sobre o treino. Não existe "carga de uma sessão" honesta para plotar.
+  Os pontos saem da **mesma leitura** que os totais logo acima deles, então um ponto e um total
+  nunca são duas opiniões sobre as mesmas séries. E o período inteiro sem volume (uma semana só
+  de peso corporal) diz isso, em vez de desenhar uma reta no zero.
 
 ### 4.6 Rotinas, metas e notificações (Fase 6)
 - **ROU-01** Rotina semanal fixa (segunda → Push...).
@@ -152,8 +373,9 @@ nem PRs (`counts_as_working_set = 0`).
 
 **Implementado:** as 12 técnicas existem como dados (`training_technique`), e as de escopo **série**
 podem ser escolhidas por série no editor de treino, com badge e ⓘ. As de escopo exercício (pirâmides)
-e grupo (supersérie e companhia) já estão no catálogo e serão aplicáveis quando os grupos de
-exercícios entrarem.
+e grupo (supersérie e companhia) já estão no catálogo. Os **grupos** entraram em 01/10/2026 (§6.3),
+mas ainda são criados como agrupamento simples: escolher SS/BI/TRI/GS para um grupo não tem
+interface, então essas quatro técnicas continuam sem uso.
 
 Técnicas com várias etapas (drop-set, rest-pause, myo-reps, cluster) registram cada etapa como um
 **segmento** da mesma série (ex.: 40 kg × 10 → 30 kg × 8 → 20 kg × 6).
@@ -163,11 +385,98 @@ Exercícios de um template podem pertencer a um grupo com rótulo (A, B...) e t�
 Exibição: A1 Supino, A2 Crucifixo. O descanso automático ocorre após o **último** exercício da
 rodada do grupo.
 
+**Implementado no banco e nos dados (01/10/2026); falta a interface.** Banco na **versão 4**
+(`template_exercise_group`, `session_exercise_group`, colunas `group_id`).
+
+Regras decididas ao implementar:
+
+- **O descanso é da RODADA.** Começa quando **nenhum exercício do grupo ainda deve** a série daquela
+  rodada — não quando o "último por posição" termina. A leitura literal quebraria a ACT-01, que diz
+  que a ordem planejada não é obrigatória: quem faz A2 antes de A1 nunca descansaria. Série **pulada**
+  também encerra (não se deve mais nada); só `PENDING` segura a rodada.
+- **Grupo desigual não trava.** Um exercício com menos séries que o índice da rodada não deve nada,
+  então 3×A1 com 2×A2 descansa em todas as rodadas.
+- **Etapa não é rodada.** Os segmentos de um drop-set ficam dentro da série (ADR-0037), então um
+  drop-set dentro de uma supersérie é **uma** rodada e as etapas não deslocam o índice.
+- **Rótulos são derivados, não digitados.** A, B, C seguem a ordem do primeiro exercício de cada
+  grupo no treino. Criar um grupo antes de outro renumera; apagar o A faz o B virar A. Dois grupos
+  nunca compartilham rótulo. A **sessão guarda o rótulo que valia no dia**.
+- **Grupo tem no mínimo 2 exercícios.** Um grupo que cai para 1 (por exemplo, o editor removeu o
+  outro exercício) é **desfeito**, e o exercício que sobra fica sem grupo. Técnica × tamanho
+  (SS/BI = 2, TRI = 3) **não** é cobrado.
+- **Salvar e duplicar um treino preservam os grupos.** Os dois caminhos reescrevem os exercícios a
+  partir de um rascunho que não conhece grupos; sem tratar isso, qualquer edição desagrupava tudo e
+  duplicar perdia as superséries em silêncio.
+- **Uma confirmação que não inicia descanso encerra o que estiver correndo.** O descanso é da sessão,
+  não do exercício: sem isso o alerta da rodada N tocaria no meio da rodada N+1.
+
+**Rodada é rodada de séries válidas.** Aquecimento fica fora: contá-lo parearia o aquecimento de
+um exercício com a primeira série de verdade do outro, encerraria a rodada ali e dispararia o
+descanso do grupo depois de um aquecimento — e todas as rodadas seguintes ficariam deslocadas
+pelo número de aquecimentos daquele exercício. Confirmar um aquecimento num grupo não inicia
+descanso de rodada (corrigido em 03/10/2026).
+
+### 6.3.1 Arquivar um treino (implementado em 28/11/2026)
+
+Um treino que saiu da rotina mas não deve ser perdido é **arquivado**, não excluído. Arquivar não é
+editar: o treino guarda **todos** os exercícios, séries, grupos e observações, e as sessões já
+treinadas a partir dele continuam intactas no histórico — elas têm os próprios snapshots
+(ADR-0036). Desarquivar devolve o treino exatamente como ele estava.
+
+Regras que a tela cumpre, pela razão de sempre (**nada desaparece em silêncio**):
+
+- **Arquivar tira o card da lista, então a lista tem de dizer para onde ele foi.** O Snackbar diz
+  "Treino arquivado" e oferece **Desfazer**; a toolbar passa a mostrar quantos estão arquivados
+  ("1 arquivado", "2 arquivados"), e é por ali que se chega à outra lista.
+- **A entrada da toolbar só existe quando há algo atrás dela.** Com zero arquivados ela não
+  aparece — um botão que abre uma lista vazia só ensina a não tocar nele. Na lista de arquivados
+  ela vira "Ativos", sempre, inclusive quando o último treino é desarquivado: senão a lista vazia
+  seria um beco sem saída.
+- **A lista de arquivados se identifica.** O título da toolbar é "Treinos" nas duas, então a lista
+  arquivada abre com uma barra dizendo o que é e que esses treinos ficam fora de Meus treinos.
+- **"Novo treino" sai de cena na lista de arquivados**, porque criaria na lista que não está à
+  vista.
+- **Um treino arquivado não oferece treinar, editar nem duplicar.** Para usar, desarquive primeiro.
+  Duplicar ali criaria uma cópia **ativa** enquanto o usuário olha os arquivados, e a cópia
+  apareceria em lugar nenhum — exatamente o desaparecimento silencioso que arquivar existe para
+  evitar.
+- **Arquivado ≠ excluído.** Um treino excluído não está em nenhuma das duas listas, e arquivar um
+  treino já excluído não faz nada.
+- **Os mais recém-arquivados vêm primeiro.** O que acabou de ser guardado é o que alguém mais
+  provavelmente está procurando.
+
+Sem migração: a coluna `workout_template.archived_at` existe desde a v1 e **todas** as leituras já
+a filtravam; faltavam a escrita e um jeito de **ver** o que foi arquivado.
+
 ### 6.4 Carga: halteres, unilateral e peso corporal
 - **Halteres (dois implementos):** registra-se o peso **de cada halter** ("12 kg por halter"). A UI
   nunca exibe 24 kg como se fosse a carga da série.
 - **Unilateral:** registro conjunto ("10 reps por lado") ou por lado (E 10 / D 9). A opção só
   aparece em exercícios unilaterais. Repetições são sempre contadas **por lado**.
+
+  **Implementado (28/09/2026).** Quando o treino marca o exercício como "por lado", a série mostra
+  dois campos (E e D) no lugar do campo único. A regra de confirmação é sobre **o que foi digitado**,
+  antes de qualquer sugestão entrar:
+
+  | O que o usuário digitou | O que acontece ao tocar ✓ |
+  |---|---|
+  | Os dois lados | Grava os dois. |
+  | **Só um lado** | **Recusa**, com aviso. Por lado existe justamente para lados **diferentes**: preencher D com o plano quando o usuário digitou E grava um número que ele não fez, e o `FinishReview` chamaria essa mesma série de "parcial" (§8). |
+  | Nenhum lado | A sugestão preenche os dois — é o mesmo "fiz o que estava planejado" que o campo único já significa quando é confirmado vazio. |
+
+  O campo combinado e os campos por lado nunca aparecem juntos, e uma série gravada por lado não
+  guarda `reps` combinado: o total viria do ramo por lado e o número combinado deixaria de ser
+  contado, em silêncio.
+
+  > **Correção de 28/09/2026.** A primeira versão checava "os dois lados" **depois** de adotar a
+  > sugestão, então a checagem nunca disparava quando havia o que adotar — a mesma tela (E digitado,
+  > D vazio) concluía ou recusava dependendo de o rascunho já ter ido para o banco. O commit que
+  > entregou o recurso descrevia o comportamento correto, não o que o código fazia. Um teste escrito
+  > contra esta especificação pegou a diferença.
+
+  **Corrige um erro que já estava no app:** dava para marcar "por lado" no treino e registrar no
+  campo combinado. O valor ia para `reps`, e como `sideMode` era `PER_SIDE` o domínio **não**
+  dobrava — um exercício unilateral contava metade das repetições e metade do volume.
 - **Peso corporal:** exercício com rastreamento "peso corporal" aceita carga **adicional** (+10 kg)
   ou **assistência** (−25 kg) como valor com sinal. Sem valor = peso corporal puro. Nenhum número é
   inventado para o peso corporal.
@@ -215,6 +524,40 @@ Volume de carga de uma série elegível = **carga efetiva × repetições totais
 - **Carga desconhecida:** não entra no volume.
 - **Transparência:** totais exibem "N séries não incluídas no volume" quando houver exclusões.
 - Cálculo interno em gramas; exibição em kg ou lb.
+
+### 9.1 Segmentos (drop-set, rest-pause) — decidido em 28/09/2026, antes do código
+
+Um drop-set é `40 kg × 10 → 30 kg × 8 → 20 kg × 6`. A pergunta é o que cada etapa faz com os
+números. Decisão:
+
+| Métrica | Regra | Por quê |
+|---|---|---|
+| **Volume** | **Soma de todos os segmentos** (40×10 + 30×8 + 20×6 = 760 kg) | As repetições a 30 kg e a 20 kg **aconteceram**. Contar só a carga do topo descartaria trabalho real, e §9 já proíbe descartar em silêncio. Não é decisão nova: é a regra do §9 aplicada a cada etapa. |
+| **Séries** | **Uma.** O drop-set inteiro conta como **1 série** | Um drop-set é uma série levada além da falha em quedas, não três séries. Contar três infla "séries feitas" e estragaria as séries por grupo muscular por semana (Fase 5), que é métrica de treino de verdade. O banco já diz isso: `parent_set_id` faz do segmento um **filho** da série, não um irmão. |
+| **Repetições** | **Soma de todos os segmentos** (24) | Foram executadas. |
+| **"N séries não incluídas no volume"** | Conta **séries-pai**. Uma série só entra na linha quando o conjunto inteiro (pai + segmentos) deu volume zero | Senão um drop-set com um segmento sem carga apareceria **dentro e fora** do volume ao mesmo tempo. |
+| **Recordes (Fase 5)** | O segmento de **maior carga** é o que vale para "maior carga" | Anotado agora para o dia em que os PRs entrarem; não implementado aqui. |
+
+A primeira etapa **é** a própria série (a linha com `parent_set_id IS NULL`); as etapas seguintes são
+filhas dela. Por isso toda consulta que conta séries continua filtrando `parent_set_id IS NULL` e
+continua certa sem mudança — e por isso isto **não precisa de migration**: a coluna existe desde a v3.
+
+**Desfazer uma série desfaz as etapas dela.** Etapa é parte da série: deixá-la marcada como feita
+sob uma série desfeita faria o banco dizer que as repetições aconteceram enquanto nenhum total as
+conta — e o descanso, que pertence à última etapa, continuaria correndo por um trabalho que foi
+desfeito. Os valores digitados permanecem, porque desfazer não é apagar (ADR-0031).
+
+**O descanso vem depois da última etapa, e é o da série.** Um drop-set é uma série, então o
+descanso automático é o que a série planejou (ou o da rodada, se ela estiver num grupo) e começa
+quando a última etapa é confirmada. Ler o descanso da própria etapa daria zero — a etapa nasce
+sem plano — e a série mais cansativa do treino terminaria **sem descanso nenhum**, ainda por cima
+cancelando o que a série tinha acabado de iniciar (corrigido em 03/10/2026).
+
+**Ao finalizar, a etapa é resolvida junto com a série** (§8 vale para ela também): etapa com
+tudo o que precisa vira **feita**, etapa vazia ou pela metade vira **pulada**, e o diálogo diz
+quantas etapas serão resolvidas — em linha separada, porque o drop-set continua contando como
+**uma** série. Deixar a etapa pendente dentro de uma sessão encerrada era descarte silencioso:
+as repetições aconteceram, não entravam em nada e ninguém era avisado (corrigido em 03/10/2026).
 
 ## 10. Recordes pessoais (PRs)
 

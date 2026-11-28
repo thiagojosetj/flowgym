@@ -21,6 +21,12 @@ public record SessionHeader(
         Long restEndsAt,
         Long restRemainingMsWhenPaused) {
 
+    /** The same header carrying a different note (PRODUCT_SPEC HIS-06). */
+    public SessionHeader withNotes(String newNotes) {
+        return new SessionHeader(id, templateId, name, newNotes, status, clock, restSetLogId,
+                restEndsAt, restRemainingMsWhenPaused);
+    }
+
     public boolean isActive() {
         return status == SessionStatus.ACTIVE;
     }

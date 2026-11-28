@@ -22,6 +22,10 @@ public class TemplateExerciseRow {
     @NonNull
     public SideMode sideMode = SideMode.COMBINED;
 
+    /** The group this exercise is in (A1, A2), or null when it stands alone. */
+    @Nullable
+    public String groupId;
+
     @Embedded(prefix = "ex_")
     @NonNull
     public ExerciseRefRow exercise = new ExerciseRefRow();

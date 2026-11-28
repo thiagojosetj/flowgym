@@ -1,6 +1,8 @@
 package io.github.thiagojosetj.gym.data.repository;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,9 +12,11 @@ import io.github.thiagojosetj.gym.data.local.entity.TemplateSetEntity;
 import io.github.thiagojosetj.gym.data.local.entity.WorkoutTemplateEntity;
 import io.github.thiagojosetj.gym.data.local.row.ExerciseRefRow;
 import io.github.thiagojosetj.gym.data.local.row.TemplateExerciseRow;
+import io.github.thiagojosetj.gym.data.local.row.TemplateGroupRow;
 import io.github.thiagojosetj.gym.data.local.row.TemplateSummaryRow;
 import io.github.thiagojosetj.gym.domain.model.RepRange;
 import io.github.thiagojosetj.gym.domain.model.Weight;
+import io.github.thiagojosetj.gym.domain.template.ExerciseGroup;
 import io.github.thiagojosetj.gym.domain.template.ExerciseRef;
 import io.github.thiagojosetj.gym.domain.template.SetPlan;
 import io.github.thiagojosetj.gym.domain.template.TemplateDraft;
@@ -29,6 +33,35 @@ final class TemplateMapper {
     static ExerciseRef toRef(ExerciseRefRow row) {
         return new ExerciseRef(row.id, row.name, row.trackingType, row.loadBasis, row.implementCount,
                 row.laterality, row.primaryMuscleName, row.primaryEquipmentCode);
+    }
+
+    static ExerciseGroup toGroup(TemplateGroupRow row) {
+        return new ExerciseGroup(row.id, row.label, row.techniqueId, row.techniqueCode,
+                row.restAfterRoundSeconds, row.position);
+    }
+
+    /**
+     * The group of every exercise that is in one, keyed by the template exercise's id and listed
+     * in the order of the exercises, so the editor can write A1 and A2 by walking the list. An
+     * exercise that stands alone has no entry.
+     *
+     * <p>A side map instead of a field on the draft: the draft is built positionally by the domain
+     * and its tests, and most exercises have no group to put in it.
+     */
+    static Map<String, ExerciseGroup> toGroupsByExercise(List<TemplateExerciseEntity> exercises,
+                                                         List<TemplateGroupRow> groups) {
+        Map<String, ExerciseGroup> byGroupId = new HashMap<>();
+        for (TemplateGroupRow row : groups) {
+            byGroupId.put(row.id, toGroup(row));
+        }
+        Map<String, ExerciseGroup> byExerciseId = new LinkedHashMap<>();
+        for (TemplateExerciseEntity exercise : exercises) {
+            ExerciseGroup group = exercise.groupId == null ? null : byGroupId.get(exercise.groupId);
+            if (group != null) {
+                byExerciseId.put(exercise.id, group);
+            }
+        }
+        return Collections.unmodifiableMap(byExerciseId);
     }
 
     static TemplateSummary toSummary(TemplateSummaryRow row) {

@@ -18,6 +18,7 @@ import io.github.thiagojosetj.gym.domain.model.WeightUnit;
 import io.github.thiagojosetj.gym.domain.session.ActiveSession;
 import io.github.thiagojosetj.gym.domain.session.LoggedSet;
 import io.github.thiagojosetj.gym.domain.session.SessionExercise;
+import io.github.thiagojosetj.gym.domain.session.SessionGroup;
 import io.github.thiagojosetj.gym.domain.session.SetValues;
 import io.github.thiagojosetj.gym.ui.common.Durations;
 import io.github.thiagojosetj.gym.ui.common.NumberInput;
@@ -52,19 +53,29 @@ final class SessionRowBuilder {
         List<SessionRow> rows = new ArrayList<>();
         for (SessionExercise exercise : session.exercises()) {
             boolean isCollapsed = collapsed.contains(exercise.id());
+            SessionGroup group = session.groupOf(exercise.id());
+            int numberInGroup = group == null ? 0 : numberInGroup(session, group, exercise);
             rows.add(new SessionRow.ExerciseHeader(
                     "header:" + exercise.id(),
-                    exercise.name(),
+                    groupedName(exercise, group, numberInGroup),
+                    spokenGroupedName(exercise, group, numberInGroup),
                     exercise.completedSets(),
                     exercise.sets().size(),
                     isCollapsed,
                     emptyToNull(exercise.permanentNotes()),
-                    exercise.restSeconds() > 0 ? Durations.restLabel(exercise.restSeconds()) : null));
+                    restLabelOf(exercise, group)));
             if (isCollapsed) {
                 continue;
             }
             for (LoggedSet set : exercise.sets()) {
                 rows.add(setRow(exercise, set, drafts.get(set.id())));
+                // The drops follow their set, in order. Numbered from 1 and never counting the set:
+                // the set itself is the first step of a drop-set (PRODUCT_SPEC 9.1).
+                List<LoggedSet> segments = set.segments();
+                for (int i = 0; i < segments.size(); i++) {
+                    LoggedSet segment = segments.get(i);
+                    rows.add(segmentRow(exercise, set, segment, i + 1, drafts.get(segment.id())));
+                }
             }
             rows.add(new SessionRow.AddSet("add:" + exercise.id(), exercise.id(), exercise.name()));
         }
@@ -72,10 +83,83 @@ final class SessionRowBuilder {
     }
 
     private SessionRow.SetRow setRow(SessionExercise exercise, LoggedSet set, @Nullable SetDraft draft) {
-        boolean timed = exercise.trackingType().usesDuration() && !exercise.trackingType().usesReps();
-        boolean showWeight = exercise.trackingType().usesWeight();
+        boolean timed = isTimed(exercise);
+        Fields fields = fieldsOf(exercise, set, draft);
+        return new SessionRow.SetRow(
+                set.id(),
+                exercise.id(),
+                set.workingNumber(),
+                set.techniqueCode(),
+                plannedText(exercise, set, timed),
+                previousText(exercise, set, timed),
+                fields.showWeight(),
+                true,
+                fields.weightText(),
+                fields.repsText(),
+                fields.weightHint(),
+                fields.repsHint(),
+                fields.weightLabel(),
+                fields.repsLabel(),
+                fields.perSide(),
+                fields.repsLeftText(),
+                fields.repsRightText(),
+                fields.repsLeftHint(),
+                fields.repsRightHint(),
+                set.isCompleted(),
+                exercise.sets().size() > 1);
+    }
+
+    /**
+     * One drop of a set. Its fields come from the same {@link #fieldsOf} a set uses, so a draft, a
+     * suggestion and a confirmed value mean exactly the same thing on both rows.
+     */
+    private SessionRow.Segment segmentRow(SessionExercise exercise, LoggedSet parent,
+                                          LoggedSet segment, int index, @Nullable SetDraft draft) {
+        Fields fields = fieldsOf(exercise, segment, draft);
+        return new SessionRow.Segment(
+                segment.id(),
+                parent.id(),
+                index,
+                parent.workingNumber(),
+                fields.showWeight(),
+                fields.weightText(),
+                fields.repsText(),
+                fields.weightHint(),
+                fields.repsHint(),
+                fields.weightLabel(),
+                fields.repsLabel(),
+                fields.perSide(),
+                fields.repsLeftText(),
+                fields.repsRightText(),
+                fields.repsLeftHint(),
+                fields.repsRightHint(),
+                segment.isCompleted());
+    }
+
+    /** What a set row and a segment row have in common: the fields the user types into. */
+    private record Fields(
+            boolean showWeight,
+            String weightText,
+            String repsText,
+            String weightHint,
+            String repsHint,
+            String weightLabel,
+            String repsLabel,
+            boolean perSide,
+            String repsLeftText,
+            String repsRightText,
+            String repsLeftHint,
+            String repsRightHint) {
+    }
+
+    /**
+     * Worked out in ONE place for sets and for drops, because the rules in here are the ones this
+     * screen has already got wrong once (a confirmed row showing a draft). A second copy would be
+     * free to get them wrong again by itself.
+     */
+    private Fields fieldsOf(SessionExercise exercise, LoggedSet set, @Nullable SetDraft draft) {
+        boolean timed = isTimed(exercise);
         SetValues suggestion = set.suggestion();
-        String number = set.workingNumber() == null ? null : String.valueOf(set.workingNumber());
 
         // A confirmed set shows what is stored, never a draft: the row must not display a number
         // the database refused to keep.
@@ -86,24 +170,34 @@ final class SessionRowBuilder {
         String repsText = pending != null && pending.repsText() != null
                 ? pending.repsText()
                 : timed ? intOf(set.values().durationSeconds()) : intOf(set.values().reps());
+        // Per-side only makes sense for a unilateral exercise measured in repetitions: there is no
+        // left and right of a plank, and the domain rejects PER_SIDE on a bilateral exercise.
+        boolean perSide = !timed && exercise.isUnilateral() && isPerSide(exercise);
+        String repsLeftText = pending != null && pending.repsLeftText() != null
+                ? pending.repsLeftText()
+                : intOf(set.values().repsLeft());
+        String repsRightText = pending != null && pending.repsRightText() != null
+                ? pending.repsRightText()
+                : intOf(set.values().repsRight());
 
-        return new SessionRow.SetRow(
-                set.id(),
-                exercise.id(),
-                set.workingNumber(),
-                set.techniqueCode(),
-                plannedText(exercise, set, timed),
-                previousText(exercise, set, timed),
-                showWeight,
-                true,
+        return new Fields(
+                exercise.trackingType().usesWeight(),
                 weightText,
                 repsText,
                 weightOf(suggestion),
                 timed ? intOf(suggestion.durationSeconds()) : intOf(suggestion.reps()),
                 weightLabel(exercise),
                 res.getString(timed ? R.string.session_duration_hint : R.string.session_reps_hint),
-                set.isCompleted(),
-                exercise.sets().size() > 1);
+                perSide,
+                repsLeftText,
+                repsRightText,
+                sideSuggestion(suggestion, suggestion.repsLeft()),
+                sideSuggestion(suggestion, suggestion.repsRight()));
+    }
+
+    /** Measured in time only (a plank): its "reps" field holds seconds. */
+    private static boolean isTimed(SessionExercise exercise) {
+        return exercise.trackingType().usesDuration() && !exercise.trackingType().usesReps();
     }
 
     /** "Planejado: 12 reps · 40 kg" - what the template asked for, never overwritten. */
@@ -185,12 +279,60 @@ final class SessionRowBuilder {
         text.append(value);
     }
 
+    /** "A1 Supino reto" inside a group (PRODUCT_SPEC 6.3), the plain name otherwise. */
+    private String groupedName(SessionExercise exercise, @Nullable SessionGroup group, int number) {
+        if (group == null) {
+            return exercise.name();
+        }
+        return res.getString(R.string.editor_group_exercise_name, group.label(), number,
+                exercise.name());
+    }
+
+    /** "A1" is spelled out as a code by a screen reader, so it hears the words instead. */
+    private String spokenGroupedName(SessionExercise exercise, @Nullable SessionGroup group,
+                                     int number) {
+        if (group == null) {
+            return null;
+        }
+        return res.getString(R.string.editor_group_exercise_description, group.label(), number,
+                exercise.name());
+    }
+
+    /**
+     * The rest a grouped exercise actually obeys is the GROUP's, which starts when the round ends
+     * (PRODUCT_SPEC 6.3). Showing the exercise's own rest here would be a number the app never uses.
+     */
+    private String restLabelOf(SessionExercise exercise, @Nullable SessionGroup group) {
+        int seconds = group == null ? exercise.restSeconds() : group.restAfterRoundSeconds();
+        return seconds > 0 ? Durations.restLabel(seconds) : null;
+    }
+
+    /** 1-based position of this exercise among its group's members, in workout order. */
+    private static int numberInGroup(ActiveSession session, SessionGroup group,
+                                     SessionExercise exercise) {
+        List<SessionExercise> members = session.exercisesOfGroup(group.id());
+        for (int i = 0; i < members.size(); i++) {
+            if (members.get(i).id().equals(exercise.id())) {
+                return i + 1;
+            }
+        }
+        return 1;
+    }
+
     private static String emptyToNull(@Nullable String text) {
         return text == null || text.trim().isEmpty() ? null : text;
     }
 
-    /** Per-side logging is not editable in this slice; the flag decides what the row explains. */
     static boolean isPerSide(SessionExercise exercise) {
         return exercise.sideMode() == SideMode.PER_SIDE;
+    }
+
+    /**
+     * The hint for one side. When the suggestion already has that side (the last session was also
+     * logged per side) it is used as it is; otherwise the combined suggestion is shown, because on
+     * a unilateral exercise "10 reps" has always meant 10 per side (PRODUCT_SPEC 6.4).
+     */
+    private static String sideSuggestion(SetValues suggestion, Integer side) {
+        return intOf(side != null ? side : suggestion.reps());
     }
 }

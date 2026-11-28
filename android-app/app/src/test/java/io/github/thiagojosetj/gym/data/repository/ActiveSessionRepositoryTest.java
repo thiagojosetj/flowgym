@@ -436,6 +436,32 @@ public class ActiveSessionRepositoryTest {
     }
 
     @Test
+    public void aSessionTakenOutOfTheHistoryStopsBeingTheAnterior() throws Exception {
+        // The pointer to "the last time I did this exercise" is frozen when a session starts
+        // (ADR-0033). If that session is later removed from the history (HIS-05), the numbers it
+        // recorded must stop being shown: the screen would otherwise suggest a weight out of a
+        // workout the person deliberately said never counted.
+        String templateId = createTemplate("Push A", "Supino reto com barra");
+        String first = start(templateId);
+        confirm(first, loadSession(first).exercises().get(0).sets().get(0).id(),
+                new SetValues(kg(40), 10, null, null, null));
+        finish(first);
+
+        clock.advanceMinutes(60);
+        String second = start(templateId);
+        assertNotNull("ate aqui o anterior existe",
+                loadSession(second).exercises().get(0).sets().get(0).previous());
+
+        AtomicReference<Boolean> removed = new AtomicReference<>();
+        app.history.delete(first, removed::set, this::fail);
+        assertTrue("a sessao devia ter saido do historico", Boolean.TRUE.equals(removed.get()));
+
+        LoggedSet set = loadSession(second).exercises().get(0).sets().get(0);
+        assertNull("o anterior saiu do historico e nao pode mais ser mostrado", set.previous());
+        assertNull("e nem pre-preencher nada", set.suggestion().weight());
+    }
+
+    @Test
     public void aWarmUpAddedTodayDoesNotShiftWhatTheAnteriorColumnShows() throws Exception {
         String templateId = createTemplate("Push A", "Supino reto com barra");
         String first = start(templateId);

@@ -1,5 +1,9 @@
 package io.github.thiagojosetj.gym.domain.session;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import io.github.thiagojosetj.gym.domain.model.RepRange;
 import io.github.thiagojosetj.gym.domain.model.Weight;
 
@@ -13,6 +17,9 @@ import io.github.thiagojosetj.gym.domain.model.Weight;
  * @param countsAsWorkingSet false for a warm-up: out of volume and records (section 6.2)
  * @param values          what the user typed/confirmed; every field may be null
  * @param previous        the same set in the previous session, source of the suggestion; may be null
+ * @param segments        the later drops of a drop-set or rest-pause, in order. They belong to THIS
+ *                        set rather than standing beside it: their load and repetitions are summed
+ *                        into it, and the whole thing still counts as one set (ADR-0037)
  */
 public record LoggedSet(
         String id,
@@ -29,12 +36,21 @@ public record LoggedSet(
         SetStatus status,
         Long completedAt,
         String notes,
-        SetValues previous) {
+        SetValues previous,
+        List<LoggedSet> segments) {
 
     public LoggedSet {
         if (values == null) {
             values = SetValues.EMPTY;
         }
+        segments = segments == null
+                ? Collections.emptyList()
+                : Collections.unmodifiableList(new ArrayList<>(segments));
+    }
+
+    /** True when this set was taken past failure in drops (PRODUCT_SPEC section 9.1). */
+    public boolean hasSegments() {
+        return !segments.isEmpty();
     }
 
     public boolean isCompleted() {

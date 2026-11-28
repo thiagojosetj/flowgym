@@ -117,7 +117,8 @@ public class SessionRecoveryTest {
     /** A container over the same database file, as if the app had just been launched. */
     private AppContainer openApp() {
         database = Room.databaseBuilder(context(), AppDatabase.class, DB_NAME)
-                .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3)
+                .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3,
+                        AppDatabase.MIGRATION_3_4)
                 .allowMainThreadQueries()
                 .setQueryExecutor(Runnable::run)
                 .setTransactionExecutor(Runnable::run)

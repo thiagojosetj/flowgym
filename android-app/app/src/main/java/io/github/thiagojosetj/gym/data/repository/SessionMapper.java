@@ -5,6 +5,7 @@ import androidx.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -17,6 +18,7 @@ import io.github.thiagojosetj.gym.domain.session.ActiveSession;
 import io.github.thiagojosetj.gym.domain.session.LoggedSet;
 import io.github.thiagojosetj.gym.domain.session.SessionClock;
 import io.github.thiagojosetj.gym.domain.session.SessionExercise;
+import io.github.thiagojosetj.gym.domain.session.SessionGroup;
 import io.github.thiagojosetj.gym.domain.session.SessionHeader;
 import io.github.thiagojosetj.gym.domain.session.SetStatus;
 import io.github.thiagojosetj.gym.domain.session.SetValues;
@@ -35,20 +37,61 @@ final class SessionMapper {
     }
 
     static SessionHeader toHeader(SessionHeaderRow row) {
-        // A row where the session "ends before it starts" is possible: the device clock can move
-        // backwards mid-workout. Reading it must show a zero-length session, never throw - otherwise
-        // the session becomes unfinishable and, since only one may be active, the user cannot train
-        // again either (found in review, 28/09/2026).
-        Long endedAt = row.endedAt == null ? null : Math.max(row.startedAt, row.endedAt);
-        SessionClock clock = new SessionClock(row.startedAt, endedAt,
-                Math.max(0L, row.closedPausedMs), row.openPauseStartedAt);
+        SessionClock clock = toClock(row.startedAt, row.endedAt, row.closedPausedMs,
+                row.openPauseStartedAt);
         return new SessionHeader(row.id, row.templateId, row.name, row.notes, row.status, clock,
                 row.restSetLogId, row.restEndsAt, row.restRemainingMsWhenPaused);
     }
 
+    /**
+     * Builds the clock every session reading goes through, including the history list.
+     *
+     * <p>A row where the session "ends before it starts" is possible: the device clock can move
+     * backwards mid-workout. Reading it must show a zero-length session, never throw - otherwise the
+     * session becomes unfinishable and, since only one may be active, the user cannot train again
+     * either (found in review, 28/09/2026). The stored instants are never rewritten to hide it.
+     *
+     * <p>This is one method rather than two because a second copy of the clamp would eventually be
+     * the one that is missing it.
+     */
+    static SessionClock toClock(long startedAt, @Nullable Long endedAt, long closedPausedMs,
+                                @Nullable Long openPauseStartedAt) {
+        Long end = endedAt == null ? null : Math.max(startedAt, endedAt);
+        return new SessionClock(startedAt, end, Math.max(0L, closedPausedMs), openPauseStartedAt);
+    }
+
     static ActiveSession toSession(SessionHeaderRow header, List<ActiveSetRow> rows,
                                   List<PreviousSetRow> previousRows) {
-        return new ActiveSession(toHeader(header), toExercises(rows, previousRows));
+        return new ActiveSession(toHeader(header), toExercises(rows, previousRows), toGroups(rows));
+    }
+
+    /**
+     * The session's own snapshot of the group of each exercise that was in one, keyed by the
+     * session exercise's id. Beside the exercises rather than inside them: {@link SessionExercise}
+     * is built positionally here and in many tests, and an ungrouped exercise has nothing to put
+     * in it.
+     *
+     * <p>Reads only the group columns of the rows, so it can neither see nor disturb the sets, and
+     * therefore not the segments nested under them or the working-set numbering (ADR-0033).
+     */
+    static Map<String, SessionGroup> toGroups(@Nullable List<ActiveSetRow> rows) {
+        if (rows == null || rows.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<String, SessionGroup> groups = new LinkedHashMap<>(); // in exercise order
+        for (ActiveSetRow row : rows) {
+            if (row.groupId == null || groups.containsKey(row.sessionExerciseId)) {
+                continue; // stands alone, or already read from an earlier row of the same exercise
+            }
+            groups.put(row.sessionExerciseId, new SessionGroup(
+                    row.groupId,
+                    row.groupLabel == null ? "" : row.groupLabel,
+                    row.groupTechniqueId,
+                    row.groupTechniqueCode,
+                    row.groupRestAfterRoundSeconds == null ? 0 : row.groupRestAfterRoundSeconds,
+                    row.groupPosition == null ? 0 : row.groupPosition));
+        }
+        return groups;
     }
 
     static List<SessionExercise> toExercises(List<ActiveSetRow> rows, List<PreviousSetRow> previousRows) {
@@ -76,6 +119,21 @@ final class SessionMapper {
         List<PreviousSetRow> previous = first.previousSessionExerciseId == null
                 ? Collections.emptyList()
                 : previousByExercise.getOrDefault(first.previousSessionExerciseId, Collections.emptyList());
+
+        // Segments are nested into their set, never listed beside it. Splitting them off BEFORE
+        // anything else matters: the working-set numbering and the pairing with the previous
+        // session both count SETS (ADR-0033), so letting a drop through here would renumber every
+        // set after it and shift the whole "anterior" column by one.
+        List<ActiveSetRow> parents = new ArrayList<>(rows.size());
+        Map<String, List<ActiveSetRow>> segmentsByParent = new HashMap<>();
+        for (ActiveSetRow row : rows) {
+            if (row.setId == null || row.parentSetId == null) {
+                parents.add(row);
+            } else {
+                segmentsByParent.computeIfAbsent(row.parentSetId, key -> new ArrayList<>()).add(row);
+            }
+        }
+        rows = parents;
 
         List<Boolean> currentWorking = new ArrayList<>(rows.size());
         for (ActiveSetRow row : rows) {
@@ -119,7 +177,8 @@ final class SessionMapper {
                     row.status == null ? SetStatus.PENDING : row.status,
                     row.completedAt,
                     row.setNotes,
-                    previousValues));
+                    previousValues,
+                    toSegments(segmentsByParent.get(row.setId))));
         }
         return new SessionExercise(first.sessionExerciseId, first.exerciseId, first.exercisePosition,
                 first.exerciseName, first.trackingType, first.loadBasis, first.implementCount,
@@ -143,6 +202,40 @@ final class SessionMapper {
     }
 
     /** No technique means a normal working set; a technique decides through its catalog flag. */
+    /**
+     * The later drops of a drop-set or rest-pause, as sets nested inside their own set
+     * (PRODUCT_SPEC section 9.1). A segment carries no planned values and no "previous": it is a
+     * drop off the set above it, not something the template asked for on its own.
+     */
+    private static List<LoggedSet> toSegments(@Nullable List<ActiveSetRow> rows) {
+        if (rows == null || rows.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<LoggedSet> segments = new ArrayList<>(rows.size());
+        for (int i = 0; i < rows.size(); i++) {
+            ActiveSetRow row = rows.get(i);
+            segments.add(new LoggedSet(
+                    row.setId,
+                    row.setPosition == null ? i : row.setPosition,
+                    null,
+                    row.techniqueId,
+                    row.techniqueCode,
+                    isWorkingSet(row.techniqueId, row.techniqueCountsAsWorkingSet),
+                    null,
+                    null,
+                    null,
+                    0,
+                    new SetValues(weight(row.weightGrams), row.reps, row.repsLeft, row.repsRight,
+                            row.durationSeconds),
+                    row.status == null ? SetStatus.PENDING : row.status,
+                    row.completedAt,
+                    row.setNotes,
+                    null,
+                    Collections.emptyList()));
+        }
+        return segments;
+    }
+
     private static boolean isWorkingSet(@Nullable String techniqueId, @Nullable Integer countsFlag) {
         if (countsFlag != null) {
             return countsFlag != 0;
