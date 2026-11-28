@@ -31,9 +31,19 @@ Verde antes de **cada** commit. Qualquer achado de lint reprova, menos
 - Teste de mutação faz parte do trabalho, não é extra — veja `AGENTS.md` §7 e o script em
   `docs/HANDOVER.md`.
 
-## Quando o Claude está no papel de revisor
+## O papel do Claude aqui é **revisar** (decidido pelo dono em 28/11/2026)
 
-Este repositório usa o Claude também para **revisar** o que outro agente entregou. Nesse papel:
+O desenvolvimento deste projeto está com **outra IA**. O Claude neste repositório **não implementa
+features**: ele revisa o que a outra IA entregou e aponta erros, falhas de segurança, riscos de
+privacidade e melhorias. O prompt que a outra IA recebeu está em
+[`docs/PROMPT_PARA_A_PROXIMA_IA.md`](docs/PROMPT_PARA_A_PROXIMA_IA.md) — é o que ela prometeu
+cumprir, e portanto é parte do que se cobra na revisão.
+
+Isso **não** é uma proibição de mexer no código: é a ordem padrão. O Claude escreve código aqui
+quando o dono pede explicitamente, e quando pede uma correção de achado da revisão. Fora disso, a
+entrega do Claude é o **relatório**, não o commit.
+
+Nesse papel:
 
 1. Siga a **ADR-0028** como está descrita em `AGENTS.md` §11: três lentes independentes, um cético
    por achado cujo trabalho é refutá-lo, e só corrige o que sobrevive.
@@ -44,6 +54,24 @@ Este repositório usa o Claude também para **revisar** o que outro agente entre
    cumpre é um achado tão sério quanto um bug.
 5. Confira as armadilhas já pagas (`AGENTS.md` §8) uma a uma — elas voltam.
 6. Registre o que foi **refutado** e por quê. Achado derrubado não some: vira registro.
+7. **Segurança e privacidade em toda revisão**, não só quando o diff "parece" tocar nisso:
+   segredo versionado ou em log, `local.properties`/`*.jks`/token/`.env` no `git add -A`, a
+   primeira chamada de rede entrando sem ADR, SQL montado por concatenação de entrada do usuário,
+   `WebView`/`Intent` implícito recebendo dado de fora, `allowBackup`/`exported` abrindo dado do
+   usuário, dado pessoal em `Log`/crash/analytics, e permissão nova no manifest. Segredo
+   versionado é **incidente**, não achado: avise o dono antes de qualquer outra coisa.
+8. **Severidade em cada achado**, e a razão: bug que o diff introduziu, bug que já existia, ou
+   melhoria. Sem isso o dono não sabe o que é urgente.
+
+### O que o relatório de revisão tem de trazer
+
+- O **portão rodado pelo Claude**, com os números (testes, falhas, achados de lint).
+- As **mutações que o Claude tentou**, uma por uma, e quais **sobreviveram** — mutação que sobrevive
+  é achado contra o teste, não contra o código.
+- Cada achado com: onde (arquivo:linha), o que quebra, **como reproduzir**, severidade, e a
+  correção proposta.
+- Os achados **refutados**, com o motivo da refutação.
+- O que o Claude **não conseguiu verificar** e por quê (quase sempre: precisa de aparelho).
 
 ## Ambiente
 

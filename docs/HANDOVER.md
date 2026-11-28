@@ -19,6 +19,7 @@ aqui é o estado das coisas.
 | **Banco** | versão **4** |
 | **Último ADR** | **ADR-0042** (gráficos em `Canvas`) |
 | **Bloqueio principal** | a migração v3 → v4 **nunca foi rodada em aparelho com dados reais** |
+| **Quem desenvolve** | outra IA, a partir de [`PROMPT_PARA_A_PROXIMA_IA.md`](PROMPT_PARA_A_PROXIMA_IA.md). O Claude **revisa** (`CLAUDE.md`) |
 
 > ⚠️ **Nada neste projeto foi validado em aparelho.** Tudo foi provado em JVM/Robolectric. A lista
 > do que falta está em [`ROADMAP.md`](ROADMAP.md), seção "Pendências conhecidas".

@@ -39,6 +39,10 @@ flowgym/
 | 6 | `docs/DECISIONS.md` | os ADRs. **Toda** decisão estrutural está aqui |
 | 7 | `docs/ROADMAP.md` | o que está feito, o que falta, e o que falta **validar em aparelho** |
 
+O prompt que a IA responsável pelo desenvolvimento recebeu está em
+[`docs/PROMPT_PARA_A_PROXIMA_IA.md`](docs/PROMPT_PARA_A_PROXIMA_IA.md). Ele não repete as regras
+daqui: aponta para elas. Se você é essa IA, ele é o resumo do que você se comprometeu a cumprir.
+
 `README.md` é a vitrine do projeto para humanos; não é especificação.
 
 ---
