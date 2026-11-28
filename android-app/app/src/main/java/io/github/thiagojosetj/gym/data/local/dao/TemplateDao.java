@@ -29,8 +29,27 @@ import io.github.thiagojosetj.gym.domain.template.TemplateRules;
 @Dao
 public abstract class TemplateDao {
 
+    private static final String MINE_AND_NOT_DELETED_SQL =
+            "t.owner_user_id = " + CURRENT_USER_ID_SQL + " AND t.deleted_at IS NULL";
+
     private static final String ACTIVE_FOR_CURRENT_USER_SQL =
-            "t.owner_user_id = " + CURRENT_USER_ID_SQL + " AND t.deleted_at IS NULL AND t.archived_at IS NULL";
+            MINE_AND_NOT_DELETED_SQL + " AND t.archived_at IS NULL";
+
+    /** Archived is the same template, set aside: deleted is not archived, so both filters hold. */
+    private static final String ARCHIVED_FOR_CURRENT_USER_SQL =
+            MINE_AND_NOT_DELETED_SQL + " AND t.archived_at IS NOT NULL";
+
+    /** The summary projection, shared by the active list and the archived one. */
+    private static final String SUMMARY_SELECT_SQL =
+            "SELECT t.id, t.name, t.description, t.updated_at AS updatedAt,"
+                    + " (SELECT COUNT(*) FROM template_exercise te WHERE te.template_id = t.id) AS exerciseCount,"
+                    + " (SELECT COUNT(*) FROM template_set ts JOIN template_exercise te ON te.id = ts.template_exercise_id"
+                    + "     WHERE te.template_id = t.id) AS setCount,"
+                    + " (SELECT group_concat(DISTINCT COALESCE(p.name, m.name)) FROM template_exercise te"
+                    + "     JOIN exercise_muscle em ON em.exercise_id = te.exercise_id AND em.role = 'PRIMARY'"
+                    + "     JOIN muscle m ON m.id = em.muscle_id LEFT JOIN muscle p ON p.id = m.parent_id"
+                    + "     WHERE te.template_id = t.id) AS muscleGroups"
+                    + " FROM workout_template t WHERE ";
 
     /** A group with the badge of its technique joined in. Ends before the WHERE, for the caller. */
     private static final String GROUP_ROWS_SQL =
@@ -40,20 +59,19 @@ public abstract class TemplateDao {
                     + " FROM template_exercise_group g"
                     + " LEFT JOIN training_technique t ON t.id = g.technique_id";
 
-    @Query("SELECT t.id, t.name, t.description, t.updated_at AS updatedAt,"
-            + " (SELECT COUNT(*) FROM template_exercise te WHERE te.template_id = t.id) AS exerciseCount,"
-            + " (SELECT COUNT(*) FROM template_set ts JOIN template_exercise te ON te.id = ts.template_exercise_id"
-            + "     WHERE te.template_id = t.id) AS setCount,"
-            + " (SELECT group_concat(DISTINCT COALESCE(p.name, m.name)) FROM template_exercise te"
-            + "     JOIN exercise_muscle em ON em.exercise_id = te.exercise_id AND em.role = 'PRIMARY'"
-            + "     JOIN muscle m ON m.id = em.muscle_id LEFT JOIN muscle p ON p.id = m.parent_id"
-            + "     WHERE te.template_id = t.id) AS muscleGroups"
-            + " FROM workout_template t WHERE " + ACTIVE_FOR_CURRENT_USER_SQL
+    @Query(SUMMARY_SELECT_SQL + ACTIVE_FOR_CURRENT_USER_SQL
             + " ORDER BY t.sort_order, t.created_at")
     public abstract LiveData<List<TemplateSummaryRow>> observeActive();
 
+    /** Newest put away first: what was just archived is what somebody is most likely looking for. */
+    @Query(SUMMARY_SELECT_SQL + ARCHIVED_FOR_CURRENT_USER_SQL + " ORDER BY t.archived_at DESC")
+    public abstract LiveData<List<TemplateSummaryRow>> observeArchived();
+
     @Query("SELECT COUNT(*) FROM workout_template t WHERE " + ACTIVE_FOR_CURRENT_USER_SQL)
     public abstract LiveData<Integer> observeActiveCount();
+
+    @Query("SELECT COUNT(*) FROM workout_template t WHERE " + ARCHIVED_FOR_CURRENT_USER_SQL)
+    public abstract LiveData<Integer> observeArchivedCount();
 
     @Nullable
     @Query("SELECT * FROM workout_template t WHERE t.id = :id AND t.owner_user_id = " + CURRENT_USER_ID_SQL
@@ -222,6 +240,17 @@ public abstract class TemplateDao {
     @Query("UPDATE workout_template SET deleted_at = :now, updated_at = :now, sync_status = 'PENDING'"
             + " WHERE id = :id AND deleted_at IS NULL")
     public abstract int softDelete(String id, long now);
+
+    /**
+     * Puts a template away, or brings it back: {@code archivedAt} is the moment, or null to
+     * unarchive. One statement for both, because they are the same column and the same rule.
+     *
+     * <p>A deleted template is not reachable from here, and archiving says nothing about the
+     * sessions already trained from it - the history keeps its own snapshots (ADR-0036).
+     */
+    @Query("UPDATE workout_template SET archived_at = :archivedAt, updated_at = :now,"
+            + " sync_status = 'PENDING' WHERE id = :id AND deleted_at IS NULL")
+    public abstract int setArchived(String id, Long archivedAt, long now);
 
     @Insert
     abstract void insertTemplate(WorkoutTemplateEntity template);

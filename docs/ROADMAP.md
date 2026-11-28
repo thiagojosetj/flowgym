@@ -68,8 +68,34 @@ Legenda: ✅ concluído · 🟡 em andamento/parcial · ⬜ não iniciado.
     o teste criava o grupo sem método, então abrir a edição em branco dava no mesmo. Agora ele
     cria **com** método, que é o caso em que abrir em branco apagaria a escolha de quem só queria
     mudar o descanso.
-- ⬜ Técnicas de escopo exercício (pirâmides).
-- ⬜ Arquivar/desarquivar.
+  - ✅ **Arquivar/desarquivar treino** (28/11/2026): sem migração — `workout_template.archived_at`
+    existe desde a **v1** e todas as leituras já a filtravam; faltavam a escrita e um jeito de
+    **ver** o que foi arquivado, senão arquivar seria sumir em silêncio. "Arquivar" no menu do
+    card, Snackbar com **Desfazer**, entrada na toolbar com a contagem ("1 arquivado") que só
+    aparece quando há algo arquivado, barra identificando a lista arquivada, FAB escondido lá, e
+    o card arquivado **não** oferece treinar/editar/duplicar (duplicar criaria uma cópia ativa
+    invisível para quem está olhando os arquivados). PRODUCT_SPEC §6.3.1.
+    - Medido, não suposto: com ícone, `ActionMenuItemView` esconde o texto em largura de telefone
+      (`config_allowActionMenuItemTextWithIcon` = false), então `withText` era ignorado e a
+      contagem — o motivo de o item existir — ficava invisível. O item ficou **sem ícone**.
+    - Mutação: lista de arquivados ignorando `deleted_at`, lista ativa sem filtrar `archived_at`,
+      arquivar um treino excluído, não marcar `PENDING` para sync, ordem crescente, desarquivar
+      sem limpar `archived_at`, a contagem contando os ativos, as duas listas trocadas,
+      `showArchived` invertido, "Arquivar" não arquivando, FAB/barra/vazio errados, o card
+      arquivado ainda oferecendo treinar/duplicar e a entrada da toolbar sempre visível —
+      **todas matam** teste. Uma sobreviveu primeiro: eu checava a ausência do rótulo
+      "1 arquivado", mas com a contagem em zero o rótulo seria "0 arquivado", então o teste
+      passava sem provar nada. Agora a ausência é checada **pelo id** do item.
+    - Achado de lambuja: a mesma rodada de mutação mostrou que a guarda `deleted_at IS NULL` do
+      **softDelete** não tinha teste — excluir duas vezes movia o tombstone. Teste adicionado.
+- ⬜ **Validar no aparelho**: a entrada "2 arquivados" na toolbar com fonte ampliada, ao lado do
+  título "Treinos" — no Robolectric o texto mede 1 px por caractere, então o teste prova que o
+  rótulo está lá e **não** que ele cabe. E o Snackbar com "Desfazer" (o teste não o verifica: ver
+  o comentário no topo do `TemplateFlowTest`).
+- ⬜ Técnicas de escopo exercício (pirâmides). **Bloqueado na v5**: `template_exercise` não tem
+  coluna de técnica, então PIR e PIV seguem sem uso.
+- ⬜ Exercícios personalizados do usuário (o modelo já suporta: `exercise.owner_user_id` e
+  `is_active`). Sem migração.
 
 ### Fase 3 — Treino ativo 🟡
 - ✅ Banco na versão 3: `workout_session`, `session_pause`, `session_exercise`, `set_log`, com

@@ -569,6 +569,104 @@ public class TemplateFlowTest {
     }
 
     /** A linha de selos do card cujo título é exatamente este. */
+    // ------------------------------------------------------------------ arquivar (PRODUCT_SPEC 5.6)
+
+    @Test
+    public void arquivarTiraOTreinoDaListaSemOEsconderDoUsuario() {
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            createTemplate("Push A", SUPINO);
+            createTemplate("Pull A", SUPINO);
+
+            // Com nada arquivado a entrada da toolbar não existe: ela não abre uma lista vazia.
+            // Pelo id, não pelo rótulo: com a contagem em zero o rótulo seria "0 arquivado", e
+            // procurar por "1 arquivado" passaria sem provar nada (a mutação disse isso).
+            onView(withId(R.id.action_toggle_archived)).check(doesNotExist());
+
+            moreOf("Push A").perform(click());
+            onView(withText(R.string.template_action_archive)).perform(click());
+
+            // Saiu da lista, e a toolbar passa a dizer onde ele está.
+            onView(withText("Push A")).check(doesNotExist());
+            onView(withText("Pull A")).check(matches(isDisplayed()));
+            onView(withText("1 arquivado")).check(matches(isDisplayed()));
+        }
+    }
+
+    @Test
+    public void aListaDeArquivadosSeIdentificaEDesarquivarDevolveOTreino() {
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            createTemplate("Push A", SUPINO);
+            createTemplate("Pull A", SUPINO);
+            moreOf("Push A").perform(click());
+            onView(withText(R.string.template_action_archive)).perform(click());
+
+            onView(withText("1 arquivado")).perform(click());
+
+            // A barra diz qual lista é esta - o título da toolbar é "Treinos" nas duas -
+            // e "Novo treino" sai de cena: criaria na lista que não está à vista.
+            onView(withId(R.id.archived_banner)).check(matches(isDisplayed()));
+            onView(withId(R.id.fab_new)).check(matches(withEffectiveVisibility(Visibility.GONE)));
+            onView(withText("Push A")).check(matches(isDisplayed()));
+            onView(withText("Pull A")).check(doesNotExist());
+
+            moreOf("Push A").perform(click());
+            onView(withText(R.string.template_action_unarchive)).perform(click());
+
+            // Esvaziou a lista de arquivados, e o treino está de volta entre os ativos.
+            onView(withText("Push A")).check(doesNotExist());
+            onView(withText(R.string.templates_archived_empty_title)).check(matches(isDisplayed()));
+            onView(withText("Ativos")).perform(click());
+            onView(withText("Push A")).check(matches(isDisplayed()));
+            onView(withText("Pull A")).check(matches(isDisplayed()));
+            onView(withId(R.id.fab_new)).check(matches(isDisplayed()));
+        }
+    }
+
+    @Test
+    public void umTreinoArquivadoNaoOfereceTreinarEditarNemDuplicar() {
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            createTemplate("Push A", SUPINO);
+            moreOf("Push A").perform(click());
+            onView(withText(R.string.template_action_archive)).perform(click());
+            onView(withText("1 arquivado")).perform(click());
+
+            moreOf("Push A").perform(click());
+
+            // Duplicar aqui criaria uma cópia ATIVA enquanto o usuário olha os arquivados: a cópia
+            // apareceria em lugar nenhum. Para usar o treino, desarquive primeiro.
+            onView(withText(R.string.template_action_unarchive)).check(matches(isDisplayed()));
+            onView(withText(R.string.template_action_delete)).check(matches(isDisplayed()));
+            onView(withText(R.string.session_start)).check(doesNotExist());
+            onView(withText(R.string.template_action_edit)).check(doesNotExist());
+            onView(withText(R.string.template_action_duplicate)).check(doesNotExist());
+            onView(withText(R.string.template_action_archive)).check(doesNotExist());
+        }
+    }
+
+    @Test
+    public void aContagemDaToolbarAcompanhaQuantosEstaoArquivados() {
+        try (ActivityScenario<MainActivity> ignored = ActivityScenario.launch(MainActivity.class)) {
+            createTemplate("Push A", SUPINO);
+            createTemplate("Pull A", SUPINO);
+
+            moreOf("Push A").perform(click());
+            onView(withText(R.string.template_action_archive)).perform(click());
+            onView(withText("1 arquivado")).check(matches(isDisplayed()));
+
+            moreOf("Pull A").perform(click());
+            onView(withText(R.string.template_action_archive)).perform(click());
+
+            // Plural de verdade: "2 arquivados", e a lista ativa fica com a sua mensagem de vazio.
+            onView(withText("2 arquivados")).check(matches(isDisplayed()));
+            onView(withText(R.string.templates_empty_title)).check(matches(isDisplayed()));
+        }
+    }
+
+    /** The overflow button of the template card with this name (two cards, two buttons). */
+    private static androidx.test.espresso.ViewInteraction moreOf(String templateName) {
+        return onView(allOf(withId(R.id.button_more), hasSibling(withText(templateName))));
+    }
+
     private static Matcher<View> badgesOf(String cardTitle) {
         return allOf(withId(R.id.badges), hasSibling(withText(cardTitle)));
     }

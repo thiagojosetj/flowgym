@@ -14,8 +14,8 @@ aqui é o estado das coisas.
 | **O que é** | App de musculação **offline-first**, Android, **Java** + Views/XML + Material 3 |
 | **Estado** | 🟡 Dá para treinar com ele. Fases 0–4 feitas, Fase 5 feita em tudo que não toca no banco |
 | **Branch de trabalho** | `claude/determined-mccarthy-u3ttk4` |
-| **PR aberto** | [#1](https://github.com/thiagojosetj/flowgym/pull/1) contra `main`, 54 commits |
-| **Portão** | 550 testes (329 app + 221 domain), 0 falhas, lint só com o aviso de AGP |
+| **PR aberto** | [#1](https://github.com/thiagojosetj/flowgym/pull/1) contra `main` |
+| **Portão** | 570 testes (349 app + 221 domain), 0 falhas, lint só com o aviso de AGP |
 | **Banco** | versão **4** |
 | **Último ADR** | **ADR-0042** (gráficos em `Canvas`) |
 | **Bloqueio principal** | a migração v3 → v4 **nunca foi rodada em aparelho com dados reais** |
@@ -151,10 +151,12 @@ consegue responder.
 ### 4.3 Coisas que não precisam de aparelho nem de banco novo
 
 - **Fase 1**: ilustração do movimento por exercício (os 55 prompts já estão em
-  `docs/EXERCISE_ART.md`), ampliar o catálogo, exercícios personalizados.
-- **Fase 2**: escolher a técnica do grupo (SS/BI/TRI/GS existem no modelo e seguem sem uso),
-  editar descanso/técnica de um grupo depois de criado (`updateGroup` existe, sem interface),
-  arquivar/desarquivar templates, técnicas de escopo exercício (pirâmides).
+  `docs/EXERCISE_ART.md`), ampliar o catálogo, **exercícios personalizados** (o modelo já suporta:
+  `exercise.owner_user_id` e `is_active`; sem migração). É o maior item que ainda não depende de
+  nada do dono.
+- **Fase 2**: técnica do grupo, editar grupo depois de criado e **arquivar/desarquivar** já foram
+  feitos (27–28/11/2026). Sobra: técnicas de escopo **exercício** (pirâmides), e essa **precisa da
+  v5** — `template_exercise` não tem coluna de técnica, então PIR e PIV seguem sem uso.
 - **Fase 6 em diante**, se o dono quiser avançar em vez de fechar pendências.
 
 ### 4.4 Uma pendência de produto registrada, não resolvida

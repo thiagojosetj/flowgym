@@ -72,7 +72,7 @@ Os IDs abaixo são usados no ROADMAP, nos commits e nos testes. Estado atualizad
 - **LIB-06** (futuro) Exercícios personalizados do usuário (o modelo já suporta: `owner_user_id`).
 
 ### 4.2 Treinos / templates (Fase 2)
-- **TPL-01** Criar, editar, duplicar, arquivar e excluir treinos (exclusão lógica; histórico preservado).
+- **TPL-01** Criar, editar, duplicar, arquivar e excluir treinos (exclusão lógica; histórico preservado). Arquivar: §6.3.1.
 - **TPL-02** Adicionar exercícios pela biblioteca (seleção múltipla). Padrão ao adicionar: **3 séries × 12 repetições**, descanso padrão do app (90 s).
 - **TPL-03** Por exercício: séries planejadas (reps fixas ou faixa 8–10, carga opcional), descanso,
   observações permanentes ("Banco no terceiro encaixe").
@@ -415,6 +415,38 @@ um exercício com a primeira série de verdade do outro, encerraria a rodada ali
 descanso do grupo depois de um aquecimento — e todas as rodadas seguintes ficariam deslocadas
 pelo número de aquecimentos daquele exercício. Confirmar um aquecimento num grupo não inicia
 descanso de rodada (corrigido em 03/10/2026).
+
+### 6.3.1 Arquivar um treino (implementado em 28/11/2026)
+
+Um treino que saiu da rotina mas não deve ser perdido é **arquivado**, não excluído. Arquivar não é
+editar: o treino guarda **todos** os exercícios, séries, grupos e observações, e as sessões já
+treinadas a partir dele continuam intactas no histórico — elas têm os próprios snapshots
+(ADR-0036). Desarquivar devolve o treino exatamente como ele estava.
+
+Regras que a tela cumpre, pela razão de sempre (**nada desaparece em silêncio**):
+
+- **Arquivar tira o card da lista, então a lista tem de dizer para onde ele foi.** O Snackbar diz
+  "Treino arquivado" e oferece **Desfazer**; a toolbar passa a mostrar quantos estão arquivados
+  ("1 arquivado", "2 arquivados"), e é por ali que se chega à outra lista.
+- **A entrada da toolbar só existe quando há algo atrás dela.** Com zero arquivados ela não
+  aparece — um botão que abre uma lista vazia só ensina a não tocar nele. Na lista de arquivados
+  ela vira "Ativos", sempre, inclusive quando o último treino é desarquivado: senão a lista vazia
+  seria um beco sem saída.
+- **A lista de arquivados se identifica.** O título da toolbar é "Treinos" nas duas, então a lista
+  arquivada abre com uma barra dizendo o que é e que esses treinos ficam fora de Meus treinos.
+- **"Novo treino" sai de cena na lista de arquivados**, porque criaria na lista que não está à
+  vista.
+- **Um treino arquivado não oferece treinar, editar nem duplicar.** Para usar, desarquive primeiro.
+  Duplicar ali criaria uma cópia **ativa** enquanto o usuário olha os arquivados, e a cópia
+  apareceria em lugar nenhum — exatamente o desaparecimento silencioso que arquivar existe para
+  evitar.
+- **Arquivado ≠ excluído.** Um treino excluído não está em nenhuma das duas listas, e arquivar um
+  treino já excluído não faz nada.
+- **Os mais recém-arquivados vêm primeiro.** O que acabou de ser guardado é o que alguém mais
+  provavelmente está procurando.
+
+Sem migração: a coluna `workout_template.archived_at` existe desde a v1 e **todas** as leituras já
+a filtravam; faltavam a escrita e um jeito de **ver** o que foi arquivado.
 
 ### 6.4 Carga: halteres, unilateral e peso corporal
 - **Halteres (dois implementos):** registra-se o peso **de cada halter** ("12 kg por halter"). A UI

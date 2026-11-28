@@ -68,6 +68,22 @@ public final class TemplateRepository {
         });
     }
 
+    /** The templates put away. Same summary, read with the opposite filter. */
+    public LiveData<List<TemplateSummary>> observeArchived() {
+        return Transformations.map(dao.observeArchived(), rows -> {
+            List<TemplateSummary> result = new ArrayList<>(rows.size());
+            for (TemplateSummaryRow row : rows) {
+                result.add(TemplateMapper.toSummary(row));
+            }
+            return result;
+        });
+    }
+
+    /** How many are put away, so the list can offer to show them instead of hiding them. */
+    public LiveData<Integer> observeArchivedCount() {
+        return dao.observeArchivedCount();
+    }
+
     public LiveData<Integer> observeTemplateCount() {
         return dao.observeActiveCount();
     }
@@ -107,6 +123,20 @@ public final class TemplateRepository {
             });
             return copy.id();
         }, onCreated, onError);
+    }
+
+    /**
+     * Puts a template away without deleting it, or brings it back.
+     *
+     * <p>Archiving is not deleting and not editing: the template keeps every exercise, set and
+     * group it had, and the sessions already trained from it are untouched either way - they hold
+     * their own snapshots (ADR-0036). An unknown or already-deleted template changes nothing and
+     * still reports done, so a double tap is not an error.
+     */
+    public void setArchived(String templateId, boolean archived, Runnable onDone,
+                            Consumer<Throwable> onError) {
+        executors.runOnDisk(() -> dao.setArchived(templateId, archived ? clock.millis() : null,
+                clock.millis()), ignored -> onDone.run(), onError);
     }
 
     /** Logical delete: the template disappears from lists; sessions are untouched. */

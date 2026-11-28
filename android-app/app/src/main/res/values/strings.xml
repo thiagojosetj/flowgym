@@ -81,6 +81,24 @@
     <string name="template_deleted">Treino excluído</string>
     <string name="template_delete_title">Excluir treino?</string>
     <string name="template_delete_message">\"%s\" sairá da sua lista. Treinos já realizados continuam no histórico.</string>
+    <string name="template_action_archive">Arquivar</string>
+    <string name="template_action_unarchive">Desarquivar</string>
+    <string name="template_archived">Treino arquivado</string>
+    <string name="template_unarchived">Treino de volta em Meus treinos</string>
+    <string name="action_undo">Desfazer</string>
+    <!--
+        A contagem fica no próprio rótulo: o item só aparece quando há algo arquivado, e quem
+        arquivou precisa saber que o treino continua em algum lugar - não "sumiu".
+    -->
+    <plurals name="templates_archived_menu">
+        <item quantity="one">%d arquivado</item>
+        <item quantity="many">%d de arquivados</item>
+        <item quantity="other">%d arquivados</item>
+    </plurals>
+    <string name="templates_active_menu">Ativos</string>
+    <string name="templates_archived_banner">Arquivados · ficam fora de Meus treinos até você desarquivar</string>
+    <string name="templates_archived_empty_title">Nada arquivado</string>
+    <string name="templates_archived_empty_body">Treinos arquivados saem de Meus treinos sem perder exercícios, séries ou histórico.</string>
     <string name="template_operation_failed">Não foi possível concluir a ação. Tente novamente.</string>
 
     <!-- Library -->
